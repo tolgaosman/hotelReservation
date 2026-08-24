@@ -1,0 +1,68 @@
+PROJE GÖREV DOKÜMANI
+Otel Rezervasyon ve Konaklama Yönetim Sistemi
+Proje Amacı
+Stajyerin gerçek bir iş sürecini analiz etme, veritabanı tasarlama, backend API geliştirme, frontend arayüz oluşturma, doğrulama ve iş kurallarını uygulama becerilerini ölçmek amacıyla bir otel rezervasyon ve konaklama yönetim sistemi geliştirilecektir.
+Proje Süresi
+1 hafta. Projenin sonunda çalışan bir uygulama, kaynak kodu ve kısa teknik dokümantasyon teslim edilmelidir.
+1. Kullanıcı Rolleri
+•	Yönetici (Admin): Odaları, müşterileri, rezervasyonları ve ödemeleri yönetir.
+•	Personel: Rezervasyon oluşturabilir, müşterileri görüntüleyebilir ve check-in/check-out işlemlerini yapabilir.
+2. Oda Yönetimi
+•	Oda ekleme, düzenleme ve pasife alma
+•	Oda numarası
+•	Oda tipi: Standart, Deluxe, Suite vb.
+•	Kapasite
+•	Gecelik fiyat
+•	Oda özellikleri
+•	Oda durumu: Müsait, Dolu, Bakımda
+3. Müşteri Yönetimi
+•	Ad soyad
+•	Telefon
+•	E-posta
+•	Kimlik/pasaport numarası
+•	Müşteri geçmişindeki rezervasyonların görüntülenmesi
+4. Rezervasyon Yönetimi
+•	Giriş ve çıkış tarihi
+•	Oda seçimi
+•	Misafir sayısı
+•	Rezervasyon durumu: Beklemede, Onaylandı, İptal, Tamamlandı
+•	Toplam ücretin otomatik hesaplanması
+•	Rezervasyon oluşturma, güncelleme ve iptal
+•	Rezervasyon detay ekranı
+5. Müsaitlik ve Çakışma Kontrolü
+Kritik iş kuralı: Aynı oda, çakışan konaklama tarihleri için birden fazla aktif rezervasyona atanamamalıdır. Check-out tarihi ile yeni check-in tarihinin aynı gün olması desteklenmelidir.
+6. Check-in / Check-out
+•	Rezervasyondan check-in işlemi başlatılabilmeli
+•	Check-in yapılan rezervasyon konaklama durumuna geçmeli
+•	Check-out işlemi yapılabilmeli
+•	Check-out sonrasında oda tekrar müsait duruma gelebilmeli
+•	Geçmiş konaklamalar saklanmalı
+7. Ödeme Yönetimi
+•	Rezervasyon toplam tutarı
+•	Ödenen tutar
+•	Kalan tutar
+•	Ödeme kaydı oluşturma
+•	Bir rezervasyon için birden fazla ödeme alınabilmesi
+8. Yönetim Paneli / Dashboard
+•	Bugünkü girişler
+•	Bugünkü çıkışlar
+•	Müsait / dolu / bakımda oda sayıları
+•	Aktif rezervasyon sayısı
+•	Toplam tahsilat
+•	Basit tarih aralığına göre gelir raporu
+9. Teknik Beklentiler
+•	Veritabanı ilişkileri doğru şekilde tasarlanmalıdır.
+•	Backend tarafında validation uygulanmalıdır.
+•	Yetkilendirme yapılmalıdır.
+•	API cevapları tutarlı bir yapıda hazırlanmalıdır.
+•	Frontend tarafında loading, error ve empty state durumları düşünülmelidir.
+•	Formlarda kullanıcı hataları anlaşılır şekilde gösterilmelidir.
+•	Kod tekrarından mümkün olduğunca kaçınılmalıdır.
+•	README dosyasında kurulum ve çalıştırma adımları açıklanmalıdır.
+10. Ek Görevler (Opsiyonel)
+•	Rezervasyon oluşturulduğunda e-posta bildirimi
+•	Rezervasyon iptal edildiğinde bildirim
+•	Oda fotoğrafları
+•	Kupon/indirim sistemi
+•	Doluluk oranı grafiği
+•	Rezervasyon ve ödeme geçmişi için filtreleme ve pagination

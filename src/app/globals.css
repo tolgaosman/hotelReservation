@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --color-surface: #fbfbff;
+  --color-panel: #ffffff;
+  --color-ink: #040f16;
+  --color-muted: #72705b;
+  --color-border: #e7e5df;
+
+  --color-accent: #f39c6b;
+  --color-accent-ink: #7a3d17;
+  --color-accent-soft: #fdf0e6;
+
+  --color-danger: #561d25;
+  --color-danger-soft: #f6e9ea;
+
+  --color-success: #3f6b4a;
+  --color-success-soft: #eaf1ec;
+
+  --color-pending: #8a6d2f;
+  --color-pending-soft: #f8f1e2;
+
+  --ease-organic: cubic-bezier(0.32, 0.72, 0, 1);
+  --radius-card: 1rem;
+  --radius-control: 0.625rem;
+  --shadow-card: 0 1px 2px rgba(4, 15, 22, 0.04), 0 8px 24px -12px rgba(4, 15, 22, 0.10);
+  --shadow-card-hover: 0 2px 4px rgba(4, 15, 22, 0.05), 0 16px 32px -12px rgba(4, 15, 22, 0.14);
+}
+
+@theme inline {
+  --color-surface: var(--color-surface);
+  --color-panel: var(--color-panel);
+  --color-ink: var(--color-ink);
+  --color-muted: var(--color-muted);
+  --color-border: var(--color-border);
+
+  --color-accent: var(--color-accent);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-accent-soft: var(--color-accent-soft);
+
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
+
+  --color-success: var(--color-success);
+  --color-success-soft: var(--color-success-soft);
+
+  --color-pending: var(--color-pending);
+  --color-pending-soft: var(--color-pending-soft);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+* {
+  border-color: var(--color-border);
+}
