@@ -1,0 +1,104 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --canvas: #f4f5f3;
+  --surface: #ffffff;
+  --surface-alt: #f7f8f5;
+
+  --ink: #1a1d1a;
+  --ink-soft: #5a5f58;
+  --muted: #8b8f8a;
+
+  --line: #e8eae5;
+  --line-strong: #d6d9d1;
+
+  --accent: #1e3a8a;
+  --accent-hover: #1e40af;
+  --accent-soft: #dbeafe;
+  --accent-ink: #1e3a8a;
+  --mint: #c8e6d0;
+  --mint-soft: #e9f5ed;
+
+  --ok: #4e9e72;
+  --ok-soft: #e9f5ed;
+  --warn: #312e81;
+  --warn-soft: #e0e7ff;
+  --crit: #c25a4d;
+  --crit-soft: #fbecea;
+  --info: #6b8fa8;
+  --info-soft: #ecf2f6;
+
+  /* Choropleth: tek hue (lacivert, ~265°) sequential rampa — --geo-5 marka
+     lacivertiyle (--accent) birebir aynı, adımlar eşit algısal aralıkla. */
+  --geo-0: var(--line);
+  --geo-1: #bed3fe;
+  --geo-2: #a0baf2;
+  --geo-3: #7b98db;
+  --geo-4: #4d6cb9;
+  --geo-5: var(--accent);
+
+  --radius-card: 20px;
+  --radius-control: 12px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 3px rgba(26, 29, 26, 0.04), 0 8px 24px -12px rgba(26, 29, 26, 0.08);
+  --shadow-pop: 0 4px 12px rgba(26, 29, 26, 0.08), 0 16px 40px -16px rgba(26, 29, 26, 0.16);
+
+  --ease-organic: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-geo-0: var(--geo-0);
+  --color-geo-1: var(--geo-1);
+  --color-geo-2: var(--geo-2);
+  --color-geo-3: var(--geo-3);
+  --color-geo-4: var(--geo-4);
+  --color-geo-5: var(--geo-5);
+
+  --font-sans: var(--font-montserrat);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+  }
+
+  /* Numeric columns must stay aligned between rows regardless of digit width. */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+}
