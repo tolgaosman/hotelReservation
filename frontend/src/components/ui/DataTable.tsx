@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, type ReactNode } from "react";
-import { Filter } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Pagination } from "./Pagination";
 
@@ -7,11 +7,24 @@ export interface Column<T> {
   key: string;
   header: string;
   render: (row: T) => ReactNode;
-  align?: "left" | "right" | "center";
   className?: string;
   filterOptions?: { label: string; value: string }[];
   filterFn?: (row: T, filterValue: string) => boolean;
   filterFixedHeight?: boolean;
+  /** Presence of this makes the column header clickable to sort by the returned value. */
+  sortValue?: (row: T) => string | number;
+}
+
+type SortDir = "asc" | "desc";
+interface SortState {
+  key: string;
+  dir: SortDir;
+}
+
+function SortIndicator({ dir }: { dir: SortDir | null }) {
+  if (dir === "asc") return <ArrowUp size={12} />;
+  if (dir === "desc") return <ArrowDown size={12} />;
+  return <ArrowUpDown size={12} />;
 }
 
 interface DataTableProps<T> {
@@ -51,6 +64,8 @@ function ColumnFilter({
     <div className="relative ml-1.5 inline-block align-middle" ref={ref}>
       <button
         type="button"
+        aria-label="Sütunu filtrele"
+        aria-expanded={open}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
@@ -109,6 +124,7 @@ function ColumnFilter({
 export function DataTable<T>({ columns, rows, getRowKey, onRowClick, pageSize = 10 }: DataTableProps<T>) {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [sort, setSort] = useState<SortState | null>(null);
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
@@ -121,28 +137,65 @@ export function DataTable<T>({ columns, rows, getRowKey, onRowClick, pageSize = 
     });
   }, [rows, columns, filters]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const sortedRows = useMemo(() => {
+    if (!sort) return filteredRows;
+    const col = columns.find((c) => c.key === sort.key);
+    if (!col?.sortValue) return filteredRows;
+    const getValue = col.sortValue;
+    const sign = sort.dir === "asc" ? 1 : -1;
+    return [...filteredRows].sort((a, b) => {
+      const av = getValue(a);
+      const bv = getValue(b);
+      if (av < bv) return -sign;
+      if (av > bv) return sign;
+      return 0;
+    });
+  }, [filteredRows, sort, columns]);
+
+  // Three-state cycle per column: ascending -> descending -> back to the
+  // original (unsorted) order, so a user can always return to how the data
+  // was originally handed to the table.
+  function toggleSort(key: string) {
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: "asc" };
+      if (prev.dir === "asc") return { key, dir: "desc" };
+      return null;
+    });
+    setPage(1);
+  }
+
+  const pageCount = Math.max(1, Math.ceil(sortedRows.length / pageSize));
   const clampedPage = Math.min(page, pageCount);
-  const pageRows = filteredRows.slice((clampedPage - 1) * pageSize, clampedPage * pageSize);
+  const pageRows = sortedRows.slice((clampedPage - 1) * pageSize, clampedPage * pageSize);
 
   return (
     <div>
-      <div>
-        <table className="w-full min-w-full border-collapse text-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] table-fixed border-collapse text-sm">
           <thead>
             <tr className="bg-[var(--surface-alt)]">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={cn(
-                    "whitespace-nowrap px-6 py-3 text-[11px] font-semibold tracking-[0.04em] text-[var(--muted)] uppercase",
-                    col.align === "right" && "text-right",
-                    col.align === "left" && "text-left",
-                    (!col.align || col.align === "center") && "text-center"
-                  )}
+                  style={{ width: `${100 / columns.length}%` }}
+                  className="px-4 py-3 text-center text-[11px] font-semibold tracking-[0.04em] text-[var(--muted)] uppercase"
                 >
-                  <div className={cn("inline-flex items-center", col.align === "right" && "justify-end", col.align === "left" && "justify-start", (!col.align || col.align === "center") && "justify-center")}>
-                    {col.header}
+                  <div className="inline-flex items-center justify-center">
+                    {col.sortValue ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(col.key)}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-[var(--radius-pill)] px-1 py-0.5 transition-colors duration-150 hover:bg-[var(--surface)] hover:text-[var(--ink)]",
+                          sort?.key === col.key && "text-[var(--ink)]"
+                        )}
+                      >
+                        {col.header}
+                        <SortIndicator dir={sort?.key === col.key ? sort.dir : null} />
+                      </button>
+                    ) : (
+                      col.header
+                    )}
                     {col.filterOptions && (
                       <ColumnFilter
                         options={col.filterOptions}
@@ -172,13 +225,8 @@ export function DataTable<T>({ columns, rows, getRowKey, onRowClick, pageSize = 
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={cn(
-                      "whitespace-nowrap px-6 py-3.5 text-[var(--ink)]",
-                      col.align === "right" && "text-right tabular-nums",
-                      col.align === "left" && "text-left",
-                      (!col.align || col.align === "center") && "text-center",
-                      col.className
-                    )}
+                    style={{ width: `${100 / columns.length}%` }}
+                    className={cn("break-words px-4 py-3.5 text-center tabular-nums text-[var(--ink)]", col.className)}
                   >
                     {col.render(row)}
                   </td>

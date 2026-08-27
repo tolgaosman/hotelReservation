@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Button } from "@/components/ui/Button";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useStore } from "@/lib/store";
 import { getReservationViews } from "@/lib/selectors";
 import { ReservationsHeroBanner } from "@/components/reservations/ReservationsHeroBanner";
@@ -37,14 +38,20 @@ export default function ReservationsPage() {
       />
 
       <main className="flex-1 space-y-6 p-6 lg:p-8">
-        <ReservationsHeroBanner reservations={store.state.reservations} totalCollected={totalCollected} />
-        <ReservationsTable
-          reservations={views}
-          onRowClick={(r) => {
-            setSelectedId(r.id);
-            setDetailOpen(true);
-          }}
-        />
+        {store.hydrating ? (
+          <PageSkeleton />
+        ) : (
+          <>
+            <ReservationsHeroBanner reservations={store.state.reservations} totalCollected={totalCollected} />
+            <ReservationsTable
+              reservations={views}
+              onRowClick={(r) => {
+                setSelectedId(r.id);
+                setDetailOpen(true);
+              }}
+            />
+          </>
+        )}
       </main>
 
       <ReservationDrawer open={creating} onClose={() => setCreating(false)} />

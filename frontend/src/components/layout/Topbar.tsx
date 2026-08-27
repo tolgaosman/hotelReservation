@@ -16,15 +16,6 @@ export function Topbar({ title, subtitle, action }: TopbarProps) {
 
       <div className="flex items-center gap-3">
         {action}
-        <div className="hidden items-center gap-2 rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 sm:flex w-56">
-          <Search size={14} className="text-[var(--muted)]" />
-          <input
-            type="text"
-            placeholder="Ara..."
-            className="w-full bg-transparent text-xs text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
-          />
-        </div>
-
       </div>
     </header>
   );

@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { matchesQuery } from "@/lib/utils";
 import type { PaymentStatus, ReservationView } from "@/lib/types";
 
 function paymentStatusOf(r: ReservationView): PaymentStatus {
@@ -27,27 +28,25 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
   const [query, setQuery] = useState("");
 
   const filteredByQuery = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     if (q.length === 0) return reservations;
-    return reservations.filter((r) => {
-      return r.guest.fullName.toLowerCase().includes(q) || r.room.number.toLowerCase().includes(q);
-    });
+    return reservations.filter((r) => matchesQuery(r.guest.fullName, q) || matchesQuery(r.room.number, q));
   }, [reservations, query]);
 
   const columns: Column<ReservationView>[] = [
-    { key: "guest", header: "Misafir", render: (r) => <span className="text-[var(--ink)] font-medium">{r.guest.fullName}</span> },
-    { key: "room", header: "Oda", render: (r) => <span className="text-[var(--accent)] font-bold">{r.room.number}</span> },
-    { key: "total", header: "Toplam", render: (r) => <span className="text-[var(--ink)] font-medium tabular-nums">{formatCurrency(r.totalAmount)}</span>, align: "right" },
-    { key: "paid", header: "Ödenen", render: (r) => <span className="text-[var(--ok)] font-medium tabular-nums">{formatCurrency(r.paidAmount)}</span>, align: "right" },
+    { key: "guest", header: "Misafir", sortValue: (r) => r.guest.fullName.toLocaleLowerCase("tr-TR"), render: (r) => <span className="text-[var(--ink)] font-medium">{r.guest.fullName}</span> },
+    { key: "room", header: "Oda", sortValue: (r) => r.room.number, render: (r) => <span className="text-[var(--accent)] font-bold">{r.room.number}</span> },
+    { key: "total", header: "Toplam", sortValue: (r) => r.totalAmount, render: (r) => <span className="text-[var(--ink)] font-medium tabular-nums">{formatCurrency(r.totalAmount)}</span> },
+    { key: "paid", header: "Ödenen", sortValue: (r) => r.paidAmount, render: (r) => <span className="text-[var(--ok)] font-medium tabular-nums">{formatCurrency(r.paidAmount)}</span> },
     {
       key: "balance",
       header: "Bakiye",
-      align: "right",
+      sortValue: (r) => r.balance,
       render: (r) => (
         <span className={r.balance > 0 ? "font-medium text-[var(--crit)] tabular-nums" : "text-[var(--muted)] tabular-nums"}>{formatCurrency(r.balance)}</span>
       ),
     },
-    { key: "date", header: "Tarih", render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.createdAt)}</span> },
+    { key: "date", header: "Tarih", sortValue: (r) => r.createdAt, render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.createdAt)}</span> },
     { 
       key: "status", 
       header: "Durum", 

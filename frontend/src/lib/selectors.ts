@@ -85,14 +85,6 @@ export function getDashboardStats(store: Store): DashboardStats {
   };
 }
 
-const RANGE_DAYS: Record<RevenueRange, number> = { "7g": 7, "30g": 30, "6a": 182, "12a": 365 };
-const RANGE_LABEL_STYLE: Record<RevenueRange, "day" | "week" | "month"> = {
-  "7g": "day",
-  "30g": "day",
-  "6a": "week",
-  "12a": "month",
-};
-
 function isoDate(offset: number): string {
   const d = new Date(TODAY_ISO);
   d.setDate(d.getDate() + offset);
@@ -103,16 +95,38 @@ function isoDate(offset: number): string {
   ].join("-");
 }
 
-export function getRevenueSeries(store: Store, range: RevenueRange): RevenuePoint[] {
-  const days = RANGE_DAYS[range];
-  const style = RANGE_LABEL_STYLE[range];
+function daysSince(iso: string): number {
+  const diff = new Date(TODAY_ISO).getTime() - new Date(iso).getTime();
+  return Math.round(diff / 86_400_000);
+}
+
+/** Gün farkı olarak, depoda gerçekten veri bulunan en eski kaydın yaşı. */
+export function getDataSpanDays(store: Store): number {
+  const oldest = [...store.reservations.map((r) => r.createdAt), ...store.payments.map((p) => p.createdAt)]
+    .reduce<string | null>((min, iso) => (min === null || iso < min ? iso : min), null);
+  if (!oldest) return 7;
+  return Math.max(daysSince(oldest), 0);
+}
+
+/**
+ * Seçilen periyodu, gerçekten veri bulunan aralıkla sınırlar; böylece "6 Ay" /
+ * "1 Yıl" / "Tüm Zamanlar" gibi geniş seçimler, mock veride karşılığı olmayan
+ * uzun boş (sıfır) haftalar/aylar üretmez.
+ */
+export function clampDaysToData(store: Store, days: number): number {
+  const span = getDataSpanDays(store);
+  return Math.max(Math.min(days, span + 1), 7);
+}
+
+export function getRevenueSeries(store: Store, days = 30): RevenuePoint[] {
   const byDay = new Map<string, number>();
   for (const p of store.payments) {
     byDay.set(p.createdAt, (byDay.get(p.createdAt) ?? 0) + p.amount);
   }
 
-  if (style === "day") {
-    const points: RevenuePoint[] = [];
+  const points: RevenuePoint[] = [];
+
+  if (days <= 31) {
     for (let i = days - 1; i >= 0; i--) {
       const iso = isoDate(-i);
       points.push({
@@ -121,11 +135,7 @@ export function getRevenueSeries(store: Store, range: RevenueRange): RevenuePoin
         amount: byDay.get(iso) ?? 0,
       });
     }
-    return points;
-  }
-
-  if (style === "week") {
-    const points: RevenuePoint[] = [];
+  } else if (days <= 182) {
     const weeks = Math.ceil(days / 7);
     for (let w = weeks - 1; w >= 0; w--) {
       const start = -((w + 1) * 7 - 1);
@@ -138,36 +148,83 @@ export function getRevenueSeries(store: Store, range: RevenueRange): RevenuePoin
         amount,
       });
     }
-    return points;
-  }
-
-  // month buckets
-  const points: RevenuePoint[] = [];
-  for (let m = 11; m >= 0; m--) {
-    const monthStart = -((m + 1) * 30 - 1);
-    const monthEnd = -(m * 30);
-    let amount = 0;
-    for (let i = monthStart; i <= monthEnd; i++) amount += byDay.get(isoDate(i)) ?? 0;
-    points.push({
-      date: isoDate(monthEnd),
-      label: new Date(isoDate(monthEnd)).toLocaleDateString("tr-TR", { month: "short" }),
-      amount,
-    });
+  } else {
+    const months = Math.ceil(days / 30);
+    for (let m = months - 1; m >= 0; m--) {
+      const start = -((m + 1) * 30 - 1);
+      const end = -(m * 30);
+      let amount = 0;
+      for (let i = start; i <= end; i++) amount += byDay.get(isoDate(i)) ?? 0;
+      points.push({
+        date: isoDate(end),
+        label: new Date(isoDate(end)).toLocaleDateString("tr-TR", { month: "short", year: "2-digit" }),
+        amount,
+      });
+    }
   }
   return points;
 }
 
 export function getReservationsSeries(store: Store, days = 7): ReservationsPoint[] {
+  const byDay = new Map<string, { confirmed: number, cancelled: number }>();
+  for (const r of store.reservations) {
+    if (!byDay.has(r.createdAt)) byDay.set(r.createdAt, { confirmed: 0, cancelled: 0 });
+    const stat = byDay.get(r.createdAt)!;
+    if (r.status === "cancelled") stat.cancelled++;
+    else stat.confirmed++;
+  }
+
   const points: ReservationsPoint[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const iso = isoDate(-i);
-    const createdThatDay = store.reservations.filter((r) => r.createdAt === iso);
-    points.push({
-      date: iso,
-      label: new Date(iso).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
-      confirmed: createdThatDay.filter((r) => r.status !== "cancelled").length,
-      cancelled: createdThatDay.filter((r) => r.status === "cancelled").length,
-    });
+
+  if (days <= 31) {
+    for (let i = days - 1; i >= 0; i--) {
+      const iso = isoDate(-i);
+      const stat = byDay.get(iso) || { confirmed: 0, cancelled: 0 };
+      points.push({
+        date: iso,
+        label: new Date(iso).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+        confirmed: stat.confirmed,
+        cancelled: stat.cancelled,
+      });
+    }
+  } else if (days <= 182) {
+    const weeks = Math.ceil(days / 7);
+    for (let w = weeks - 1; w >= 0; w--) {
+      const start = -((w + 1) * 7 - 1);
+      const end = -(w * 7);
+      let confirmed = 0;
+      let cancelled = 0;
+      for (let i = start; i <= end; i++) {
+        const stat = byDay.get(isoDate(i)) || { confirmed: 0, cancelled: 0 };
+        confirmed += stat.confirmed;
+        cancelled += stat.cancelled;
+      }
+      points.push({
+        date: isoDate(end),
+        label: new Date(isoDate(end)).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+        confirmed,
+        cancelled,
+      });
+    }
+  } else {
+    const months = Math.ceil(days / 30);
+    for (let m = months - 1; m >= 0; m--) {
+      const start = -((m + 1) * 30 - 1);
+      const end = -(m * 30);
+      let confirmed = 0;
+      let cancelled = 0;
+      for (let i = start; i <= end; i++) {
+        const stat = byDay.get(isoDate(i)) || { confirmed: 0, cancelled: 0 };
+        confirmed += stat.confirmed;
+        cancelled += stat.cancelled;
+      }
+      points.push({
+        date: isoDate(end),
+        label: new Date(isoDate(end)).toLocaleDateString("tr-TR", { month: "short", year: "2-digit" }),
+        confirmed,
+        cancelled,
+      });
+    }
   }
   return points;
 }

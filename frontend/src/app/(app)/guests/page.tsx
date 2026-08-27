@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Button } from "@/components/ui/Button";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useStore } from "@/lib/store";
 import { getGuestSummaries } from "@/lib/selectors";
 import { GuestsHeroBanner } from "@/components/guests/GuestsHeroBanner";
@@ -33,14 +34,20 @@ export default function GuestsPage() {
       />
 
       <main className="flex-1 space-y-6 p-6 lg:p-8">
-        <GuestsHeroBanner guests={guests} />
-        <GuestsTable
-          guests={guests}
-          onRowClick={(g) => {
-            setSelectedId(g.id);
-            setDrawerOpen(true);
-          }}
-        />
+        {store.hydrating ? (
+          <PageSkeleton />
+        ) : (
+          <>
+            <GuestsHeroBanner guests={guests} />
+            <GuestsTable
+              guests={guests}
+              onRowClick={(g) => {
+                setSelectedId(g.id);
+                setDrawerOpen(true);
+              }}
+            />
+          </>
+        )}
       </main>
 
       <GuestDrawer open={creating} onClose={() => setCreating(false)} />

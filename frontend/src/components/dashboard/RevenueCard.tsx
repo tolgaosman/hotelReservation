@@ -9,13 +9,6 @@ import { getRevenueSeries } from "@/lib/selectors";
 import { cn } from "@/lib/utils";
 import type { Guest, Payment, Reservation, RevenueRange, Room } from "@/lib/types";
 
-const RANGES: { value: RevenueRange; label: string }[] = [
-  { value: "7g", label: "7G" },
-  { value: "30g", label: "30G" },
-  { value: "6a", label: "6A" },
-  { value: "12a", label: "12A" },
-];
-
 function ChartTooltip({ active, payload, label }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
   return (
@@ -28,32 +21,27 @@ function ChartTooltip({ active, payload, label }: TooltipContentProps) {
 
 export function RevenueCard({
   store,
+  days,
+  subtitle,
+  className,
 }: {
   store: { rooms: Room[]; guests: Guest[]; reservations: Reservation[]; payments: Payment[] };
+  days: number;
+  subtitle?: string;
+  className?: string;
 }) {
-  const [range, setRange] = useState<RevenueRange>("30g");
-  const data = getRevenueSeries(store, range);
+  const data = getRevenueSeries(store, days);
   const total = data.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <Card
       title="Gelir Raporu"
-      subtitle={formatCurrency(total)}
+      subtitle={subtitle || "Son 7 gün"}
+      className={className}
       action={
-        <div className="flex rounded-[var(--radius-control)] bg-[var(--surface-alt)] p-0.5">
-          {RANGES.map((r) => (
-            <button
-              key={r.value}
-              onClick={() => setRange(r.value)}
-              className={cn(
-                "rounded-[calc(var(--radius-control)-2px)] px-2 py-1 text-[11px] font-semibold transition-colors",
-                range === r.value ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm" : "text-[var(--muted)]"
-              )}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
+        <span className="text-sm font-bold text-[var(--accent)] bg-[var(--accent-soft)] px-2 py-1 rounded-md">
+          {formatCurrency(total)}
+        </span>
       }
     >
       <div className="flex-1 w-full min-h-[150px] px-2 pb-4 pt-4">
@@ -65,13 +53,7 @@ export function RevenueCard({
                 <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "var(--muted)", fontSize: 10 }}
-              interval={Math.ceil(data.length / 6)}
-            />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={false} height={0} />
             <Tooltip content={(props) => <ChartTooltip {...props} />} cursor={{ stroke: "var(--line-strong)", strokeDasharray: "3 3" }} />
             <Area
               type="monotone"

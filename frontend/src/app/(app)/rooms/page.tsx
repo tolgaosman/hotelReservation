@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Button } from "@/components/ui/Button";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useStore } from "@/lib/store";
 import { getRoomStats } from "@/lib/selectors";
 import { RoomsHeroBanner } from "@/components/rooms/RoomsHeroBanner";
@@ -42,17 +43,23 @@ export default function RoomsPage() {
       />
 
       <main className="flex-1 space-y-6 p-6 lg:p-8">
-        <RoomsHeroBanner rooms={activeRooms} reservations={store.state.reservations} />
-        
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <RoomStatusGrid rooms={activeRooms} onSelect={openRoom} />
-          </div>
-          <div className="lg:col-span-1">
-            <RoomsStatsGrid stats={stats} />
-          </div>
-        </div>
-        <RoomsTable rooms={activeRooms} onRowClick={openRoom} />
+        {store.hydrating ? (
+          <PageSkeleton />
+        ) : (
+          <>
+            <RoomsHeroBanner rooms={activeRooms} reservations={store.state.reservations} />
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <RoomStatusGrid rooms={activeRooms} onSelect={openRoom} />
+              </div>
+              <div className="lg:col-span-1">
+                <RoomsStatsGrid stats={stats} />
+              </div>
+            </div>
+            <RoomsTable rooms={activeRooms} onRowClick={openRoom} />
+          </>
+        )}
       </main>
 
       <RoomDrawer open={creating} onClose={() => setCreating(false)} />

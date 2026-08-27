@@ -8,6 +8,7 @@ import {
   useMemo,
   useReducer,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import { GUESTS, PAYMENTS, RESERVATIONS, ROOMS, TODAY_ISO } from "./data";
@@ -19,6 +20,7 @@ import type {
   PaymentMethod,
   Reservation,
   Room,
+  RoomStatus,
   RoomType,
 } from "./types";
 
@@ -63,6 +65,8 @@ function nextId(prefix: string): string {
 interface StoreApi {
   state: StoreState;
   todayIso: string;
+  /** True until the persisted session (if any) has been loaded from localStorage. */
+  hydrating: boolean;
   createReservation(input: {
     guestId: string;
     roomId: string;
@@ -88,7 +92,7 @@ interface StoreApi {
   }): FormResult;
   updateRoom(
     id: string,
-    input: { number: string; type: RoomType; capacity: number; nightlyRate: number; amenities: string[] }
+    input: { number: string; type: RoomType; capacity: number; nightlyRate: number; amenities: string[]; status: RoomStatus }
   ): FormResult;
   deactivateRoom(id: string): FormResult;
   createGuest(input: Omit<Guest, "id">): FormResult;
@@ -106,6 +110,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     stateRef.current = state;
   });
   const hydrated = useRef(false);
+  const [hydrating, setHydrating] = useState(true);
 
   // Load any persisted session on mount. The server (and the first client
   // render) always start from the fixed seed so hydration never mismatches;
@@ -123,6 +128,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Corrupt or missing storage — fall back to seed data silently.
     } finally {
       hydrated.current = true;
+      setHydrating(false);
     }
   }, []);
 
@@ -143,6 +149,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return {
       state,
       todayIso: TODAY_ISO,
+      hydrating,
 
       createReservation(input) {
         const s = stateRef.current;
@@ -336,7 +343,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ok: true };
       },
     };
-  }, [state, set]);
+  }, [state, set, hydrating]);
 
   return <StoreContext.Provider value={api}>{children}</StoreContext.Provider>;
 }

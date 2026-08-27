@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrency } from "@/lib/format";
+import { matchesQuery } from "@/lib/utils";
 import type { GuestSummary } from "@/lib/types";
 
 function initials(fullName: string): string {
@@ -16,9 +17,9 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
   const [query, setQuery] = useState("");
 
   const filteredByQuery = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     if (q.length === 0) return guests;
-    return guests.filter((g) => g.fullName.toLowerCase().includes(q) || g.email.toLowerCase().includes(q));
+    return guests.filter((g) => matchesQuery(g.fullName, q) || matchesQuery(g.email, q));
   }, [guests, query]);
 
   const COUNTRIES = useMemo(() => {
@@ -30,8 +31,9 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
     {
       key: "guest",
       header: "Misafir",
+      sortValue: (g) => g.fullName.toLocaleLowerCase("tr-TR"),
       render: (g) => (
-        <div className="flex items-center justify-start gap-2.5">
+        <div className="flex items-center justify-center gap-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent-ink)]">
             {initials(g.fullName)}
           </span>
@@ -39,9 +41,9 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
         </div>
       ),
     },
-    { 
-      key: "country", 
-      header: "Ülke", 
+    {
+      key: "country",
+      header: "Ülke",
       render: (g) => <span className="text-[var(--ink)]">{g.country}</span>,
       filterOptions: COUNTRIES,
       filterFn: (g, val) => g.country === val,
@@ -49,8 +51,8 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
     },
     { key: "phone", header: "Telefon", render: (g) => <span className="text-[var(--muted)] tabular-nums">{g.phone}</span> },
     { key: "email", header: "E-posta", render: (g) => <span className="text-[var(--accent)] font-medium">{g.email}</span> },
-    { key: "bookings", header: "Rezervasyon", render: (g) => <span className="text-[var(--info)] font-bold">{g.totalBookings}</span>, align: "center" },
-    { key: "spent", header: "Toplam Harcama", render: (g) => <span className="text-[var(--ok)] font-medium">{formatCurrency(g.totalSpent)}</span>, align: "right" },
+    { key: "bookings", header: "Rezervasyon", sortValue: (g) => g.totalBookings, render: (g) => <span className="text-[var(--info)] font-bold">{g.totalBookings}</span> },
+    { key: "spent", header: "Toplam Harcama", sortValue: (g) => g.totalSpent, render: (g) => <span className="text-[var(--ok)] font-medium">{formatCurrency(g.totalSpent)}</span> },
   ];
 
   return (

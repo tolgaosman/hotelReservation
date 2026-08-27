@@ -44,7 +44,7 @@ export function RoomStatusGrid({ rooms, onSelect }: { rooms: Room[]; onSelect: (
       <div className="relative mt-2 h-[380px]">
         <div className="absolute inset-0 overflow-y-auto pb-24 scrollbar-hide">
           <div className="grid grid-cols-6 gap-2.5 sm:grid-cols-8 md:grid-cols-9 lg:grid-cols-11 xl:grid-cols-11">
-            {rooms.map((room) => {
+            {[...rooms].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })).map((room) => {
               const displayNum = room.number.length === 1 ? `0${room.number}` : room.number;
               
               return (

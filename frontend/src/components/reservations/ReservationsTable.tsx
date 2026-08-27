@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { matchesQuery } from "@/lib/utils";
 import type { ReservationStatus, ReservationView } from "@/lib/types";
 
 const STATUS_FILTERS: { value: ReservationStatus | "all"; label: string }[] = [
@@ -29,24 +30,22 @@ export function ReservationsTable({
   const [query, setQuery] = useState("");
 
   const filteredByQuery = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     if (q.length === 0) return reservations;
-    return reservations.filter((r) => {
-      return r.guest.fullName.toLowerCase().includes(q) || r.room.number.toLowerCase().includes(q);
-    });
+    return reservations.filter((r) => matchesQuery(r.guest.fullName, q) || matchesQuery(r.room.number, q));
   }, [reservations, query]);
 
   const columns: Column<ReservationView>[] = [
-    { key: "guest", header: "Misafir", render: (r) => <span className="text-[var(--ink)] font-medium">{r.guest.fullName}</span> },
-    { key: "room", header: "Oda", render: (r) => <span className="text-[var(--accent)] font-bold">{r.room.number}</span> },
-    { key: "guests", header: "Kişi", render: (r) => <span className="text-[var(--info)] font-bold">{r.guestCount}</span>, align: "center" },
-    { key: "checkIn", header: "Giriş", render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.checkIn)}</span> },
-    { key: "checkOut", header: "Çıkış", render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.checkOut)}</span> },
-    { key: "total", header: "Tutar", render: (r) => <span className="text-[var(--ink)] font-medium">{formatCurrency(r.totalAmount)}</span>, align: "right" },
+    { key: "guest", header: "Misafir", sortValue: (r) => r.guest.fullName.toLocaleLowerCase("tr-TR"), render: (r) => <span className="text-[var(--ink)] font-medium">{r.guest.fullName}</span> },
+    { key: "room", header: "Oda", sortValue: (r) => r.room.number, render: (r) => <span className="text-[var(--accent)] font-bold">{r.room.number}</span> },
+    { key: "guests", header: "Kişi", sortValue: (r) => r.guestCount, render: (r) => <span className="text-[var(--info)] font-bold">{r.guestCount}</span> },
+    { key: "checkIn", header: "Giriş", sortValue: (r) => r.checkIn, render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.checkIn)}</span> },
+    { key: "checkOut", header: "Çıkış", sortValue: (r) => r.checkOut, render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.checkOut)}</span> },
+    { key: "total", header: "Tutar", sortValue: (r) => r.totalAmount, render: (r) => <span className="text-[var(--ink)] font-medium">{formatCurrency(r.totalAmount)}</span> },
     {
       key: "balance",
       header: "Bakiye",
-      align: "right",
+      sortValue: (r) => r.balance,
       render: (r) => (
         <span className={r.balance > 0 ? "font-medium text-[var(--crit)]" : "text-[var(--muted)]"}>
           {formatCurrency(r.balance)}

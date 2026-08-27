@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Button } from "@/components/ui/Button";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useStore } from "@/lib/store";
 import { getPaymentStats, getReservationViews } from "@/lib/selectors";
 import { PaymentsHeroBanner } from "@/components/payments/PaymentsHeroBanner";
@@ -38,14 +39,20 @@ export default function PaymentsPage() {
       />
 
       <main className="flex-1 space-y-6 p-6 lg:p-8">
-        <PaymentsHeroBanner stats={stats} />
-        <PaymentsTable
-          reservations={views}
-          onRowClick={(r) => {
-            setSelectedId(r.id);
-            setDetailOpen(true);
-          }}
-        />
+        {store.hydrating ? (
+          <PageSkeleton />
+        ) : (
+          <>
+            <PaymentsHeroBanner stats={stats} />
+            <PaymentsTable
+              reservations={views}
+              onRowClick={(r) => {
+                setSelectedId(r.id);
+                setDetailOpen(true);
+              }}
+            />
+          </>
+        )}
       </main>
 
       <PaymentDrawer open={creating} onClose={() => setCreating(false)} reservations={views} />

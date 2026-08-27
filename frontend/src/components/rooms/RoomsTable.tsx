@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrency } from "@/lib/format";
+import { matchesQuery } from "@/lib/utils";
 import type { Room, RoomStatus } from "@/lib/types";
 
 const STATUS_FILTERS: { value: RoomStatus | "all"; label: string }[] = [
@@ -21,11 +22,9 @@ export function RoomsTable({ rooms, onRowClick }: { rooms: Room[]; onRowClick: (
   const [query, setQuery] = useState("");
 
   const filteredByQuery = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     if (q.length === 0) return rooms;
-    return rooms.filter((r) => {
-      return r.number.toLowerCase().includes(q) || r.type.toLowerCase().includes(q);
-    });
+    return rooms.filter((r) => matchesQuery(r.number, q) || matchesQuery(r.type, q));
   }, [rooms, query]);
 
   // Extract unique room types for the filter dropdown
@@ -35,16 +34,16 @@ export function RoomsTable({ rooms, onRowClick }: { rooms: Room[]; onRowClick: (
   }, [rooms]);
 
   const columns: Column<Room>[] = [
-    { key: "number", header: "Oda No", render: (r) => <span className="text-[var(--accent)] font-bold">{r.number}</span> },
-    { 
-      key: "type", 
-      header: "Tip", 
+    { key: "number", header: "Oda No", render: (r) => <span className="text-[var(--accent)] font-bold">{r.number}</span>, sortValue: (r) => r.number },
+    {
+      key: "type",
+      header: "Tip",
       render: (r) => <span className="text-[var(--info)] font-medium">{r.type}</span>,
       filterOptions: ROOM_TYPES,
       filterFn: (r, val) => r.type === val
     },
-    { key: "capacity", header: "Kapasite", render: (r) => <span className="text-[var(--muted)]">{r.capacity} kişi</span>, align: "center" },
-    { key: "rate", header: "Gecelik Ücret", render: (r) => <span className="text-[var(--ok)] font-medium tabular-nums">{formatCurrency(r.nightlyRate)}</span> },
+    { key: "capacity", header: "Kapasite", render: (r) => <span className="text-[var(--muted)]">{r.capacity} kişi</span>, sortValue: (r) => r.capacity },
+    { key: "rate", header: "Gecelik Ücret", render: (r) => <span className="text-[var(--ok)] font-medium tabular-nums">{formatCurrency(r.nightlyRate)}</span>, sortValue: (r) => r.nightlyRate },
     {
       key: "amenities",
       header: "Özellikler",
@@ -52,7 +51,7 @@ export function RoomsTable({ rooms, onRowClick }: { rooms: Room[]; onRowClick: (
         r.amenities.length === 0 ? (
           <span className="text-[var(--muted)]">—</span>
         ) : (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap justify-center gap-1">
             {r.amenities.slice(0, 2).map((a) => (
               <span key={a} className="rounded-[var(--radius-pill)] border border-[var(--line)] bg-[var(--surface-alt)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
                 {a}

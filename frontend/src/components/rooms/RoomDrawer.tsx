@@ -12,7 +12,7 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { getRoomReservations } from "@/lib/selectors";
 import { formatDate, formatCurrency, formatDateRange } from "@/lib/format";
-import type { Room, RoomType } from "@/lib/types";
+import type { Room, RoomType, RoomStatus } from "@/lib/types";
 
 const ROOM_TYPES: RoomType[] = ["Standart", "Deluxe", "Aile Odası", "Suite", "King Suite"];
 const AMENITY_OPTIONS = ["Deniz Manzarası", "Balkon", "Klima", "Mini Bar", "Jakuzi", "Wi-Fi", "Kasa"];
@@ -35,6 +35,7 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
     const [capacity, setCapacity] = useState(room?.capacity ?? 2);
     const [nightlyRate, setNightlyRate] = useState(room?.nightlyRate ?? 1450);
     const [amenities, setAmenities] = useState<string[]>(room?.amenities ?? []);
+    const [status, setStatus] = useState<RoomStatus>(room?.status ?? "available");
     const [error, setError] = useState<string | null>(null);
 
     const allReservations = room ? getRoomReservations(store.state, room.id) : [];
@@ -46,8 +47,12 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
     useImperativeHandle(ref, () => ({
       submit() {
         if (!number.trim()) return setError("Oda numarası gereklidir.");
-        const input = { number: number.trim(), type, capacity, nightlyRate, amenities };
-        const result = isCreate ? store.createRoom(input) : store.updateRoom(room!.id, input);
+        if (!Number.isInteger(capacity) || capacity < 1) return setError("Kapasite en az 1 kişi olmalıdır.");
+        if (!Number.isFinite(nightlyRate) || nightlyRate <= 0) return setError("Gecelik ücret sıfırdan büyük olmalıdır.");
+        const baseInput = { number: number.trim(), type, capacity, nightlyRate, amenities };
+        const result = isCreate 
+          ? store.createRoom(baseInput) 
+          : store.updateRoom(room!.id, { ...baseInput, status });
         if (!result.ok) return setError(result.error);
         showToast(isCreate ? "Oda eklendi." : "Oda güncellendi.");
         onClose();
@@ -115,6 +120,20 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
             <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
           </FormField>
         </div>
+
+        {!isCreate && (
+          <FormField label="Oda Durumu">
+            <Select 
+              value={status} 
+              onChange={(e) => setStatus(e.target.value as RoomStatus)} 
+              disabled={room?.status === "occupied"}
+            >
+              <option value="available">Müsait</option>
+              <option value="maintenance">Bakımda</option>
+              {room?.status === "occupied" && <option value="occupied">Dolu</option>}
+            </Select>
+          </FormField>
+        )}
 
         <FormField label="Gecelik Ücret (₺)">
           <Input type="number" min={0} value={nightlyRate} onChange={(e) => setNightlyRate(Number(e.target.value))} />

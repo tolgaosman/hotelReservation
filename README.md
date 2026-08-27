@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Otel Rezervasyon ve Konaklama Yönetim Sistemi
 
-## Getting Started
+Bir otelin oda, misafir, rezervasyon ve ödeme süreçlerini tek panelden yönetmeyi
+sağlayan bir yönetim uygulaması.
 
-First, run the development server:
+## Proje Durumu
+
+`backend/` altında Laravel 11 + MySQL ile yazılmış, rol tabanlı yetkilendirme
+(Admin/Personel), müsaitlik-çakışma kontrolü ve tutarlı bir API cevap yapısı
+içeren bir JSON API bulunuyor — kurulum ve uç nokta dokümantasyonu için
+[backend/README.md](backend/README.md) dosyasına bakın.
+
+Frontend (`frontend/`) şu an bu API'ye bağlı değil; hâlâ tarayıcıda önceden
+tanımlanmış (seed) veriyle başlatılıp `localStorage` üzerinde tutulan
+bağımsız bir durumla çalışıyor (`frontend/src/lib/store.tsx`, anahtar:
+`yunma-store-v1`). Bu nedenle:
+
+- Sayfayı yenilemek verileri sıfırlamaz (localStorage'da kalıcıdır).
+- Farklı bir tarayıcı/cihazdan girildiğinde veriler paylaşılmaz.
+- Frontend'de kimlik doğrulama / Admin-Personel rol ayrımı henüz yok —
+  backend'i frontend'e bağlamak ve bu ayrımı arayüze taşımak bir sonraki
+  aşamadır.
+
+## Teknoloji Yığını
+
+- **Next.js 16** (App Router) + **React 19** + **TypeScript**
+- **Tailwind CSS 4** — arayüz stilleri
+- **Recharts** — dashboard grafikleri
+- Veri katmanı: `frontend/src/lib/store.tsx` (React Context + `useReducer`),
+  seed veri `frontend/src/lib/data.ts`, iş kuralları/hesaplamalar
+  `frontend/src/lib/selectors.ts` ve `frontend/src/lib/availability.ts`
+
+## Kurulum ve Çalıştırma
+
+Gereksinim: Node.js 18+ (Next.js 16 için önerilen sürüm).
 
 ```bash
+cd frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Uygulama varsayılan olarak [http://localhost:3000](http://localhost:3000)
+adresinde çalışır ve doğrudan `/dashboard` sayfasına yönlendirir.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Diğer komutlar (hepsi `frontend/` içinde çalıştırılır):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build   # production build
+npm run start   # production build'i çalıştırır
+npm run lint    # ESLint kontrolü
+```
 
-## Learn More
+Verileri sıfırlamak (seed'e dönmek) için tarayıcıda o sekmenin
+localStorage'ındaki `yunma-store-v1` anahtarını silmek yeterlidir
+(DevTools → Application → Local Storage).
 
-To learn more about Next.js, take a look at the following resources:
+## Proje Yapısı (frontend/src)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/(app)/            Sayfalar: dashboard, reservations, rooms, guests, payments, settings
+components/           Sayfa/özellik bazlı bileşenler (dashboard, rooms, guests, reservations, payments, ui)
+lib/
+  types.ts            Ortak tip tanımları (Room, Guest, Reservation, Payment, ...)
+  data.ts             Deterministik seed veri (oda, misafir, rezervasyon, ödeme geçmişi)
+  store.tsx           Uygulama durumu, CRUD işlemleri ve iş kuralları (React Context)
+  availability.ts     Oda müsaitlik / tarih çakışması kontrolü
+  selectors.ts        Dashboard istatistikleri, gelir/rezervasyon serileri, filtreleme yardımcıları
+  format.ts           Para/tarih biçimlendirme yardımcıları
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Kapsanan Özellikler
 
-## Deploy on Vercel
+- **Oda yönetimi**: ekleme, düzenleme, pasife alma; tip, kapasite, gecelik
+  ücret, özellikler, durum (müsait/dolu/bakımda)
+- **Misafir yönetimi**: iletişim bilgileri, kimlik/pasaport no, geçmiş
+  rezervasyonların görüntülenmesi
+- **Rezervasyon yönetimi**: oda/tarih/misafir sayısı seçimi, otomatik toplam
+  ücret hesaplama, durum takibi (beklemede/onaylandı/iptal/tamamlandı),
+  detay ekranı
+- **Müsaitlik kontrolü**: aynı oda için çakışan tarihli aktif rezervasyon
+  engellenir; check-out ile aynı güne denk gelen yeni check-in'e izin
+  verilir (`frontend/src/lib/availability.ts`)
+- **Check-in / Check-out**: rezervasyon durumunu günceller, check-out sonrası
+  oda tekrar müsait duruma döner, geçmiş konaklamalar saklanır
+- **Ödeme yönetimi**: toplam/ödenen/kalan tutar takibi, bir rezervasyona
+  birden fazla ödeme kaydı girilebilir
+- **Dashboard**: bugünkü giriş/çıkışlar, oda durum dağılımı, aktif rezervasyon
+  sayısı, toplam tahsilat, seçilen zaman aralığına göre gelir raporu
+- **Tablo altyapısı**: tüm liste ekranlarında arama, sütun filtreleme ve
+  sayfalama (`components/ui/DataTable.tsx`)
+- **Durum yönetimi**: yükleniyor/boş/hata durumları için ortak bileşenler
+  (`components/ui/Skeleton.tsx`, `EmptyState.tsx`, `ErrorState.tsx`)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Bilinen Eksikler / Sonraki Adımlar
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Frontend'in `backend/` API'sine bağlanması (şu an mock veri + localStorage
+  ile bağımsız çalışıyor)
+- Frontend'de kimlik doğrulama ve Admin/Personel rol ayrımı (backend'de mevcut)
+- E-posta bildirimleri, oda fotoğrafları, kupon/indirim sistemi

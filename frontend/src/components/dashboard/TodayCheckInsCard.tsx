@@ -21,7 +21,6 @@ export function TodayCheckInsCard({ rows, onConfirm, onCheckIn }: Props) {
     {
       key: "action",
       header: "",
-      align: "right",
       render: (r) =>
         r.status === "pending" ? (
           <Button size="sm" variant="secondary" onClick={() => onConfirm(r.id)}>

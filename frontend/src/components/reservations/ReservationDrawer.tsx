@@ -233,22 +233,22 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
               <span className="text-xs text-[var(--muted)]">Oluşturuldu: {formatDate(reservation.createdAt)}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-xs text-[var(--muted)]">Giriş</p>
-                <p className="font-medium text-[var(--ink)]">{formatDate(reservation.checkIn)}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 shadow-sm transition-all hover:border-[var(--muted)] hover:shadow-md">
+                <p className="mb-1 text-[10px] font-bold tracking-wider text-[var(--muted)] uppercase">Giriş</p>
+                <p className="break-words text-xs font-semibold text-[var(--ink)]">{formatDate(reservation.checkIn)}</p>
               </div>
-              <div>
-                <p className="text-xs text-[var(--muted)]">Çıkış</p>
-                <p className="font-medium text-[var(--ink)]">{formatDate(reservation.checkOut)}</p>
+              <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 shadow-sm transition-all hover:border-[var(--muted)] hover:shadow-md">
+                <p className="mb-1 text-[10px] font-bold tracking-wider text-[var(--muted)] uppercase">Çıkış</p>
+                <p className="break-words text-xs font-semibold text-[var(--ink)]">{formatDate(reservation.checkOut)}</p>
               </div>
-              <div>
-                <p className="text-xs text-[var(--muted)]">Misafir Sayısı</p>
-                <p className="font-medium text-[var(--ink)]">{reservation.guestCount}</p>
+              <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 shadow-sm transition-all hover:border-[var(--muted)] hover:shadow-md">
+                <p className="mb-1 text-[10px] font-bold tracking-wider text-[var(--muted)] uppercase">Misafir Sayısı</p>
+                <p className="break-words text-xs font-semibold text-[var(--ink)]">{reservation.guestCount}</p>
               </div>
-              <div>
-                <p className="text-xs text-[var(--muted)]">Telefon</p>
-                <p className="font-medium text-[var(--ink)]">{reservation.guest.phone}</p>
+              <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 shadow-sm transition-all hover:border-[var(--muted)] hover:shadow-md">
+                <p className="mb-1 text-[10px] font-bold tracking-wider text-[var(--muted)] uppercase">Telefon</p>
+                <p className="break-words text-xs font-semibold text-[var(--ink)]">{reservation.guest.phone}</p>
               </div>
             </div>
 

@@ -20,7 +20,6 @@ export function TodayCheckOutsCard({
     {
       key: "action",
       header: "",
-      align: "right",
       render: (r) =>
         r.status === "checked_in" ? (
           <Button size="sm" variant="secondary" onClick={() => onCheckOut(r.id)}>

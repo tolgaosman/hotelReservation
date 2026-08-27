@@ -42,3 +42,21 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 export function ChartSkeleton() {
   return <Skeleton className="h-64 w-full" />;
 }
+
+/** Generic full-page loading placeholder for list pages (hero banner + table). */
+export function PageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+      <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)]">
+        <TableSkeleton rows={6} />
+      </div>
+    </div>
+  );
+}
