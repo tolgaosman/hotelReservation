@@ -19,11 +19,11 @@ function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: strin
 }
 
 export function hasConflict(
-  roomId: string,
+  roomId: number,
   checkIn: string,
   checkOut: string,
   reservations: Reservation[],
-  ignoreReservationId?: string
+  ignoreReservationId?: number
 ): boolean {
   return reservations.some((r) => {
     if (r.roomId !== roomId) return false;
@@ -39,7 +39,7 @@ export function getAvailableRooms(
   checkOut: string,
   rooms: Room[],
   reservations: Reservation[],
-  ignoreReservationId?: string
+  ignoreReservationId?: number
 ): Room[] {
   return rooms.filter(
     (room) =>
@@ -50,7 +50,7 @@ export function getAvailableRooms(
 }
 
 /** A room is "reserved" if it's currently available but has a future confirmed stay. */
-export function isRoomReserved(roomId: string, todayIso: string, reservations: Reservation[]): boolean {
+export function isRoomReserved(roomId: number, todayIso: string, reservations: Reservation[]): boolean {
   return reservations.some(
     (r) =>
       r.roomId === roomId &&

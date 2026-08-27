@@ -19,7 +19,7 @@ export default function RoomsPage() {
   const activeRooms = useMemo(() => store.state.rooms.filter((r) => r.active), [store.state.rooms]);
   const stats = useMemo(() => getRoomStats(store.state), [store.state]);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 

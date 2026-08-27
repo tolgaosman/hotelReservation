@@ -13,7 +13,6 @@ export function RoomsHeroBanner({ rooms, reservations }: { rooms: Room[]; reserv
     { label: "Toplam Oda", value: totalRooms.toString(), icon: <BedDouble size={16} />, tone: "info" },
     { label: "Aktif Konaklama", value: activeStays.toString(), icon: <CalendarCheck size={16} />, tone: "ok" },
     { label: "Bekleyen Rezervasyon", value: pendingBookings.toString(), icon: <Clock size={16} />, tone: "warn" },
-    { label: "Ort. Gecelik Ücret", value: formatCurrency(avgRate), icon: <DollarSign size={16} />, tone: "accent" },
   ];
 
   return (

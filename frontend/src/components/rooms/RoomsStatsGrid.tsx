@@ -8,7 +8,7 @@ export function RoomsStatsGrid({ stats }: { stats: RoomStats }) {
   // We mock total revenue since it's not in RoomStats directly, but we use the other valid stats
   const tiles = [
     { 
-      label: "Booked Rooms", 
+      label: "Dolu Odalar", 
       value: stats.occupied, 
       icon: CheckCircle2, 
       color: "text-[#059669]", 
@@ -16,7 +16,7 @@ export function RoomsStatsGrid({ stats }: { stats: RoomStats }) {
       iconBg: "bg-[#A7F3D0]" 
     },
     { 
-      label: "Pending", 
+      label: "Rezerve", 
       value: stats.reserved, 
       icon: Clock, 
       color: "text-[#DB2777]", 
@@ -24,7 +24,7 @@ export function RoomsStatsGrid({ stats }: { stats: RoomStats }) {
       iconBg: "bg-[#FBCFE8]" 
     },
     { 
-      label: "Canceled", 
+      label: "Bakımda", 
       value: stats.maintenance, 
       icon: XCircle, 
       color: "text-[#DC2626]", 
@@ -32,9 +32,9 @@ export function RoomsStatsGrid({ stats }: { stats: RoomStats }) {
       iconBg: "bg-[#FECACA]" 
     },
     { 
-      label: "Total Revenue", 
-      value: formatCurrency(4350), 
-      icon: DollarSign, 
+      label: "Müsait Odalar", 
+      value: stats.available, 
+      icon: CheckCircle2, 
       color: "text-[#EA580C]", 
       bg: "bg-[#FFEDD5]", 
       iconBg: "bg-[#FED7AA]" 
@@ -46,7 +46,7 @@ export function RoomsStatsGrid({ stats }: { stats: RoomStats }) {
       title={
         <div className="flex items-center gap-2">
           <Calendar size={15} className="text-[var(--muted)]" />
-          <span className="text-[13px] font-semibold text-[var(--ink)]">This Week</span>
+          <span className="text-[13px] font-semibold text-[var(--ink)]">Oda Durumu (Anlık)</span>
         </div>
       }
       className="bg-[var(--surface)] shadow-sm h-full"

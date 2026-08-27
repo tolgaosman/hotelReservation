@@ -73,6 +73,19 @@ class RoomController extends Controller
         return $this->success(new RoomResource($room), 'Oda aktifleştirildi.');
     }
 
+    public function updateHousekeeping(Request $request, Room $room): JsonResponse
+    {
+        $this->authorize('update', $room);
+
+        $validated = $request->validate([
+            'housekeeping_status' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\HousekeepingStatus::class)],
+        ]);
+
+        $room->update(['housekeeping_status' => $validated['housekeeping_status']]);
+
+        return $this->success(new RoomResource($room), 'Temizlik durumu güncellendi.');
+    }
+
     public function availability(Request $request, Room $room, ReservationService $service): JsonResponse
     {
         $request->validate([

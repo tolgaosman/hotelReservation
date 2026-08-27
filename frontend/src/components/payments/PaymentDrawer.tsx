@@ -31,15 +31,16 @@ export function PaymentDrawer({
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [error, setError] = useState<string | null>(null);
 
-  const selected = payable.find((r) => r.id === reservationId);
+  const selected = payable.find((r) => String(r.id) === reservationId);
 
-  function submit() {
-    if (!selected) return setError("Bir rezervasyon seçin.");
+  async function submit() {
     const value = Number(amount);
+    if (!selected) return setError("Lütfen bir rezervasyon seçin.");
     if (!value || value <= 0) return setError("Geçerli bir tutar girin.");
-    const result = store.addPayment({ reservationId: selected.id, amount: value, method });
+
+    const result = await store.addPayment({ reservationId: selected.id, amount: value, method });
     if (!result.ok) return setError(result.error);
-    showToast("Ödeme eklendi.");
+    showToast("Ödeme başarıyla eklendi.", "success");
     setReservationId("");
     setAmount("");
     setError(null);

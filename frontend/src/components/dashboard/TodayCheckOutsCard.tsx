@@ -11,7 +11,7 @@ export function TodayCheckOutsCard({
   onCheckOut,
 }: {
   rows: ReservationView[];
-  onCheckOut: (id: string) => void;
+  onCheckOut: (id: number) => void;
 }) {
   const columns: Column<ReservationView>[] = [
     { key: "guest", header: "Misafir", render: (r) => <span className="font-medium">{r.guest.fullName}</span> },

@@ -139,7 +139,10 @@ class ReservationService
                 'status' => ReservationStatus::Completed,
                 'checked_out_at' => now(),
             ]);
-            $reservation->room()->update(['status' => RoomStatus::Available]);
+            $reservation->room()->update([
+                'status' => RoomStatus::Available,
+                'housekeeping_status' => \App\Enums\HousekeepingStatus::Dirty,
+            ]);
 
             return $reservation;
         });

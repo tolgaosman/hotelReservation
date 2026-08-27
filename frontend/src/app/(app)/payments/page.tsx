@@ -20,7 +20,7 @@ export default function PaymentsPage() {
     [store.state]
   );
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 

@@ -14,18 +14,19 @@ export type ReservationStatus =
 export type PaymentMethod = "cash" | "card" | "transfer";
 
 export interface Room {
-  id: string;
+  id: number;
   number: string;
   type: RoomType;
   capacity: number;
   nightlyRate: number;
   amenities: string[];
   status: RoomStatus;
+  housekeepingStatus: "clean" | "dirty" | "cleaning";
   active: boolean;
 }
 
 export interface Guest {
-  id: string;
+  id: number;
   fullName: string;
   phone: string;
   email: string;
@@ -37,9 +38,9 @@ export interface Guest {
 // room or guest profile are reflected everywhere, and so the availability
 // check can be run purely against ids + date ranges.
 export interface Reservation {
-  id: string;
-  guestId: string;
-  roomId: string;
+  id: number;
+  guestId: number;
+  roomId: number;
   checkIn: string;
   checkOut: string;
   guestCount: number;
@@ -51,8 +52,8 @@ export interface Reservation {
 }
 
 export interface Payment {
-  id: string;
-  reservationId: string;
+  id: number;
+  reservationId: number;
   amount: number;
   method: PaymentMethod;
   createdAt: string;

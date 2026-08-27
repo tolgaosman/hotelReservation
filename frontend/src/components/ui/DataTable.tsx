@@ -30,7 +30,7 @@ function SortIndicator({ dir }: { dir: SortDir | null }) {
 interface DataTableProps<T> {
   columns: Column<T>[];
   rows: T[];
-  getRowKey: (row: T) => string;
+  getRowKey: (row: T) => string | number;
   onRowClick?: (row: T) => void;
   pageSize?: number;
 }

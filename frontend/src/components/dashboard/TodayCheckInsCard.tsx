@@ -8,8 +8,8 @@ import type { ReservationView } from "@/lib/types";
 
 interface Props {
   rows: ReservationView[];
-  onConfirm: (id: string) => void;
-  onCheckIn: (id: string) => void;
+  onConfirm: (id: number) => void;
+  onCheckIn: (id: number) => void;
 }
 
 export function TodayCheckInsCard({ rows, onConfirm, onCheckIn }: Props) {

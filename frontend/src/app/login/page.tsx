@@ -1,0 +1,90 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { FormField } from "@/components/ui/FormField";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("admin@hotel.test");
+  const [password, setPassword] = useState("password");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { login } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      // Sanctum SPA authentication uses CSRF cookie if domains match, 
+      // but we are using Token-based authentication based on our api.ts setup.
+      const res = await api.post("/api/login", { email, password });
+      
+      const token = res.data.data.token;
+      const user = res.data.data.user;
+      
+      login(token, user);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[var(--canvas)] p-4">
+      <div className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-8 shadow-[var(--shadow-card)]">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink)]">
+            Otel Yönetim Paneli
+          </h1>
+          <p className="mt-2 text-sm font-medium text-[var(--muted)]">
+            Sisteme giriş yapmak için bilgilerinizi girin.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <FormField label="E-posta">
+            <Input 
+              type="email" 
+              required 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="ornek@hotel.test"
+            />
+          </FormField>
+
+          <FormField label="Şifre">
+            <Input 
+              type="password" 
+              required 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </FormField>
+
+          {error && (
+            <div className="rounded-[var(--radius-control)] bg-[var(--crit-soft)] p-3 text-sm font-medium text-[var(--crit)]">
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Giriş yapılıyor..." : "Giriş Yap"}
+          </Button>
+        </form>
+        
+        <div className="mt-6 text-center text-xs text-[var(--muted)]">
+          <p>Admin: admin@hotel.test / password</p>
+          <p>Personel: personel@hotel.test / password</p>
+        </div>
+      </div>
+    </div>
+  );
+}

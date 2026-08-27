@@ -75,16 +75,16 @@ export default function DashboardPage() {
       });
   }, [state]);
 
-  function handleConfirm(id: string) {
-    const result = store.confirmReservation(id);
+  async function handleConfirm(id: number) {
+    const result = await store.confirmReservation(id);
     showToast(result.ok ? "Rezervasyon onaylandı." : result.error, result.ok ? "success" : "error");
   }
-  function handleCheckIn(id: string) {
-    const result = store.checkIn(id);
+  async function handleCheckIn(id: number) {
+    const result = await store.checkIn(id);
     showToast(result.ok ? "Check-in tamamlandı." : result.error, result.ok ? "success" : "error");
   }
-  function handleCheckOut(id: string) {
-    const result = store.checkOut(id);
+  async function handleCheckOut(id: number) {
+    const result = await store.checkOut(id);
     showToast(result.ok ? "Check-out tamamlandı." : result.error, result.ok ? "success" : "error");
   }
 

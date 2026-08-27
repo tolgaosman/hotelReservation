@@ -94,4 +94,17 @@ class ReservationController extends Controller
 
         return $this->success(PaymentResource::collection($reservation->payments()->orderByDesc('created_at')->get()));
     }
+
+    public function invoice(Reservation $reservation)
+    {
+        $this->authorize('view', $reservation);
+
+        $reservation->load(['guest', 'room', 'payments']);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoice', compact('reservation'));
+
+        // For API, we can return the raw PDF content with appropriate headers
+        // But since it's an API, usually frontend downloads it. Let's just return the download response.
+        return $pdf->download('fatura-'.$reservation->id.'.pdf');
+    }
 }

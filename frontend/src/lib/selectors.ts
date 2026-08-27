@@ -1,6 +1,6 @@
 import { getAvailableRooms, isRoomReserved } from "./availability";
 import { COUNTRY_NAME_EN } from "./countries";
-import { TODAY_ISO } from "./data";
+const TODAY_ISO = new Date().toISOString().split("T")[0];
 import type {
   DashboardStats,
   Guest,
@@ -23,7 +23,7 @@ interface Store {
   payments: Payment[];
 }
 
-function paidAmountFor(reservationId: string, payments: Payment[]): number {
+function paidAmountFor(reservationId: number, payments: Payment[]): number {
   return payments.filter((p) => p.reservationId === reservationId).reduce((sum, p) => sum + p.amount, 0);
 }
 
@@ -102,7 +102,7 @@ function daysSince(iso: string): number {
 
 /** Gün farkı olarak, depoda gerçekten veri bulunan en eski kaydın yaşı. */
 export function getDataSpanDays(store: Store): number {
-  const oldest = [...store.reservations.map((r) => r.createdAt), ...store.payments.map((p) => p.createdAt)]
+  const oldest = [...store.reservations.map((r) => r.createdAt.slice(0, 10)), ...store.payments.map((p) => p.createdAt.slice(0, 10))]
     .reduce<string | null>((min, iso) => (min === null || iso < min ? iso : min), null);
   if (!oldest) return 7;
   return Math.max(daysSince(oldest), 0);
@@ -121,7 +121,8 @@ export function clampDaysToData(store: Store, days: number): number {
 export function getRevenueSeries(store: Store, days = 30): RevenuePoint[] {
   const byDay = new Map<string, number>();
   for (const p of store.payments) {
-    byDay.set(p.createdAt, (byDay.get(p.createdAt) ?? 0) + p.amount);
+    const day = p.createdAt.slice(0, 10);
+    byDay.set(day, (byDay.get(day) ?? 0) + p.amount);
   }
 
   const points: RevenuePoint[] = [];
@@ -168,8 +169,9 @@ export function getRevenueSeries(store: Store, days = 30): RevenuePoint[] {
 export function getReservationsSeries(store: Store, days = 7): ReservationsPoint[] {
   const byDay = new Map<string, { confirmed: number, cancelled: number }>();
   for (const r of store.reservations) {
-    if (!byDay.has(r.createdAt)) byDay.set(r.createdAt, { confirmed: 0, cancelled: 0 });
-    const stat = byDay.get(r.createdAt)!;
+    const day = r.createdAt.slice(0, 10);
+    if (!byDay.has(day)) byDay.set(day, { confirmed: 0, cancelled: 0 });
+    const stat = byDay.get(day)!;
     if (r.status === "cancelled") stat.cancelled++;
     else stat.confirmed++;
   }
@@ -272,13 +274,13 @@ export function getGuestSummaries(store: Store): GuestSummary[] {
   });
 }
 
-export function getGuestReservations(store: Store, guestId: string): ReservationView[] {
+export function getGuestReservations(store: Store, guestId: number): ReservationView[] {
   return getReservationViews(store)
     .filter((r) => r.guestId === guestId)
     .sort((a, b) => (a.checkIn < b.checkIn ? 1 : -1));
 }
 
-export function getRoomReservations(store: Store, roomId: string): ReservationView[] {
+export function getRoomReservations(store: Store, roomId: number): ReservationView[] {
   return getReservationViews(store)
     .filter((r) => r.roomId === roomId)
     .sort((a, b) => (a.checkIn < b.checkIn ? 1 : -1));
@@ -299,7 +301,7 @@ export function getPaymentStats(store: Store) {
   return { totalCollected, outstanding, fullyPaidCount, thisMonthCollected };
 }
 
-export function getPaymentsForReservation(store: Store, reservationId: string): Payment[] {
+export function getPaymentsForReservation(store: Store, reservationId: number): Payment[] {
   return store.payments
     .filter((p) => p.reservationId === reservationId)
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));

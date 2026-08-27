@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ScaleWrapper } from "@/components/layout/ScaleWrapper";
+import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="tr" className={`${montserrat.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <ScaleWrapper>
-          <ToastProvider>{children}</ToastProvider>
+          <AuthProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthProvider>
         </ScaleWrapper>
       </body>
     </html>

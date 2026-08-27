@@ -52,12 +52,12 @@ export function HeroBanner({ title, subtitle, metrics, className }: HeroBannerPr
               <div
                 key={i}
                 className={cn(
-                  "flex min-w-[140px] flex-col gap-2.5 rounded-2xl border border-[var(--color-line)] bg-[var(--color-canvas)]/40 p-4 md:p-5",
+                  "flex min-w-[140px] flex-col items-center text-center gap-2.5 rounded-2xl border border-[var(--color-line)] bg-[var(--color-canvas)]/40 p-4 md:p-5",
                   "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm hover:bg-[var(--color-surface)]",
                   "backdrop-blur-xl"
                 )}
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   {metric.icon && (
                     <span className={cn("flex size-7 items-center justify-center rounded-full", tone.chip)}>
                       {metric.icon}

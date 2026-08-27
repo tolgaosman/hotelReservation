@@ -19,7 +19,7 @@ export default function ReservationsPage() {
   // Track the id, not the object — actions taken inside the drawer mutate the
   // store, and re-deriving the view from fresh state on every render keeps
   // the open drawer's status/badges/buttons in sync with what just happened.
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 

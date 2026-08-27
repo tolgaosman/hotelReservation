@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { getAvailableRooms, getPaymentsForReservation } from "@/lib/selectors";
+import { api } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import type { Guest, PaymentMethod, ReservationView } from "@/lib/types";
 
@@ -46,12 +47,12 @@ const ReservationForm = forwardRef<
   const [error, setError] = useState<string | null>(null);
 
   useImperativeHandle(ref, () => ({
-    submit() {
+    async submit() {
       if (!guestId) return setError("Bir misafir seçin.");
       if (!roomId) return setError("Bir oda seçin.");
       const result = isCreate
-        ? store.createReservation({ guestId, roomId, checkIn, checkOut, guestCount })
-        : store.updateReservation(reservation!.id, { checkIn, checkOut, guestCount, roomId });
+        ? await store.createReservation({ guestId: Number(guestId), roomId: Number(roomId), checkIn, checkOut, guestCount })
+        : await store.updateReservation(reservation!.id, { checkIn, checkOut, guestCount, roomId: Number(roomId) });
       if (!result.ok) return setError(result.error);
       onSaved();
     },
@@ -154,21 +155,37 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
     onClose();
   }
 
-  function runAction(fn: () => { ok: true } | { ok: false; error: string }, successMessage: string) {
-    const result = fn();
+  async function runAction(fn: () => Promise<{ ok: true } | { ok: false; error: string }>, successMessage: string) {
+    const result = await fn();
     showToast(result.ok ? successMessage : result.error, result.ok ? "success" : "error");
   }
 
-  function submitPayment() {
+  async function submitPayment() {
     const amount = Number(paymentAmount);
     if (!reservation) return;
     if (!amount || amount <= 0) {
       showToast("Geçerli bir tutar girin.", "error");
       return;
     }
-    const result = store.addPayment({ reservationId: reservation.id, amount, method: paymentMethod });
+    const result = await store.addPayment({ reservationId: reservation.id, amount, method: paymentMethod });
     showToast(result.ok ? "Ödeme eklendi." : result.error, result.ok ? "success" : "error");
     if (result.ok) setPaymentAmount("");
+  }
+
+  async function downloadInvoice() {
+    if (!reservation) return;
+    try {
+      const res = await api.get(`/api/reservations/${reservation.id}/invoice`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `fatura-${reservation.id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (e) {
+      showToast("Fatura indirilemedi.", "error");
+    }
   }
 
   return (
@@ -197,6 +214,11 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
             )}
             {reservation!.status === "checked_in" && (
               <Button onClick={() => runAction(() => store.checkOut(reservation!.id), "Check-out yapıldı.")}>Check-out</Button>
+            )}
+            {(reservation!.status === "completed" || reservation!.status === "checked_in") && (
+              <Button variant="secondary" onClick={downloadInvoice}>
+                Fatura İndir
+              </Button>
             )}
             {(reservation!.status === "pending" || reservation!.status === "confirmed") && (
               <Button variant="danger" onClick={() => runAction(() => store.cancelReservation(reservation!.id), "Rezervasyon iptal edildi.")}>

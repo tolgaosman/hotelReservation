@@ -21,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+        // This is an API-only app with no 'login' route to redirect guests to;
+        // returning null keeps unauthenticated requests a clean 401 instead of
+        // crashing on route('login') when a client omits Accept: application/json.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $responder = new class

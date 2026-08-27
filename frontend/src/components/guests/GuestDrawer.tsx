@@ -59,14 +59,14 @@ const GuestForm = forwardRef<FormHandle, { guest?: GuestSummary; isCreate: boole
     const [error, setError] = useState<string | null>(null);
 
     useImperativeHandle(ref, () => ({
-      submit() {
+      async submit() {
         if (!form.fullName.trim()) return setError("Ad soyad gereklidir.");
         if (!form.phone.trim()) return setError("Telefon gereklidir.");
         if (form.phone.replace(/\D/g, "").length < 7) return setError("Geçerli bir telefon numarası girin.");
         if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
           return setError("Geçerli bir e-posta adresi girin.");
         }
-        const result = isCreate ? store.createGuest(form) : store.updateGuest(guest!.id, form);
+        const result = isCreate ? await store.createGuest(form) : await store.updateGuest(guest!.id, form);
         if (!result.ok) return setError(result.error);
         showToast(isCreate ? "Misafir eklendi." : "Misafir güncellendi.");
         onSaved();

@@ -17,6 +17,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('rooms', RoomController::class)->except(['destroy']);
     Route::patch('rooms/{room}/deactivate', [RoomController::class, 'deactivate']);
     Route::patch('rooms/{room}/activate', [RoomController::class, 'activate']);
+    Route::patch('rooms/{room}/housekeeping', [RoomController::class, 'updateHousekeeping']);
     Route::get('rooms/{room}/availability', [RoomController::class, 'availability']);
 
     Route::apiResource('guests', GuestController::class)->except(['destroy']);
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('reservations/{reservation}/check-in', [ReservationController::class, 'checkIn']);
     Route::post('reservations/{reservation}/check-out', [ReservationController::class, 'checkOut']);
     Route::get('reservations/{reservation}/payments', [ReservationController::class, 'payments']);
+    Route::get('reservations/{reservation}/invoice', [ReservationController::class, 'invoice']);
 
     Route::get('payments', [PaymentController::class, 'index']);
     Route::post('payments', [PaymentController::class, 'store']);

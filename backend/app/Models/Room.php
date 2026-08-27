@@ -18,6 +18,7 @@ class Room extends Model
         'nightly_rate',
         'amenities',
         'status',
+        'housekeeping_status',
         'active',
     ];
 
@@ -28,6 +29,7 @@ class Room extends Model
             'nightly_rate' => 'decimal:2',
             'amenities' => 'array',
             'status' => RoomStatus::class,
+            'housekeeping_status' => \App\Enums\HousekeepingStatus::class,
             'active' => 'boolean',
         ];
     }

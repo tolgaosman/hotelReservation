@@ -15,7 +15,7 @@ export default function GuestsPage() {
   const store = useStore();
   const guests = useMemo(() => getGuestSummaries(store.state), [store.state]);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 

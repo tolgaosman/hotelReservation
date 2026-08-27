@@ -45,21 +45,21 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
     const pastReservations = allReservations.filter(r => r.status !== "checked_in" && r.status !== "pending");
 
     useImperativeHandle(ref, () => ({
-      submit() {
+      async submit() {
         if (!number.trim()) return setError("Oda numarası gereklidir.");
         if (!Number.isInteger(capacity) || capacity < 1) return setError("Kapasite en az 1 kişi olmalıdır.");
         if (!Number.isFinite(nightlyRate) || nightlyRate <= 0) return setError("Gecelik ücret sıfırdan büyük olmalıdır.");
         const baseInput = { number: number.trim(), type, capacity, nightlyRate, amenities };
         const result = isCreate 
-          ? store.createRoom(baseInput) 
-          : store.updateRoom(room!.id, { ...baseInput, status });
+          ? await store.createRoom(baseInput) 
+          : await store.updateRoom(room!.id, { ...baseInput, status });
         if (!result.ok) return setError(result.error);
         showToast(isCreate ? "Oda eklendi." : "Oda güncellendi.");
         onClose();
       },
-      deactivate() {
+      async deactivate() {
         if (!room) return;
-        const result = store.deactivateRoom(room.id);
+        const result = await store.deactivateRoom(room.id);
         showToast(result.ok ? "Oda pasife alındı." : result.error, result.ok ? "success" : "error");
         if (result.ok) onClose();
       },
