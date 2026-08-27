@@ -1,10 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { LayoutDashboard } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Select } from "@/components/ui/Select";
 import { PageSkeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import {
   clampDaysToData,
@@ -30,8 +33,25 @@ import { UpcomingReservationsCard } from "@/components/dashboard/UpcomingReserva
 export default function DashboardPage() {
   const store = useStore();
   const showToast = useToast();
+  const { user, hasPermission } = useAuth();
   const [timeFilter, setTimeFilter] = useState("1_year");
   const { state } = store;
+
+  // A user with no permission assignment yet (no role picked) sees every
+  // widget — the roles page only starts trimming the dashboard once a role
+  // with an actual widget selection has been assigned to them.
+  const unrestricted = user?.role === "admin" || (user?.permissions?.length ?? 0) === 0;
+  const canSee = (key: string) => unrestricted || hasPermission(key);
+  const anyWidgetVisible = [
+    "dashboard.widget_room_availability",
+    "dashboard.widget_revenue",
+    "dashboard.widget_status_donut",
+    "dashboard.widget_country",
+    "dashboard.widget_today_checkins",
+    "dashboard.widget_total_revenue",
+    "dashboard.widget_today_checkouts",
+    "dashboard.widget_upcoming",
+  ].some(canSee);
 
   const daysMap: Record<string, number> = {
     "7_days": 7,
@@ -124,30 +144,65 @@ export default function DashboardPage() {
         <div className="relative z-10 space-y-6">
           {store.hydrating ? (
             <PageSkeleton />
+          ) : !anyWidgetVisible ? (
+            <EmptyState
+              icon={LayoutDashboard}
+              title="Görüntüleyebileceğiniz bir bileşen yok"
+              description="Rolünüze dashboard bileşeni izni tanımlanmamış. Roller sayfasından ekleyebilirsiniz."
+            />
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-                <RoomAvailabilityCard stats={roomStats} />
-                <RevenueCard store={state} days={effectiveDays} subtitle={labelsMap[timeFilter]} className="xl:col-span-2" />
-                <ReservationStatusDonut rows={statusRows} />
+              {/* Brick layout: each row is a flex-wrap group where every visible
+                  widget carries flex-grow, so hiding a sibling (per role/permission)
+                  makes the rest stretch to fill the row instead of leaving a gap. */}
+              <div className="flex flex-wrap gap-6">
+                {canSee("dashboard.widget_room_availability") && (
+                  <div className="min-w-[260px] flex-1 basis-72">
+                    <RoomAvailabilityCard stats={roomStats} />
+                  </div>
+                )}
+                {canSee("dashboard.widget_revenue") && (
+                  <div className="min-w-[380px] flex-[2] basis-[26rem]">
+                    <RevenueCard store={state} days={effectiveDays} subtitle={labelsMap[timeFilter]} />
+                  </div>
+                )}
+                {canSee("dashboard.widget_status_donut") && (
+                  <div className="min-w-[260px] flex-1 basis-72">
+                    <ReservationStatusDonut rows={statusRows} />
+                  </div>
+                )}
               </div>
 
-              <ReservationsByCountryCard total={countryStats.total} countries={countryStats.countries} />
+              {canSee("dashboard.widget_country") && (
+                <ReservationsByCountryCard total={countryStats.total} countries={countryStats.countries} />
+              )}
 
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div className="xl:col-span-2">
-                  <TodayCheckInsCard rows={arrivals} onConfirm={handleConfirm} onCheckIn={handleCheckIn} />
-                </div>
-                <div className="xl:row-span-2">
-                  <TotalRevenueCard
-                    totalCollected={stats.totalCollected}
-                    outstanding={paymentStats.outstanding}
-                    activeReservations={stats.activeReservations}
-                    recentPayments={recentPayments}
-                  />
-                </div>
-                <TodayCheckOutsCard rows={departures} onCheckOut={handleCheckOut} />
-                <UpcomingReservationsCard rows={upcoming} />
+              <div className="flex flex-wrap gap-6">
+                {canSee("dashboard.widget_today_checkins") && (
+                  <div className="min-w-[360px] flex-[2] basis-[28rem]">
+                    <TodayCheckInsCard rows={arrivals} onConfirm={handleConfirm} onCheckIn={handleCheckIn} />
+                  </div>
+                )}
+                {canSee("dashboard.widget_total_revenue") && (
+                  <div className="min-w-[300px] flex-1 basis-80">
+                    <TotalRevenueCard
+                      totalCollected={stats.totalCollected}
+                      outstanding={paymentStats.outstanding}
+                      activeReservations={stats.activeReservations}
+                      recentPayments={recentPayments}
+                    />
+                  </div>
+                )}
+                {canSee("dashboard.widget_today_checkouts") && (
+                  <div className="min-w-[300px] flex-1 basis-80">
+                    <TodayCheckOutsCard rows={departures} onCheckOut={handleCheckOut} />
+                  </div>
+                )}
+                {canSee("dashboard.widget_upcoming") && (
+                  <div className="min-w-[300px] flex-1 basis-80">
+                    <UpcomingReservationsCard rows={upcoming} />
+                  </div>
+                )}
               </div>
             </>
           )}

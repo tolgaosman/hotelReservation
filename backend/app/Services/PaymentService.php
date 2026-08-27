@@ -30,6 +30,7 @@ class PaymentService
                 'method' => $data['method'],
                 'note' => $data['note'] ?? null,
                 'created_by' => $data['created_by'] ?? null,
+                'created_at' => $data['created_at'] ?? now(),
             ]);
         });
     }

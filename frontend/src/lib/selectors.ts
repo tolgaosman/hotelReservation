@@ -13,6 +13,7 @@ import type {
   RevenuePoint,
   RevenueRange,
   Room,
+  RoomService,
   RoomStats,
 } from "./types";
 
@@ -21,10 +22,26 @@ interface Store {
   guests: Guest[];
   reservations: Reservation[];
   payments: Payment[];
+  roomServices?: RoomService[];
 }
 
 function paidAmountFor(reservationId: number, payments: Payment[]): number {
   return payments.filter((p) => p.reservationId === reservationId).reduce((sum, p) => sum + p.amount, 0);
+}
+
+function roomServiceAmountFor(reservationId: number, roomServices: RoomService[]): number {
+  return roomServices.filter((rs) => rs.reservationId === reservationId).reduce((sum, rs) => sum + rs.amount, 0);
+}
+
+// Most recent payment date for a reservation, so "payments" views can sort
+// by when money last actually changed hands rather than when the booking
+// was made.
+function lastPaymentAtFor(reservationId: number, payments: Payment[]): string | undefined {
+  return payments
+    .filter((p) => p.reservationId === reservationId)
+    .map((p) => p.createdAt)
+    .sort()
+    .at(-1);
 }
 
 export function toView(reservation: Reservation, store: Store): ReservationView | null {
@@ -32,7 +49,17 @@ export function toView(reservation: Reservation, store: Store): ReservationView 
   const room = store.rooms.find((r) => r.id === reservation.roomId);
   if (!guest || !room) return null;
   const paidAmount = paidAmountFor(reservation.id, store.payments);
-  return { ...reservation, guest, room, paidAmount, balance: reservation.totalAmount - paidAmount };
+  const roomServiceAmount = roomServiceAmountFor(reservation.id, store.roomServices ?? []);
+  return {
+    ...reservation,
+    guest,
+    room,
+    paidAmount,
+    balance: reservation.totalAmount - paidAmount,
+    roomServiceAmount,
+    roomAmount: reservation.totalAmount - roomServiceAmount,
+    lastPaymentAt: lastPaymentAtFor(reservation.id, store.payments),
+  };
 }
 
 export function getReservationViews(store: Store): ReservationView[] {

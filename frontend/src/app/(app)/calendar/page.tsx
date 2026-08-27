@@ -1,183 +1,338 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { toView } from "@/lib/selectors";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { PageSkeleton } from "@/components/ui/Skeleton";
+import { ReservationDrawer } from "@/components/reservations/ReservationDrawer";
+import type { ReservationView } from "@/lib/types";
+
+const ROW_HEIGHT = 68; // px
+const LABEL_WIDTH = 200; // px
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function toIso(year: number, monthIndex: number, day: number): string {
+  const d = new Date(year, monthIndex, day);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 function addDays(iso: string, days: number): string {
   const d = new Date(iso);
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return toIso(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function daysBetween(startIso: string, endIso: string): number {
   return Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 86400000);
 }
 
-const CELL_WIDTH = 60; // px
-const ROW_HEIGHT = 48; // px
+interface LaneItem<T> {
+  item: T;
+  checkIn: string;
+  checkOut: string;
+}
+
+// Greedy interval-partitioning: reservations whose date ranges actually
+// overlap (per the same touching-allowed rule availability.ts uses to block
+// bookings) get assigned separate lanes so their bars stack instead of
+// painting over each other.
+function assignLanes<T>(items: LaneItem<T>[]): { laneOf: Map<T, number>; laneCount: number } {
+  const sorted = [...items].sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+  const laneEnds: string[] = [];
+  const laneOf = new Map<T, number>();
+  for (const entry of sorted) {
+    // A lane is free once its last reservation's checkOut has passed — a
+    // same-day turnover (new checkIn === existing checkOut) is explicitly
+    // allowed, matching the touching rule in availability.ts's rangesOverlap.
+    let lane = laneEnds.findIndex((end) => entry.checkIn >= end);
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(entry.checkOut);
+    } else {
+      laneEnds[lane] = entry.checkOut;
+    }
+    laneOf.set(entry.item, lane);
+  }
+  return { laneOf, laneCount: Math.max(1, laneEnds.length) };
+}
+
+// Fixed half-month windows (1st–15th, 16th–end of month) rather than an
+// arbitrary rolling window, so the grid always lines up with how the front
+// desk actually thinks about a booking period.
+function getPeriodBounds(iso: string): { start: string; end: string } {
+  const d = new Date(iso);
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  if (d.getDate() <= 15) {
+    return { start: toIso(year, month, 1), end: toIso(year, month, 15) };
+  }
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return { start: toIso(year, month, 16), end: toIso(year, month, lastDay) };
+}
+
+function shiftPeriod(iso: string, direction: 1 | -1): string {
+  const { start } = getPeriodBounds(iso);
+  const d = new Date(start);
+  if (direction === 1) {
+    if (d.getDate() === 1) return toIso(d.getFullYear(), d.getMonth(), 16);
+    return toIso(d.getFullYear(), d.getMonth() + 1, 1);
+  }
+  if (d.getDate() === 16) return toIso(d.getFullYear(), d.getMonth(), 1);
+  return toIso(d.getFullYear(), d.getMonth() - 1, 16);
+}
+
+function formatPeriodLabel(start: string, end: string): string {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const month = endDate.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  return `${startDate.getDate()} – ${endDate.getDate()} ${month}`;
+}
+
+const STATUS_ACCENT: Record<string, string> = {
+  pending: "bg-[var(--warn)]",
+  confirmed: "bg-[var(--info)]",
+  checked_in: "bg-[var(--accent)]",
+  completed: "bg-[var(--muted)]",
+};
+
+const STATUS_SURFACE: Record<string, string> = {
+  pending: "bg-[var(--warn-soft)] text-[var(--warn)]",
+  confirmed: "bg-[var(--info-soft)] text-[var(--info-ink)]",
+  checked_in: "bg-[var(--accent-soft)] text-[var(--accent-ink)]",
+  completed: "bg-[var(--surface-alt)] text-[var(--muted)]",
+};
 
 export default function CalendarPage() {
-  const { state, todayIso } = useStore();
-  
-  // View window starts 3 days ago to show recent past
-  const [startDate, setStartDate] = useState(addDays(todayIso, -3));
-  const daysToShow = 30;
+  const store = useStore();
+  const { state, todayIso } = store;
+  const [periodAnchor, setPeriodAnchor] = useState(todayIso);
+  const [selectedReservationId, setSelectedReservationId] = useState<number | null>(null);
+
+  const { start: periodStart, end: periodEnd } = useMemo(() => getPeriodBounds(periodAnchor), [periodAnchor]);
+  const daysToShow = daysBetween(periodStart, periodEnd) + 1;
 
   const dates = useMemo(() => {
-    const arr = [];
-    for (let i = 0; i < daysToShow; i++) {
-      arr.push(addDays(startDate, i));
-    }
+    const arr: string[] = [];
+    for (let i = 0; i < daysToShow; i++) arr.push(addDays(periodStart, i));
     return arr;
-  }, [startDate, daysToShow]);
+  }, [periodStart, daysToShow]);
 
-  const rooms = useMemo(() => {
-    return state.rooms.filter(r => r.active).sort((a, b) => a.number.localeCompare(b.number));
-  }, [state.rooms]);
+  const rooms = useMemo(
+    () => state.rooms.filter((r) => r.active).sort((a, b) => a.number.localeCompare(b.number)),
+    [state.rooms]
+  );
 
-  const nextPeriod = () => setStartDate(addDays(startDate, 7));
-  const prevPeriod = () => setStartDate(addDays(startDate, -7));
-  const goToToday = () => setStartDate(addDays(todayIso, -3));
+  const goPrev = () => setPeriodAnchor(shiftPeriod(periodAnchor, -1));
+  const goNext = () => setPeriodAnchor(shiftPeriod(periodAnchor, 1));
+  const goToday = () => setPeriodAnchor(todayIso);
+
+  const periodEndExclusive = addDays(periodEnd, 1);
+  const gridTemplateColumns = `repeat(${daysToShow}, minmax(0, 1fr))`;
+
+  const selectedReservation: ReservationView | undefined = useMemo(() => {
+    if (selectedReservationId === null) return undefined;
+    const res = state.reservations.find((r) => r.id === selectedReservationId);
+    if (!res) return undefined;
+    return toView(res, state) ?? undefined;
+  }, [selectedReservationId, state]);
 
   return (
-    <div className="flex h-full flex-col p-6 bg-[var(--canvas)] overflow-hidden">
-      <div className="flex items-center justify-between mb-6 shrink-0">
+    <div className="flex flex-col gap-6 bg-[var(--canvas)] p-6 lg:p-8">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
-            <CalendarIcon className="text-[var(--accent)]" />
+          <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-[var(--ink)]">
+            <CalendarIcon className="text-[var(--accent)]" size={26} />
             Rezervasyon Takvimi
           </h1>
-          <p className="text-[var(--muted)] mt-1">
-            Odaların 30 günlük doluluk durumunu harita üzerinden inceleyin.
-          </p>
+          <p className="mt-1.5 text-sm text-[var(--muted)]">Odaların doluluk durumunu 15 günlük periyotlar halinde inceleyin.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={goToToday} className="px-3 py-1.5 text-sm font-semibold border border-[var(--line)] rounded-md hover:bg-[var(--surface-alt)]">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={goToday}
+            className="rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition-colors duration-150 hover:bg-[var(--surface-alt)]"
+          >
             Bugün
           </button>
-          <div className="flex items-center border border-[var(--line)] rounded-md bg-[var(--surface)] overflow-hidden">
-            <button onClick={prevPeriod} className="p-1.5 hover:bg-[var(--surface-alt)] border-r border-[var(--line)]">
-              <ChevronLeft size={20} />
+          <div className="flex items-center gap-1 rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface)] p-1">
+            <button
+              onClick={goPrev}
+              aria-label="Önceki periyot"
+              className="flex size-8 items-center justify-center rounded-md text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--surface-alt)] hover:text-[var(--ink)]"
+            >
+              <ChevronLeft size={18} />
             </button>
-            <button onClick={nextPeriod} className="p-1.5 hover:bg-[var(--surface-alt)]">
-              <ChevronRight size={20} />
+            <span className="min-w-[168px] px-2 text-center text-sm font-semibold text-[var(--ink)]">
+              {formatPeriodLabel(periodStart, periodEnd)}
+            </span>
+            <button
+              onClick={goNext}
+              aria-label="Sonraki periyot"
+              className="flex size-8 items-center justify-center rounded-md text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--surface-alt)] hover:text-[var(--ink)]"
+            >
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] shadow-sm overflow-hidden flex flex-col">
-        {/* Timeline Header */}
-        <div className="flex border-b border-[var(--line)] bg-[var(--surface-alt)] shrink-0 overflow-hidden">
-          <div className="w-[120px] shrink-0 border-r border-[var(--line)] p-3 flex items-center justify-center font-bold text-[var(--muted)] text-xs">
-            ODA / TARİH
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <div className="flex h-full">
+      {store.hydrating ? (
+        <PageSkeleton />
+      ) : rooms.length === 0 ? (
+        <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border border-dashed border-[var(--line)] bg-[var(--surface)] text-center">
+          <Inbox className="text-[var(--muted)]" size={32} />
+          <p className="font-semibold text-[var(--ink)]">Henüz aktif oda yok</p>
+          <p className="max-w-xs text-sm text-[var(--muted)]">Odalar sekmesinden bir oda ekleyip aktif hale getirdiğinizde burada görünecek.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] shadow-sm">
+          {/* Header and rows are direct siblings sharing one non-scrolling
+              width context, so the shared gridTemplateColumns always computes
+              to pixel-identical column widths — no drift between them. */}
+          <div className="flex border-b border-[var(--line)] bg-[var(--surface-alt)]">
+            <div
+              className="flex shrink-0 items-center px-4 py-3.5 text-xs font-bold tracking-wider text-[var(--muted)] uppercase"
+              style={{ width: LABEL_WIDTH }}
+            >
+              Oda
+            </div>
+            <div className="grid flex-1" style={{ gridTemplateColumns }}>
               {dates.map((date) => {
                 const d = new Date(date);
                 const isToday = date === todayIso;
                 const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                 return (
-                  <div 
-                    key={date} 
+                  <div
+                    key={date}
                     className={cn(
-                      "shrink-0 flex flex-col items-center justify-center border-r border-[var(--line)] text-xs font-medium",
-                      isToday ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]" : (isWeekend ? "bg-[var(--surface)] text-[var(--muted)]" : "text-[var(--ink)]")
+                      "flex flex-col items-center justify-center gap-0.5 border-l border-[var(--line)] py-2.5 first:border-l-0",
+                      isWeekend && !isToday && "bg-[var(--surface)]/60"
                     )}
-                    style={{ width: CELL_WIDTH }}
                   >
-                    <span className="opacity-70">{d.toLocaleDateString('tr-TR', { weekday: 'short' })}</span>
-                    <span className={cn("font-bold text-sm", isToday && "text-[var(--accent)]")}>{d.getDate()}</span>
+                    <span className="text-[11px] font-medium text-[var(--muted)] capitalize">
+                      {d.toLocaleDateString("tr-TR", { weekday: "short" })}
+                    </span>
+                    <span
+                      className={cn(
+                        "flex size-7 items-center justify-center rounded-full text-sm font-bold text-[var(--ink)]",
+                        isToday && "bg-[var(--accent)] text-white"
+                      )}
+                    >
+                      {d.getDate()}
+                    </span>
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
 
-        {/* Timeline Body */}
-        <div className="flex-1 overflow-auto flex">
-          {/* Room Labels (Sticky Left) */}
-          <div className="w-[120px] shrink-0 border-r border-[var(--line)] bg-[var(--surface)] z-10 sticky left-0">
-            {rooms.map(room => (
-              <div 
-                key={room.id} 
-                className="flex flex-col justify-center border-b border-[var(--line)] px-3 py-1"
-                style={{ height: ROW_HEIGHT }}
-              >
-                <span className="font-bold text-sm text-[var(--ink)]">{room.number}</span>
-                <span className="text-[10px] text-[var(--muted)] truncate">{room.type}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Grid Area */}
-          <div className="relative">
-            {/* Vertical grid lines */}
-            <div className="absolute inset-0 flex pointer-events-none">
-              {dates.map(date => (
-                <div key={date} className={cn(
-                  "shrink-0 h-full border-r border-[var(--line)]/50",
-                  date === todayIso && "bg-[var(--accent)]/5"
-                )} style={{ width: CELL_WIDTH }} />
-              ))}
-            </div>
-
-            {/* Rows */}
-            {rooms.map((room) => {
-              // Get reservations for this room that overlap with the current view window
-              const endDate = addDays(startDate, daysToShow);
-              const roomReservations = state.reservations.filter(r => 
-                r.roomId === room.id && 
-                r.status !== "cancelled" &&
-                r.checkOut > startDate && 
-                r.checkIn < endDate
+          {rooms.map((room) => {
+              // Active bookings for this room, independent of the visible
+              // window — needed to detect same-day turnovers even when the
+              // departing reservation's checkout falls right at the edge of
+              // the current period.
+              const roomAllReservations = state.reservations.filter(
+                (r) => r.roomId === room.id && r.status !== "cancelled"
               );
+              const roomReservations = roomAllReservations.filter(
+                (r) => r.checkOut > periodStart && r.checkIn < periodEndExclusive
+              );
+              // Genuine overlaps (not just a same-day turnover) shouldn't
+              // happen — both the API and the reservation form block them —
+              // but this keeps stale/dirty data from rendering bars on top of
+              // each other instead of failing loudly.
+              const { laneOf, laneCount } = assignLanes(
+                roomReservations.map((r) => ({ item: r, checkIn: r.checkIn, checkOut: r.checkOut }))
+              );
+              const rowHeight = laneCount * ROW_HEIGHT;
 
               return (
-                <div 
-                  key={room.id} 
-                  className="flex border-b border-[var(--line)] relative group hover:bg-[var(--surface-alt)]/30"
-                  style={{ height: ROW_HEIGHT, width: CELL_WIDTH * daysToShow }}
+                <div
+                  key={room.id}
+                  className="flex border-b border-[var(--line)] transition-colors duration-150 last:border-b-0 hover:bg-[var(--surface-alt)]/40"
+                  style={{ height: rowHeight }}
                 >
-                  {roomReservations.map(res => {
-                    // Calculate left offset (can be negative if checkIn is before startDate)
-                    const offsetDays = daysBetween(startDate, res.checkIn);
-                    const lengthDays = daysBetween(res.checkIn, res.checkOut);
-                    
-                    const left = offsetDays * CELL_WIDTH;
-                    const width = lengthDays * CELL_WIDTH;
+                  <div
+                    className="flex shrink-0 flex-col justify-center border-r border-[var(--line)] px-4"
+                    style={{ width: LABEL_WIDTH }}
+                  >
+                    <span className="text-sm font-bold text-[var(--ink)]">{room.number}</span>
+                    <span className="text-xs text-[var(--muted)]">{room.type}</span>
+                  </div>
 
-                    let bgClass = "bg-[var(--info-soft)] border-[var(--info)] text-[var(--info-ink)]";
-                    if (res.status === "checked_in") bgClass = "bg-[var(--ok-soft)] border-[var(--ok)] text-[var(--ok-ink)]";
-                    if (res.status === "completed") bgClass = "bg-[var(--muted)]/20 border-[var(--muted)] text-[var(--ink)]";
+                  <div className="relative flex-1" style={{ height: rowHeight }}>
+                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns }}>
+                      {dates.map((date) => {
+                        const d = new Date(date);
+                        const isToday = date === todayIso;
+                        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                        return (
+                          <div
+                            key={date}
+                            className={cn(
+                              "h-full border-l border-[var(--line)] first:border-l-0",
+                              isToday ? "bg-[var(--accent)]/[0.04]" : isWeekend && "bg-[var(--surface-alt)]/40"
+                            )}
+                          />
+                        );
+                      })}
+                    </div>
 
-                    const guestName = state.guests.find(g => g.id === res.guestId)?.fullName ?? "Unknown";
+                    {roomReservations.map((res) => {
+                      // A reservation always keeps only the first half of its
+                      // checkout day (the guest leaves that morning); if it
+                      // arrived on someone else's checkout day, it in turn
+                      // only takes the second half of its own arrival day.
+                      const turnoverIn = roomAllReservations.some(
+                        (other) => other.id !== res.id && other.checkOut === res.checkIn
+                      );
+                      const inOffset = daysBetween(periodStart, res.checkIn);
+                      const outOffset = daysBetween(periodStart, res.checkOut);
+                      const left = Math.max(inOffset + (turnoverIn ? 0.5 : 0), 0);
+                      const right = Math.min(outOffset + 0.5, daysToShow);
+                      if (right <= left) return null;
 
-                    return (
-                      <div 
-                        key={res.id}
-                        className={cn(
-                          "absolute top-1 bottom-1 rounded-md border-l-4 px-2 py-1 overflow-hidden shadow-sm flex flex-col justify-center cursor-pointer transition-transform hover:scale-[1.01] hover:shadow-md z-10 text-[11px]",
-                          bgClass
-                        )}
-                        style={{ left, width: Math.max(width - 2, 0) }}
-                        title={`${guestName} (${res.checkIn} - ${res.checkOut})`}
-                      >
-                        <span className="font-bold truncate">{guestName}</span>
-                      </div>
-                    );
-                  })}
+                      const view = toView(res, state);
+                      const guestName = view?.guest.fullName ?? "Bilinmiyor";
+                      const lane = laneOf.get(res) ?? 0;
+
+                      return (
+                        <button
+                          key={res.id}
+                          onClick={() => setSelectedReservationId(res.id)}
+                          className={cn(
+                            "absolute z-10 flex items-center gap-2 overflow-hidden rounded-[10px] px-2.5 text-left text-xs font-semibold shadow-sm transition-all duration-150 [transition-timing-function:var(--ease-organic)] hover:z-20 hover:-translate-y-px hover:shadow-md",
+                            STATUS_SURFACE[res.status] ?? STATUS_SURFACE.confirmed
+                          )}
+                          style={{
+                            left: `${(left / daysToShow) * 100}%`,
+                            width: `${((right - left) / daysToShow) * 100}%`,
+                            top: lane * ROW_HEIGHT + 10,
+                            height: ROW_HEIGHT - 20,
+                          }}
+                          title={`${guestName} · ${res.checkIn} – ${res.checkOut}`}
+                        >
+                          <span className={cn("h-[60%] w-[3px] shrink-0 rounded-full", STATUS_ACCENT[res.status] ?? STATUS_ACCENT.confirmed)} />
+                          <span className="truncate">{guestName}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
-          </div>
         </div>
-      </div>
+      )}
+
+      <ReservationDrawer
+        open={selectedReservationId !== null}
+        onClose={() => setSelectedReservationId(null)}
+        reservation={selectedReservation}
+      />
     </div>
   );
 }

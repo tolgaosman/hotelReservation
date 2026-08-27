@@ -22,6 +22,7 @@ class StorePaymentRequest extends FormRequest
             'amount' => ['required', 'numeric', 'min:0.01'],
             'method' => ['required', Rule::enum(PaymentMethod::class)],
             'note' => ['nullable', 'string'],
+            'created_at' => ['nullable', 'date', 'before_or_equal:now'],
         ];
     }
 

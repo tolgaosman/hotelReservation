@@ -22,6 +22,8 @@ class StoreReservationRequest extends FormRequest
             'check_in' => ['required', 'date'],
             'check_out' => ['required', 'date', 'after:check_in'],
             'guest_count' => ['required', 'integer', 'min:1'],
+            'companions' => ['sometimes', 'array'],
+            'companions.*' => ['integer', 'distinct', 'exists:guests,id', 'different:guest_id'],
         ];
     }
 
@@ -40,6 +42,11 @@ class StoreReservationRequest extends FormRequest
 
             if ($this->input('guest_count') > $room->capacity) {
                 $validator->errors()->add('guest_count', 'Misafir sayısı odanın kapasitesini aşamaz.');
+            }
+
+            $companionCount = count($this->input('companions', []));
+            if ($companionCount + 1 > $this->input('guest_count')) {
+                $validator->errors()->add('companions', 'Misafir sayısı, ana misafir dahil belirtilen kişi sayısından az olamaz.');
             }
 
             (new RoomAvailableForDates(

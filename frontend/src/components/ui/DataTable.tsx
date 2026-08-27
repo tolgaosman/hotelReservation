@@ -33,6 +33,7 @@ interface DataTableProps<T> {
   getRowKey: (row: T) => string | number;
   onRowClick?: (row: T) => void;
   pageSize?: number;
+  initialSort?: SortState;
 }
 
 function ColumnFilter({
@@ -121,10 +122,10 @@ function ColumnFilter({
   );
 }
 
-export function DataTable<T>({ columns, rows, getRowKey, onRowClick, pageSize = 10 }: DataTableProps<T>) {
+export function DataTable<T>({ columns, rows, getRowKey, onRowClick, pageSize = 10, initialSort }: DataTableProps<T>) {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [sort, setSort] = useState<SortState | null>(null);
+  const [sort, setSort] = useState<SortState | null>(initialSort || null);
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {

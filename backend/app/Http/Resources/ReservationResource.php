@@ -15,6 +15,7 @@ class ReservationResource extends JsonResource
             'room_id' => $this->room_id,
             'guest' => new GuestResource($this->whenLoaded('guest')),
             'room' => new RoomResource($this->whenLoaded('room')),
+            'companions' => GuestResource::collection($this->whenLoaded('companions')),
             'check_in' => $this->check_in->toDateString(),
             'check_out' => $this->check_out->toDateString(),
             'guest_count' => $this->guest_count,

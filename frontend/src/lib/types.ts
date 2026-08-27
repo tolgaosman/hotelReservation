@@ -22,6 +22,10 @@ export interface Room {
   amenities: string[];
   status: RoomStatus;
   housekeepingStatus: "clean" | "dirty" | "cleaning";
+  is_maintenance: boolean;
+  maintenance_note: string | null;
+  assigned_staff: string | null;
+  is_priority_cleaning: boolean;
   active: boolean;
 }
 
@@ -49,6 +53,17 @@ export interface Reservation {
   createdAt: string;
   checkedInAt?: string;
   checkedOutAt?: string;
+  // Other people staying alongside the primary guest — informational only,
+  // the reservation/room still belongs to exactly one guest.
+  companions?: Guest[];
+}
+
+export interface RoomService {
+  id: number;
+  reservationId: number;
+  description: string;
+  amount: number;
+  createdAt: string;
 }
 
 export interface Payment {
@@ -67,6 +82,14 @@ export interface ReservationView extends Reservation {
   room: Room;
   paidAmount: number;
   balance: number;
+  // totalAmount split into its two components — room stay vs. room-service
+  // charges — so any UI showing money for a reservation can list them as
+  // separate lines instead of one merged figure.
+  roomAmount: number;
+  roomServiceAmount: number;
+  // Most recent payment's date, if any — used to sort payment views by
+  // recent activity rather than booking date.
+  lastPaymentAt?: string;
 }
 
 export interface DashboardStats {
@@ -137,3 +160,38 @@ export interface PaymentStats {
 export type RevenueRange = "7g" | "30g" | "6a" | "12a";
 
 export type FormResult = { ok: true } | { ok: false; error: string };
+
+export interface Permission {
+  id: number;
+  key: string;
+  label: string;
+  group: string;
+  groupLabel: string;
+  isPagePermission: boolean;
+  sortOrder: number;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  isSystem: boolean;
+  employeeCount?: number;
+  permissionIds: number[];
+}
+
+export type EmployeeStatus = "active" | "passive";
+
+export interface Employee {
+  id: number;
+  fullName: string;
+  profession: string;
+  roleId: number | null;
+  roleName?: string | null;
+  email: string | null;
+  phone: string | null;
+  hireDate: string | null;
+  status: EmployeeStatus;
+  notes: string | null;
+}

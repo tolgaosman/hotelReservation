@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { getRoomReservations } from "@/lib/selectors";
@@ -99,6 +100,27 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
                 </div>
               </div>
             </div>
+            
+            <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--color-line)] bg-[var(--color-surface)] p-3 shadow-sm">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-[var(--color-muted)]">Toplam Tutar</span>
+                <MoneyBreakdown
+                  roomAmount={activeRes.roomAmount}
+                  roomServiceAmount={activeRes.roomServiceAmount}
+                  className="font-medium text-[var(--color-ink)]"
+                />
+              </div>
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-[var(--color-muted)]">Ödenen</span>
+                <span className="font-medium text-[var(--ok)]">{formatCurrency(activeRes.paidAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm border-t border-[var(--color-line)] pt-1.5">
+                <span className="text-[var(--color-ink)] font-semibold">Kalan Bakiye (Açık Hesap)</span>
+                <span className={`font-bold ${activeRes.balance > 0 ? "text-[var(--crit)]" : "text-[var(--color-muted)]"}`}>
+                  {formatCurrency(activeRes.balance)}
+                </span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -175,10 +197,15 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-[var(--ink)]">{r.guest.fullName}</p>
                       <p className="text-xs text-[var(--muted)]">{formatDateRange(r.checkIn, r.checkOut)}</p>
+                      {r.companions && r.companions.length > 0 && (
+                        <p className="truncate text-xs text-[var(--muted)]">
+                          + {r.companions.map((c) => c.fullName).join(", ")}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-[var(--ink)]">{formatCurrency(r.totalAmount)}</p>
-                      <StatusBadge status={r.status} />
+                      <MoneyBreakdown roomAmount={r.roomAmount} roomServiceAmount={r.roomServiceAmount} className="text-sm font-semibold text-[var(--ink)]" />
+                      <StatusBadge status={r.status} className="mt-1" />
                     </div>
                   </div>
                 ))}

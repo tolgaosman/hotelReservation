@@ -14,7 +14,7 @@ const BLOCKING_STATUSES = new Set<Reservation["status"]>([
  * A same-day turnover — new checkIn === existing checkOut — is NOT a
  * conflict, per the brief's explicit requirement.
  */
-function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+export function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
   return aStart < bEnd && aEnd > bStart;
 }
 

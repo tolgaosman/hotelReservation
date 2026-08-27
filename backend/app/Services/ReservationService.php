@@ -48,7 +48,7 @@ class ReservationService
                 throw new DomainActionException('Bu oda seçilen tarihlerde başka bir aktif rezervasyona sahip.');
             }
 
-            return Reservation::create([
+            $reservation = Reservation::create([
                 'guest_id' => $data['guest_id'],
                 'room_id' => $room->id,
                 'check_in' => $checkIn,
@@ -58,6 +58,10 @@ class ReservationService
                 'total_amount' => $this->calculateTotal($room, $checkIn, $checkOut),
                 'created_by' => $data['created_by'] ?? null,
             ]);
+
+            $reservation->companions()->sync($data['companions'] ?? []);
+
+            return $reservation;
         });
     }
 
@@ -79,15 +83,20 @@ class ReservationService
                 throw new DomainActionException('Bu oda seçilen tarihlerde başka bir aktif rezervasyona sahip.');
             }
 
+            $roomServicesTotal = $reservation->roomServices()->sum('amount');
             $reservation->fill([
                 'guest_id' => $data['guest_id'] ?? $reservation->guest_id,
                 'room_id' => $room->id,
                 'check_in' => $checkIn,
                 'check_out' => $checkOut,
                 'guest_count' => $data['guest_count'] ?? $reservation->guest_count,
-                'total_amount' => $this->calculateTotal($room, $checkIn, $checkOut),
+                'total_amount' => $this->calculateTotal($room, $checkIn, $checkOut) + $roomServicesTotal,
             ]);
             $reservation->save();
+
+            if (array_key_exists('companions', $data)) {
+                $reservation->companions()->sync($data['companions']);
+            }
 
             return $reservation;
         });

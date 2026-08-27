@@ -2,9 +2,12 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +31,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('reservations/{reservation}/cancel', [ReservationController::class, 'cancel']);
     Route::post('reservations/{reservation}/check-in', [ReservationController::class, 'checkIn']);
     Route::post('reservations/{reservation}/check-out', [ReservationController::class, 'checkOut']);
+    Route::get('room-services', [\App\Http\Controllers\RoomServiceController::class, 'indexAll']);
+    Route::get('reservations/{reservation}/room-services', [\App\Http\Controllers\RoomServiceController::class, 'index']);
+    Route::post('reservations/{reservation}/room-services', [\App\Http\Controllers\RoomServiceController::class, 'store']);
+    Route::delete('room-services/{roomService}', [\App\Http\Controllers\RoomServiceController::class, 'destroy']);
     Route::get('reservations/{reservation}/payments', [ReservationController::class, 'payments']);
     Route::get('reservations/{reservation}/invoice', [ReservationController::class, 'invoice']);
 
@@ -37,4 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('dashboard/today', [DashboardController::class, 'today']);
     Route::get('dashboard/revenue', [DashboardController::class, 'revenue']);
+
+    Route::get('permissions', [PermissionController::class, 'index']);
+    Route::apiResource('roles', RoleController::class)->except(['show']);
+    Route::apiResource('employees', EmployeeController::class)->except(['destroy']);
 });

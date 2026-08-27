@@ -22,6 +22,8 @@ class UpdateReservationRequest extends FormRequest
             'check_in' => ['sometimes', 'date'],
             'check_out' => ['sometimes', 'date', 'after:check_in'],
             'guest_count' => ['sometimes', 'integer', 'min:1'],
+            'companions' => ['sometimes', 'array'],
+            'companions.*' => ['integer', 'distinct', 'exists:guests,id'],
         ];
     }
 
@@ -44,6 +46,14 @@ class UpdateReservationRequest extends FormRequest
 
             if ($guestCount > $room->capacity) {
                 $validator->errors()->add('guest_count', 'Misafir sayısı odanın kapasitesini aşamaz.');
+            }
+
+            $guestId = $this->input('guest_id', $reservation->guest_id);
+            $companions = $this->input('companions', []);
+            if (in_array($guestId, $companions, false)) {
+                $validator->errors()->add('companions', 'Ana misafir aynı zamanda diğer misafirler arasında olamaz.');
+            } elseif (count($companions) + 1 > $guestCount) {
+                $validator->errors()->add('companions', 'Misafir sayısı, ana misafir dahil belirtilen kişi sayısından az olamaz.');
             }
 
             $checkIn = $this->input('check_in', $reservation->check_in->toDateString());

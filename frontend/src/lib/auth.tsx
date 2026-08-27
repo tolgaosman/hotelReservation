@@ -9,6 +9,11 @@ interface User {
   name: string;
   email: string;
   role: "admin" | "personel";
+  roleId: number | null;
+  roleName: string | null;
+  // Granular permission keys (e.g. "reservations.create") resolved from the
+  // user's assigned Role — admins get every key without needing one assigned.
+  permissions: string[];
 }
 
 interface AuthContextType {
@@ -16,6 +21,7 @@ interface AuthContextType {
   loading: boolean;
   login: (token: string, userData: User) => void;
   logout: () => void;
+  hasPermission: (key: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -68,8 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
+  function hasPermission(key: string): boolean {
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    return user.permissions?.includes(key) ?? false;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

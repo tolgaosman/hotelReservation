@@ -1,6 +1,7 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState, useEffect } from "react";
+import { X } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
@@ -12,7 +13,7 @@ import { useToast } from "@/components/ui/Toast";
 import { getAvailableRooms, getPaymentsForReservation } from "@/lib/selectors";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
-import type { Guest, PaymentMethod, ReservationView } from "@/lib/types";
+import type { Guest, PaymentMethod, ReservationView, RoomService } from "@/lib/types";
 
 function nightsBetween(checkIn: string, checkOut: string): number {
   return Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000);
@@ -44,15 +45,37 @@ const ReservationForm = forwardRef<
   const [checkIn, setCheckIn] = useState(reservation?.checkIn ?? todayIso);
   const [checkOut, setCheckOut] = useState(reservation?.checkOut ?? addDaysIso(todayIso, 1));
   const [guestCount, setGuestCount] = useState(reservation?.guestCount ?? 1);
+  const [companionQuery, setCompanionQuery] = useState("");
+  const [companionIds, setCompanionIds] = useState<number[]>(reservation?.companions?.map((c) => c.id) ?? []);
   const [error, setError] = useState<string | null>(null);
+
+  const companionCandidates = useMemo(() => {
+    const q = companionQuery.trim().toLowerCase();
+    return store.state.guests
+      .filter((g) => g.id !== Number(guestId) && !companionIds.includes(g.id))
+      .filter((g) => q.length === 0 || g.fullName.toLowerCase().includes(q))
+      .slice(0, 20);
+  }, [companionQuery, store.state.guests, guestId, companionIds]);
+
+  function addCompanion(id: number) {
+    setCompanionIds((prev) => [...prev, id]);
+    setCompanionQuery("");
+  }
+
+  function removeCompanion(id: number) {
+    setCompanionIds((prev) => prev.filter((c) => c !== id));
+  }
 
   useImperativeHandle(ref, () => ({
     async submit() {
       if (!guestId) return setError("Bir misafir seçin.");
       if (!roomId) return setError("Bir oda seçin.");
+      if (companionIds.length + 1 > guestCount) {
+        return setError("Misafir sayısı, ana misafir dahil belirtilen kişi sayısından az olamaz.");
+      }
       const result = isCreate
-        ? await store.createReservation({ guestId: Number(guestId), roomId: Number(roomId), checkIn, checkOut, guestCount })
-        : await store.updateReservation(reservation!.id, { checkIn, checkOut, guestCount, roomId: Number(roomId) });
+        ? await store.createReservation({ guestId: Number(guestId), roomId: Number(roomId), checkIn, checkOut, guestCount, companions: companionIds })
+        : await store.updateReservation(reservation!.id, { checkIn, checkOut, guestCount, roomId: Number(roomId), companions: companionIds });
       if (!result.ok) return setError(result.error);
       onSaved();
     },
@@ -118,6 +141,52 @@ const ReservationForm = forwardRef<
         <Input type="number" min={1} value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} />
       </FormField>
 
+      <FormField label="Diğer Misafirler (opsiyonel)">
+        <Input
+          placeholder="Kayıtlı misafirlerde ara..."
+          value={companionQuery}
+          onChange={(e) => setCompanionQuery(e.target.value)}
+          className="mb-2"
+        />
+        {companionQuery.trim().length > 0 && (
+          <div className="mb-2 max-h-32 overflow-y-auto rounded-[var(--radius-control)] border border-[var(--line)]">
+            {companionCandidates.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-[var(--muted)]">Eşleşen misafir bulunamadı.</p>
+            ) : (
+              companionCandidates.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => addCompanion(g.id)}
+                  className="block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--surface-alt)]"
+                >
+                  {g.fullName} — {g.phone}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+        {companionIds.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {companionIds.map((id) => {
+              const g = store.state.guests.find((candidate) => candidate.id === id);
+              if (!g) return null;
+              return (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-[var(--surface-alt)] px-3 py-1 text-xs font-medium text-[var(--ink)]"
+                >
+                  {g.fullName}
+                  <button type="button" onClick={() => removeCompanion(id)} aria-label={`${g.fullName} kaldır`} className="text-[var(--muted)] transition-colors hover:text-[var(--crit)]">
+                    <X size={12} />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </FormField>
+
       {nights > 0 && selectedRoom && (
         <div className="rounded-[var(--radius-control)] bg-[var(--accent-soft)] px-3.5 py-3 text-sm">
           <span className="text-[var(--accent-ink)]">
@@ -144,10 +213,24 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
   const [editing, setEditing] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [paymentDate, setPaymentDate] = useState(store.todayIso);
   const formRef = useRef<FormHandle>(null);
 
   const showForm = isCreate || editing;
   const payments = reservation ? getPaymentsForReservation(store.state, reservation.id) : [];
+  
+  const [roomServices, setRoomServices] = useState<RoomService[]>([]);
+  const roomServicesTotal = useMemo(() => roomServices.reduce((sum, rs) => sum + rs.amount, 0), [roomServices]);
+
+  useEffect(() => {
+    if (reservation) {
+      store.getRoomServices(reservation.id).then(res => {
+        if (res.ok) setRoomServices(res.data);
+      });
+    } else {
+      setRoomServices([]);
+    }
+  }, [reservation?.id, store]);
 
   function handleClose() {
     setEditing(false);
@@ -167,9 +250,12 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
       showToast("Geçerli bir tutar girin.", "error");
       return;
     }
-    const result = await store.addPayment({ reservationId: reservation.id, amount, method: paymentMethod });
+    const result = await store.addPayment({ reservationId: reservation.id, amount, method: paymentMethod, createdAt: paymentDate });
     showToast(result.ok ? "Ödeme eklendi." : result.error, result.ok ? "success" : "error");
-    if (result.ok) setPaymentAmount("");
+    if (result.ok) {
+      setPaymentAmount("");
+      setPaymentDate(store.todayIso);
+    }
   }
 
   async function downloadInvoice() {
@@ -274,10 +360,36 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
               </div>
             </div>
 
+            {reservation.companions && reservation.companions.length > 0 && (
+              <div className="rounded-[var(--radius-control)] border border-[var(--line)] p-4">
+                <p className="mb-2 text-xs font-semibold text-[var(--ink-soft)]">Diğer Misafirler</p>
+                <div className="flex flex-wrap gap-2">
+                  {reservation.companions.map((g) => (
+                    <span
+                      key={g.id}
+                      className="rounded-[var(--radius-pill)] bg-[var(--surface-alt)] px-3 py-1 text-xs font-medium text-[var(--ink)]"
+                    >
+                      {g.fullName}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="rounded-[var(--radius-control)] border border-[var(--line)] p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[var(--muted)]">Toplam Tutar</span>
-                <span className="font-semibold text-[var(--ink)]">{formatCurrency(reservation.totalAmount)}</span>
+                <span className="text-[var(--muted)]">Oda Konaklama</span>
+                <span className="font-semibold text-[var(--ink)]">{formatCurrency(reservation.totalAmount - roomServicesTotal)}</span>
+              </div>
+              {roomServicesTotal > 0 && (
+                <div className="mt-1.5 flex items-center justify-between text-sm">
+                  <span className="text-[var(--muted)]">Oda Servisi</span>
+                  <span className="font-semibold text-[var(--ink)]">{formatCurrency(roomServicesTotal)}</span>
+                </div>
+              )}
+              <div className="mt-2 pt-2 border-t border-[var(--line)] flex items-center justify-between text-sm">
+                <span className="text-[var(--ink)] font-bold">Genel Toplam</span>
+                <span className="font-bold text-[var(--ink)]">{formatCurrency(reservation.totalAmount)}</span>
               </div>
               <div className="mt-1.5 flex items-center justify-between text-sm">
                 <span className="text-[var(--muted)]">Ödenen</span>
@@ -302,16 +414,33 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     className="flex-1"
                   />
-                  <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)} className="w-28">
+                  <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)} className="w-24">
                     {(Object.keys(METHOD_LABEL) as PaymentMethod[]).map((m) => (
                       <option key={m} value={m}>
                         {METHOD_LABEL[m]}
                       </option>
                     ))}
                   </Select>
+                  <Input type="date" value={paymentDate} max={store.todayIso} onChange={(e) => setPaymentDate(e.target.value)} className="w-32" />
                   <Button size="sm" onClick={submitPayment}>
                     Ekle
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {roomServices.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-semibold text-[var(--ink-soft)]">Oda Servisi</p>
+                <div className="space-y-2">
+                  {roomServices.map((rs) => (
+                    <div key={rs.id} className="flex items-center justify-between text-sm border-b border-[var(--line)] last:border-b-0 pb-2 last:pb-0">
+                      <span className="text-[var(--muted)]">
+                        {rs.description} <br/> <span className="text-[10px]">{formatDateTime(rs.createdAt)}</span>
+                      </span>
+                      <span className="font-medium text-[var(--ink)]">{formatCurrency(rs.amount)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

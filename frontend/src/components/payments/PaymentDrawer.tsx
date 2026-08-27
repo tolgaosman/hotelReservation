@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
+import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { formatCurrency } from "@/lib/format";
 import type { PaymentMethod, ReservationView } from "@/lib/types";
 
@@ -29,6 +30,7 @@ export function PaymentDrawer({
   const [reservationId, setReservationId] = useState("");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("card");
+  const [createdAt, setCreatedAt] = useState(store.todayIso);
   const [error, setError] = useState<string | null>(null);
 
   const selected = payable.find((r) => String(r.id) === reservationId);
@@ -38,11 +40,12 @@ export function PaymentDrawer({
     if (!selected) return setError("Lütfen bir rezervasyon seçin.");
     if (!value || value <= 0) return setError("Geçerli bir tutar girin.");
 
-    const result = await store.addPayment({ reservationId: selected.id, amount: value, method });
+    const result = await store.addPayment({ reservationId: selected.id, amount: value, method, createdAt });
     if (!result.ok) return setError(result.error);
     showToast("Ödeme başarıyla eklendi.", "success");
     setReservationId("");
     setAmount("");
+    setCreatedAt(store.todayIso);
     setError(null);
     onClose();
   }
@@ -78,7 +81,7 @@ export function PaymentDrawer({
           <div className="rounded-[var(--radius-control)] bg-[var(--surface-alt)] px-3.5 py-3 text-sm">
             <div className="flex justify-between">
               <span className="text-[var(--muted)]">Toplam</span>
-              <span className="font-medium text-[var(--ink)]">{formatCurrency(selected.totalAmount)}</span>
+              <MoneyBreakdown roomAmount={selected.roomAmount} roomServiceAmount={selected.roomServiceAmount} className="font-medium text-[var(--ink)]" />
             </div>
             <div className="mt-1 flex justify-between">
               <span className="text-[var(--muted)]">Ödenen</span>
@@ -103,6 +106,9 @@ export function PaymentDrawer({
                 </option>
               ))}
             </Select>
+          </FormField>
+          <FormField label="Tarih (Opsiyonel)">
+            <Input type="date" max={store.todayIso} value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} />
           </FormField>
         </div>
 

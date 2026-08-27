@@ -20,6 +20,10 @@ class Room extends Model
         'status',
         'housekeeping_status',
         'active',
+        'is_maintenance',
+        'maintenance_note',
+        'assigned_staff',
+        'is_priority_cleaning'
     ];
 
     protected function casts(): array
@@ -31,6 +35,8 @@ class Room extends Model
             'status' => RoomStatus::class,
             'housekeeping_status' => \App\Enums\HousekeepingStatus::class,
             'active' => 'boolean',
+            'is_maintenance' => 'boolean',
+            'is_priority_cleaning' => 'boolean',
         ];
     }
 

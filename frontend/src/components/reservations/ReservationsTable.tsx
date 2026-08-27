@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
 import type { ReservationStatus, ReservationView } from "@/lib/types";
@@ -41,7 +42,12 @@ export function ReservationsTable({
     { key: "guests", header: "Kişi", sortValue: (r) => r.guestCount, render: (r) => <span className="text-[var(--info)] font-bold">{r.guestCount}</span> },
     { key: "checkIn", header: "Giriş", sortValue: (r) => r.checkIn, render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.checkIn)}</span> },
     { key: "checkOut", header: "Çıkış", sortValue: (r) => r.checkOut, render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.checkOut)}</span> },
-    { key: "total", header: "Tutar", sortValue: (r) => r.totalAmount, render: (r) => <span className="text-[var(--ink)] font-medium">{formatCurrency(r.totalAmount)}</span> },
+    {
+      key: "total",
+      header: "Tutar",
+      sortValue: (r) => r.totalAmount,
+      render: (r) => <MoneyBreakdown roomAmount={r.roomAmount} roomServiceAmount={r.roomServiceAmount} className="text-[var(--ink)] font-medium" />,
+    },
     {
       key: "balance",
       header: "Bakiye",

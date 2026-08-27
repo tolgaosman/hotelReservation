@@ -24,12 +24,7 @@ class AuthController extends Controller
 
         return $this->success([
             'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role->value,
-            ],
+            'user' => $this->serializeUser($user),
         ], 'Giriş başarılı.');
     }
 
@@ -42,13 +37,21 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
+        return $this->success($this->serializeUser($request->user()));
+    }
 
-        return $this->success([
+    private function serializeUser(User $user): array
+    {
+        $user->loadMissing('permissionRole');
+
+        return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role->value,
-        ]);
+            'roleId' => $user->role_id,
+            'roleName' => $user->permissionRole?->name,
+            'permissions' => $user->permissionKeys(),
+        ];
     }
 }

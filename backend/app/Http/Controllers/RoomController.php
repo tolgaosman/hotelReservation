@@ -78,10 +78,23 @@ class RoomController extends Controller
         $this->authorize('update', $room);
 
         $validated = $request->validate([
-            'housekeeping_status' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\HousekeepingStatus::class)],
+            'housekeeping_status' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\HousekeepingStatus::class)],
+            'is_maintenance' => ['nullable', 'boolean'],
+            'maintenance_note' => ['nullable', 'string', 'max:255'],
+            'assigned_staff' => ['nullable', 'string', 'max:255'],
+            'is_priority_cleaning' => ['nullable', 'boolean'],
         ]);
 
-        $room->update(['housekeeping_status' => $validated['housekeeping_status']]);
+        $room->update(array_filter($validated, function ($val) { return $val !== null; }));
+        
+        // Handle explicit nulls if sent (like clearing note or staff)
+        if ($request->has('maintenance_note') && $request->input('maintenance_note') === null) {
+            $room->maintenance_note = null;
+        }
+        if ($request->has('assigned_staff') && $request->input('assigned_staff') === null) {
+            $room->assigned_staff = null;
+        }
+        $room->save();
 
         return $this->success(new RoomResource($room), 'Temizlik durumu güncellendi.');
     }

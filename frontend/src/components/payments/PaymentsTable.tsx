@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
 import type { PaymentStatus, ReservationView } from "@/lib/types";
@@ -36,7 +37,12 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
   const columns: Column<ReservationView>[] = [
     { key: "guest", header: "Misafir", sortValue: (r) => r.guest.fullName.toLocaleLowerCase("tr-TR"), render: (r) => <span className="text-[var(--ink)] font-medium">{r.guest.fullName}</span> },
     { key: "room", header: "Oda", sortValue: (r) => r.room.number, render: (r) => <span className="text-[var(--accent)] font-bold">{r.room.number}</span> },
-    { key: "total", header: "Toplam", sortValue: (r) => r.totalAmount, render: (r) => <span className="text-[var(--ink)] font-medium tabular-nums">{formatCurrency(r.totalAmount)}</span> },
+    {
+      key: "total",
+      header: "Toplam",
+      sortValue: (r) => r.totalAmount,
+      render: (r) => <MoneyBreakdown roomAmount={r.roomAmount} roomServiceAmount={r.roomServiceAmount} className="text-[var(--ink)] font-medium tabular-nums" />,
+    },
     { key: "paid", header: "Ödenen", sortValue: (r) => r.paidAmount, render: (r) => <span className="text-[var(--ok)] font-medium tabular-nums">{formatCurrency(r.paidAmount)}</span> },
     {
       key: "balance",
@@ -46,7 +52,16 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
         <span className={r.balance > 0 ? "font-medium text-[var(--crit)] tabular-nums" : "text-[var(--muted)] tabular-nums"}>{formatCurrency(r.balance)}</span>
       ),
     },
-    { key: "date", header: "Tarih", sortValue: (r) => r.createdAt, render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.createdAt)}</span> },
+    {
+      key: "date",
+      header: "Son Ödeme",
+      // Rows with no payment yet sort to the bottom (in either direction)
+      // instead of competing with real payment dates via a createdAt fallback.
+      sortValue: (r) => r.lastPaymentAt ?? "",
+      render: (r) => (
+        <span className="text-[var(--muted)] tabular-nums">{r.lastPaymentAt ? formatDate(r.lastPaymentAt) : "—"}</span>
+      ),
+    },
     { 
       key: "status", 
       header: "Durum", 
@@ -76,7 +91,7 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
       {filteredByQuery.length === 0 ? (
         <EmptyState title="Eşleşen kayıt yok" description="Farklı bir arama terimi deneyin." />
       ) : (
-        <DataTable columns={columns} rows={filteredByQuery} getRowKey={(r) => r.id} onRowClick={onRowClick} />
+        <DataTable columns={columns} rows={filteredByQuery} getRowKey={(r) => r.id} onRowClick={onRowClick} initialSort={{ key: "date", dir: "desc" }} />
       )}
     </Card>
   );

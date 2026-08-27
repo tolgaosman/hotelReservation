@@ -7,6 +7,7 @@ import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { getGuestReservations } from "@/lib/selectors";
@@ -177,10 +178,15 @@ export function GuestDrawer({ open, onClose, guest }: Props) {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-[var(--ink)]">Oda {r.room.number}</p>
                         <p className="text-xs text-[var(--muted)]">{formatDateRange(r.checkIn, r.checkOut)}</p>
+                        {r.companions && r.companions.length > 0 && (
+                          <p className="truncate text-xs text-[var(--muted)]">
+                            + {r.companions.map((c) => c.fullName).join(", ")}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-[var(--ink)]">{formatCurrency(r.totalAmount)}</p>
-                        <StatusBadge status={r.status} />
+                        <MoneyBreakdown roomAmount={r.roomAmount} roomServiceAmount={r.roomServiceAmount} className="text-sm font-semibold text-[var(--ink)]" />
+                        <StatusBadge status={r.status} className="mt-1" />
                       </div>
                     </div>
                   ))}
