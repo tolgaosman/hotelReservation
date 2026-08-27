@@ -96,8 +96,8 @@ export function WorldMap({
 
   const { features, path } = useMemo(() => {
     const geo = feature(
-      worldTopology,
-      worldTopology.objects.countries
+      worldTopology as any,
+      worldTopology.objects.countries as any
     ) as unknown as { features: CountryFeature[] };
     // Antarctica adds a wide, hotel-irrelevant landmass at the bottom of the
     // map that also drags the projection's fitted bounds — dropping it both

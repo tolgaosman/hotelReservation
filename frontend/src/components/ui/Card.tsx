@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 import { Menu, type MenuAction } from "./Menu";
 
 interface CardProps {
-  title?: string;
-  subtitle?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   action?: ReactNode;
   menu?: MenuAction[];
   children: ReactNode;
