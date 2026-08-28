@@ -35,9 +35,9 @@ Migration ve seed işlemlerini çalıştırın:
 php artisan migrate --seed
 ```
 
-Bu komut şemayı oluşturur ve gerçekçi geliştirme verisi (60 oda, 200 misafir,
+Bu komut şemayı oluşturur ve gerçekçi geliştirme verisi (60 oda, 350 misafir,
 geçmiş/güncel/gelecek tarihli rezervasyonlar ve ödemeler) ile birlikte iki
-test kullanıcısı ekler.
+test kullanıcısı, 8 sistem rolü ve örnek personel listesi ekler.
 
 ## Çalıştırma
 
@@ -107,6 +107,7 @@ GET    /api/rooms/{room}
 PATCH  /api/rooms/{room}                   (admin)
 PATCH  /api/rooms/{room}/deactivate        (admin)
 PATCH  /api/rooms/{room}/activate          (admin)
+PATCH  /api/rooms/{room}/housekeeping      (admin)
 GET    /api/rooms/{room}/availability      ?check_in=&check_out=
 
 GET    /api/guests                         ?search=&per_page=
@@ -124,13 +125,30 @@ POST   /api/reservations/{reservation}/cancel
 POST   /api/reservations/{reservation}/check-in
 POST   /api/reservations/{reservation}/check-out
 GET    /api/reservations/{reservation}/payments
+GET    /api/reservations/{reservation}/invoice     (PDF indirme)
+GET    /api/reservations/{reservation}/room-services
+POST   /api/reservations/{reservation}/room-services
 
-GET    /api/payments                       (admin) ?reservation_id=&per_page=
-POST   /api/payments                       (admin)
+GET    /api/room-services                  ?per_page=
+DELETE /api/room-services/{roomService}
+
+GET    /api/payments                       (payments.view / admin) ?reservation_id=&per_page=
+POST   /api/payments                       (payments.create / admin)
 
 GET    /api/dashboard/stats
 GET    /api/dashboard/today
 GET    /api/dashboard/revenue              ?from=&to=&bucket=day|week|month
+
+GET    /api/permissions
+
+GET    /api/roles                          (roles.view / admin)
+POST   /api/roles                          (admin)
+PATCH  /api/roles/{role}                   (admin)
+DELETE /api/roles/{role}                   (admin)
+
+GET    /api/employees                      (employees.view / admin) ?search=&status=&per_page=
+POST   /api/employees                      (admin)
+PATCH  /api/employees/{employee}           (admin)
 ```
 
 ## İş Kuralları
@@ -151,11 +169,29 @@ GET    /api/dashboard/revenue              ?from=&to=&bucket=day|week|month
 
 ## Rol Yetkileri
 
-- **Admin**: Odalar, misafirler, rezervasyonlar ve ödemeler üzerinde tam
-  yetki.
-- **Personel**: Rezervasyon oluşturma/güncelleme, check-in/check-out, misafir
-  görüntüleme/oluşturma. Oda yönetimi ve ödeme listeleme/oluşturma admin'e
-  özeldir.
+İki katmanlı bir model kullanılır:
+
+1. **`User.role`** (Admin/Personel) — admin tüm izin kontrollerini
+   otomatik geçer.
+2. **İnce taneli `Role` ↔ `Permission` eşlemesi** — admin olmayan bir
+   kullanıcıya `role_id` üzerinden atanan role bağlı izinler (`roles`,
+   `permissions`, `permission_role` tabloları; `PermissionSeeder`/
+   `RoleSeeder` ile 8 sistem rolü ve gruplu izin kataloğu seed'lenir).
+
+Özet:
+
+- **Admin**: Odalar, misafirler, rezervasyonlar, ödemeler, personel ve
+  roller üzerinde tam yetki.
+- **Personel (rolüne göre)**: Rezervasyon oluşturma/güncelleme,
+  check-in/check-out, misafir görüntüleme/oluşturma her zaman serbesttir.
+  Oda yönetimi admin'e özeldir. Ödeme listeleme/oluşturma, `payments.view`/
+  `payments.create` izni verilmiş bir role bağlıysa personel için de
+  açıktır (ör. seed'lenen "Resepsiyonist" rolü).
+
+Not: `Permission` kataloğundaki bazı anahtarlar (ör. `reservations.confirm`,
+`housekeeping.update_status`) şu an yalnızca frontend'de gezinme/görünürlük
+amacıyla kullanılır, backend policy'leri tarafından henüz zorlanmaz —
+istisnalar `EmployeePolicy`, `RolePolicy` ve `PaymentPolicy`'dir.
 
 ## Testler
 

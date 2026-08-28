@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { LayoutDashboard } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Topbar } from "@/components/layout/Topbar";
 import { Select } from "@/components/ui/Select";
-import { PageSkeleton } from "@/components/ui/Skeleton";
+import { PageSkeleton, ChartSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { LayoutDashboard } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
+import { getFirstAccessibleRoute } from "@/lib/nav";
 import {
   clampDaysToData,
   getDashboardStats,
@@ -24,7 +27,13 @@ import {
 import { RoomAvailabilityCard } from "@/components/dashboard/RoomAvailabilityCard";
 import { RevenueCard } from "@/components/dashboard/RevenueCard";
 import { ReservationStatusDonut } from "@/components/dashboard/ReservationStatusDonut";
-import { ReservationsByCountryCard } from "@/components/dashboard/ReservationsByCountryCard";
+// d3-geo/topojson-client/world-atlas (the whole world map topology JSON)
+// are only needed once this card actually renders — dynamic-importing it
+// keeps them out of the dashboard's initial JS bundle.
+const ReservationsByCountryCard = dynamic(
+  () => import("@/components/dashboard/ReservationsByCountryCard").then((m) => m.ReservationsByCountryCard),
+  { ssr: false, loading: () => <ChartSkeleton /> }
+);
 import { TodayCheckInsCard } from "@/components/dashboard/TodayCheckInsCard";
 import { TodayCheckOutsCard } from "@/components/dashboard/TodayCheckOutsCard";
 import { TotalRevenueCard } from "@/components/dashboard/TotalRevenueCard";
@@ -33,14 +42,13 @@ import { UpcomingReservationsCard } from "@/components/dashboard/UpcomingReserva
 export default function DashboardPage() {
   const store = useStore();
   const showToast = useToast();
+  const router = useRouter();
   const { user, hasPermission } = useAuth();
   const [timeFilter, setTimeFilter] = useState("1_year");
   const { state } = store;
 
-  // A user with no permission assignment yet (no role picked) sees every
-  // widget — the roles page only starts trimming the dashboard once a role
-  // with an actual widget selection has been assigned to them.
-  const unrestricted = user?.role === "admin" || (user?.permissions?.length ?? 0) === 0;
+  // Only admins bypass the widget catalog — see lib/auth.tsx's `unrestricted`.
+  const unrestricted = user?.role === "admin";
   const canSee = (key: string) => unrestricted || hasPermission(key);
   const anyWidgetVisible = [
     "dashboard.widget_room_availability",
@@ -52,6 +60,19 @@ export default function DashboardPage() {
     "dashboard.widget_today_checkouts",
     "dashboard.widget_upcoming",
   ].some(canSee);
+
+  // A role with no dashboard widgets shouldn't land on an empty dashboard —
+  // send it straight to the first page it does have access to.
+  const redirectTarget =
+    !unrestricted && !anyWidgetVisible
+      ? getFirstAccessibleRoute({ isAdmin: user?.role === "admin", unrestricted, hasPermission })
+      : null;
+
+  useEffect(() => {
+    if (redirectTarget && redirectTarget !== "/dashboard") {
+      router.replace(redirectTarget);
+    }
+  }, [redirectTarget, router]);
 
   const daysMap: Record<string, number> = {
     "7_days": 7,
@@ -142,9 +163,10 @@ export default function DashboardPage() {
         <div className="pointer-events-none absolute bottom-0 left-1/2 size-[800px] -translate-x-1/2 rounded-full bg-[var(--color-accent)]/[0.02] blur-3xl" />
 
         <div className="relative z-10 space-y-6">
-          {store.hydrating ? (
+          {store.hydrating || redirectTarget ? (
             <PageSkeleton />
           ) : !anyWidgetVisible ? (
+            // Only reachable when no other page exists to redirect to either.
             <EmptyState
               icon={LayoutDashboard}
               title="Görüntüleyebileceğiniz bir bileşen yok"

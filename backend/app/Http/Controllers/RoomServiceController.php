@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\DomainActionException;
+use App\Http\Resources\ReservationResource;
+use App\Http\Resources\RoomServiceResource;
 use App\Models\Reservation;
 use App\Models\RoomService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Resources\ReservationResource;
-use App\Http\Resources\RoomServiceResource;
 
 class RoomServiceController extends Controller
 {
@@ -18,51 +19,73 @@ class RoomServiceController extends Controller
      */
     public function indexAll(Request $request)
     {
+        $this->authorize('viewAny', RoomService::class);
+
         $services = RoomService::query()
             ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate($this->perPage($request));
 
         return $this->paginated($services, RoomServiceResource::class);
     }
 
     public function index(Reservation $reservation)
     {
-        return response()->json([
-            'data' => $reservation->roomServices()->orderBy('created_at', 'desc')->get()
-        ]);
+        $this->authorize('viewAny', RoomService::class);
+
+        return $this->success(
+            RoomServiceResource::collection($reservation->roomServices()->orderBy('created_at', 'desc')->get())
+        );
     }
 
     public function store(Request $request, Reservation $reservation)
     {
+        $this->authorize('create', RoomService::class);
+
         $validated = $request->validate([
             'description' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0.01|max:1000000',
         ]);
 
         DB::transaction(function () use ($reservation, $validated) {
-            $reservation->roomServices()->create($validated);
-            
-            $reservation->total_amount += $validated['amount'];
-            $reservation->save();
+            /** @var Reservation $locked */
+            $locked = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
+
+            if ($locked->status === \App\Enums\ReservationStatus::Cancelled) {
+                throw new DomainActionException('İptal edilmiş bir rezervasyona ek hizmet eklenemez.');
+            }
+
+            $locked->roomServices()->create($validated);
+            $locked->total_amount += $validated['amount'];
+            $locked->save();
         });
 
-        // Return the updated reservation using the resource to match existing API formats
-        $reservation->load(['guest', 'room']);
-        return new ReservationResource($reservation);
+        $reservation->refresh()->load(['guest', 'room']);
+
+        return $this->success(new ReservationResource($reservation), 'Ek hizmet eklendi.', 201);
     }
 
     public function destroy(RoomService $roomService)
     {
         $reservation = $roomService->reservation;
+        $this->authorize('delete', $roomService);
 
         DB::transaction(function () use ($reservation, $roomService) {
-            $reservation->total_amount -= $roomService->amount;
-            $reservation->save();
-            
+            /** @var Reservation $locked */
+            $locked = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
+
+            $newTotal = $locked->total_amount - $roomService->amount;
+            if (bccomp((string) $newTotal, (string) $locked->paid_amount, 2) < 0) {
+                throw new DomainActionException('Bu ek hizmet silinemez: rezervasyon için ödenen tutarın altına düşürür.');
+            }
+
+            $locked->total_amount = $newTotal;
+            $locked->save();
+
             $roomService->delete();
         });
 
-        $reservation->load(['guest', 'room']);
-        return new ReservationResource($reservation);
+        $reservation->refresh()->load(['guest', 'room']);
+
+        return $this->success(new ReservationResource($reservation), 'Ek hizmet silindi.');
     }
 }

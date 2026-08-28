@@ -24,14 +24,24 @@ class PaymentService
                 throw new DomainActionException('Ödeme tutarı, rezervasyonun kalan bakiyesini aşamaz.');
             }
 
-            return Payment::create([
+            $payment = Payment::create([
                 'reservation_id' => $reservation->id,
                 'amount' => $data['amount'],
                 'method' => $data['method'],
                 'note' => $data['note'] ?? null,
                 'created_by' => $data['created_by'] ?? null,
-                'created_at' => $data['created_at'] ?? now(),
             ]);
+
+            // created_at is intentionally excluded from Payment::$fillable (mass
+            // assignment should never let a client stamp arbitrary timestamps by
+            // default) — backdating is instead an explicit, opt-in write here,
+            // gated by StorePaymentRequest's before_or_equal:now rule.
+            if (! empty($data['created_at'])) {
+                $payment->created_at = $data['created_at'];
+                $payment->save();
+            }
+
+            return $payment;
         });
     }
 }

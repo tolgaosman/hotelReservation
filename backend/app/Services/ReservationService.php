@@ -84,13 +84,20 @@ class ReservationService
             }
 
             $roomServicesTotal = $reservation->roomServices()->sum('amount');
+            $newTotal = $this->calculateTotal($room, $checkIn, $checkOut) + $roomServicesTotal;
+            $paidAmount = (float) $reservation->payments()->sum('amount');
+
+            if (bccomp((string) $newTotal, (string) $paidAmount, 2) < 0) {
+                throw new DomainActionException('Bu değişiklik toplam tutarı, rezervasyon için ödenen tutarın altına düşürür.');
+            }
+
             $reservation->fill([
                 'guest_id' => $data['guest_id'] ?? $reservation->guest_id,
                 'room_id' => $room->id,
                 'check_in' => $checkIn,
                 'check_out' => $checkOut,
                 'guest_count' => $data['guest_count'] ?? $reservation->guest_count,
-                'total_amount' => $this->calculateTotal($room, $checkIn, $checkOut) + $roomServicesTotal,
+                'total_amount' => $newTotal,
             ]);
             $reservation->save();
 

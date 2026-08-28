@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Payment;
 
 use App\Enums\PaymentMethod;
+use App\Enums\ReservationStatus;
 use App\Models\Reservation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,9 +20,9 @@ class StorePaymentRequest extends FormRequest
     {
         return [
             'reservation_id' => ['required', 'integer', 'exists:reservations,id'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:1000000'],
             'method' => ['required', Rule::enum(PaymentMethod::class)],
-            'note' => ['nullable', 'string'],
+            'note' => ['nullable', 'string', 'max:2000'],
             'created_at' => ['nullable', 'date', 'before_or_equal:now'],
         ];
     }
@@ -36,6 +37,12 @@ class StorePaymentRequest extends FormRequest
             $reservation = Reservation::find($this->input('reservation_id'));
 
             if (! $reservation) {
+                return;
+            }
+
+            if ($reservation->status === ReservationStatus::Cancelled) {
+                $validator->errors()->add('reservation_id', 'İptal edilmiş bir rezervasyona ödeme eklenemez.');
+
                 return;
             }
 

@@ -23,7 +23,7 @@ class EmployeeController extends Controller
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->orderBy('full_name')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate($this->perPage($request));
 
         return $this->paginated($employees, EmployeeResource::class);
     }

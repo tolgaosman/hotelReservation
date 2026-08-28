@@ -27,7 +27,7 @@ class GuestController extends Controller
                     ->orWhere('identity_number', 'like', $search));
             })
             ->orderBy('full_name')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate($this->perPage($request));
 
         return $this->paginated($guests, GuestSummaryResource::class);
     }

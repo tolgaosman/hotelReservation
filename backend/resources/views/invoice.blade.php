@@ -42,7 +42,7 @@
             <td style="padding-right: 15px;">
                 <div class="info-box">
                     <span class="label">Müşteri Bilgileri</span>
-                    <span class="value">{{ $reservation->guest->first_name }} {{ $reservation->guest->last_name }}</span><br>
+                    <span class="value">{{ $reservation->guest->full_name }}</span><br>
                     {{ $reservation->guest->email }}<br>
                     {{ $reservation->guest->phone }}<br>
                     {{ $reservation->guest->country }}

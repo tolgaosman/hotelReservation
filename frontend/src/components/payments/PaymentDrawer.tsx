@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
+import { fieldError } from "@/lib/errors";
 import { formatCurrency } from "@/lib/format";
 import type { PaymentMethod, ReservationView } from "@/lib/types";
 
@@ -32,16 +33,22 @@ export function PaymentDrawer({
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [createdAt, setCreatedAt] = useState(store.todayIso);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
 
   const selected = payable.find((r) => String(r.id) === reservationId);
 
   async function submit() {
+    setFieldErrors(undefined);
     const value = Number(amount);
     if (!selected) return setError("Lütfen bir rezervasyon seçin.");
     if (!value || value <= 0) return setError("Geçerli bir tutar girin.");
+    if (value > selected.balance) return setError(`Tutar kalan bakiyeyi (${formatCurrency(selected.balance)}) aşamaz.`);
 
     const result = await store.addPayment({ reservationId: selected.id, amount: value, method, createdAt });
-    if (!result.ok) return setError(result.error);
+    if (!result.ok) {
+      setFieldErrors(result.fieldErrors);
+      return setError(result.error);
+    }
     showToast("Ödeme başarıyla eklendi.", "success");
     setReservationId("");
     setAmount("");
@@ -66,7 +73,7 @@ export function PaymentDrawer({
       }
     >
       <div className="space-y-4">
-        <FormField label={`Rezervasyon (${payable.length} bakiyesi olan)`}>
+        <FormField label={`Rezervasyon (${payable.length} bakiyesi olan)`} error={fieldError(fieldErrors, "reservationId")}>
           <Select value={reservationId} onChange={(e) => setReservationId(e.target.value)}>
             <option value="">Seçin</option>
             {payable.map((r) => (
@@ -95,7 +102,7 @@ export function PaymentDrawer({
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Tutar (₺)">
+          <FormField label="Tutar (₺)" error={fieldError(fieldErrors, "amount")}>
             <Input type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </FormField>
           <FormField label="Yöntem">

@@ -22,10 +22,10 @@ export interface Room {
   amenities: string[];
   status: RoomStatus;
   housekeepingStatus: "clean" | "dirty" | "cleaning";
-  is_maintenance: boolean;
-  maintenance_note: string | null;
-  assigned_staff: string | null;
-  is_priority_cleaning: boolean;
+  isMaintenance: boolean;
+  maintenanceNote: string | null;
+  assignedStaff: string | null;
+  isPriorityCleaning: boolean;
   active: boolean;
 }
 
@@ -159,7 +159,9 @@ export interface PaymentStats {
 
 export type RevenueRange = "7g" | "30g" | "6a" | "12a";
 
-export type FormResult = { ok: true } | { ok: false; error: string };
+export type FormResult =
+  | { ok: true }
+  | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
 export interface Permission {
   id: number;

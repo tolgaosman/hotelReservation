@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { api, setAuthToken, getStoredToken } from "./api";
+import { getFirstAccessibleRoute } from "./nav";
 
 interface User {
   id: number;
@@ -60,7 +61,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (token: string, userData: User) => {
     setAuthToken(token);
     setUser(userData);
-    router.push("/dashboard");
+    const isAdmin = userData.role === "admin";
+    // A personel user with no role assigned yet gets zero granular
+    // permissions from the backend (User::hasPermission() has no fallback)
+    // — treating that as "sees everything" here would contradict the API,
+    // which 403s every action-permission check for them. Admins remain the
+    // only unconditional bypass.
+    const unrestricted = isAdmin;
+    const destination = getFirstAccessibleRoute({
+      isAdmin,
+      unrestricted,
+      hasPermission: (key) => userData.permissions?.includes(key) ?? false,
+    });
+    router.push(destination ?? "/dashboard");
   };
 
   const logout = async () => {

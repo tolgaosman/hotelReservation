@@ -12,6 +12,7 @@ import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { getRoomReservations } from "@/lib/selectors";
+import { fieldError } from "@/lib/errors";
 import { formatDate, formatCurrency, formatDateRange } from "@/lib/format";
 import type { Room, RoomType, RoomStatus } from "@/lib/types";
 
@@ -38,6 +39,7 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
     const [amenities, setAmenities] = useState<string[]>(room?.amenities ?? []);
     const [status, setStatus] = useState<RoomStatus>(room?.status ?? "available");
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
 
     const allReservations = room ? getRoomReservations(store.state, room.id) : [];
     const activeRes = room?.status === "occupied" 
@@ -47,14 +49,18 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
 
     useImperativeHandle(ref, () => ({
       async submit() {
+        setFieldErrors(undefined);
         if (!number.trim()) return setError("Oda numarası gereklidir.");
         if (!Number.isInteger(capacity) || capacity < 1) return setError("Kapasite en az 1 kişi olmalıdır.");
         if (!Number.isFinite(nightlyRate) || nightlyRate <= 0) return setError("Gecelik ücret sıfırdan büyük olmalıdır.");
         const baseInput = { number: number.trim(), type, capacity, nightlyRate, amenities };
-        const result = isCreate 
-          ? await store.createRoom(baseInput) 
+        const result = isCreate
+          ? await store.createRoom(baseInput)
           : await store.updateRoom(room!.id, { ...baseInput, status });
-        if (!result.ok) return setError(result.error);
+        if (!result.ok) {
+          setFieldErrors(result.fieldErrors);
+          return setError(result.error);
+        }
         showToast(isCreate ? "Oda eklendi." : "Oda güncellendi.");
         onClose();
       },
@@ -124,12 +130,12 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
           </div>
         )}
 
-        <FormField label="Oda Numarası">
+        <FormField label="Oda Numarası" error={fieldError(fieldErrors, "number")}>
           <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Örn. 101" />
         </FormField>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Oda Tipi">
+          <FormField label="Oda Tipi" error={fieldError(fieldErrors, "type")}>
             <Select value={type} onChange={(e) => setType(e.target.value as RoomType)}>
               {ROOM_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -138,7 +144,7 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
               ))}
             </Select>
           </FormField>
-          <FormField label="Kapasite">
+          <FormField label="Kapasite" error={fieldError(fieldErrors, "capacity")}>
             <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
           </FormField>
         </div>
@@ -157,7 +163,7 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
           </FormField>
         )}
 
-        <FormField label="Gecelik Ücret (₺)">
+        <FormField label="Gecelik Ücret (₺)" error={fieldError(fieldErrors, "nightlyRate")}>
           <Input type="number" min={0} value={nightlyRate} onChange={(e) => setNightlyRate(Number(e.target.value))} />
         </FormField>
 

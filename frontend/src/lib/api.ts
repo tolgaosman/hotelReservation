@@ -16,7 +16,7 @@ const deepMapKeys = (obj: any, mapFn: (key: string) => string): any => {
 };
 
 export const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -57,9 +57,26 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-api.interceptors.response.use((response) => {
-  if (response.data) {
-    response.data = deepMapKeys(response.data, toCamelCase);
+api.interceptors.response.use(
+  (response) => {
+    if (response.data) {
+      response.data = deepMapKeys(response.data, toCamelCase);
+    }
+    return response;
+  },
+  (error) => {
+    if (error.response?.data) {
+      error.response.data = deepMapKeys(error.response.data, toCamelCase);
+    }
+    // A 401 here means the bearer token is missing/expired/revoked — the
+    // stored token is now useless, so drop it and bounce to login instead of
+    // leaving every page silently rendering empty lists.
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      setAuthToken(null);
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
   }
-  return response;
-});
+);

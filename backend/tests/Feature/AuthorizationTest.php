@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -53,7 +55,11 @@ class AuthorizationTest extends TestCase
 
     public function test_personel_can_create_reservations(): void
     {
-        $personel = User::factory()->create();
+        $viewPermission = Permission::create(['key' => 'reservations.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'reservations', 'group_label' => 'Rezervasyonlar', 'is_page_permission' => true]);
+        $createPermission = Permission::create(['key' => 'reservations.create', 'label' => 'Yeni Rezervasyon Oluşturma', 'group' => 'reservations', 'group_label' => 'Rezervasyonlar']);
+        $role = Role::create(['name' => 'Test Resepsiyonist', 'slug' => 'test-resepsiyonist-reservations']);
+        $role->permissions()->sync([$viewPermission->id, $createPermission->id]);
+        $personel = User::factory()->create(['role_id' => $role->id]);
         $this->actingAs($personel, 'sanctum');
         $room = Room::factory()->create(['capacity' => 2]);
         $guest = \App\Models\Guest::factory()->create();

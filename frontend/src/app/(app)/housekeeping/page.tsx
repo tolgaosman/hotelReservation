@@ -2,46 +2,71 @@
 
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
-import { useState } from "react";
-import { Sparkles, Brush, CheckCircle, AlertCircle, Search, Wrench, User, Star, XCircle, AlertTriangle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Sparkles, Brush, CheckCircle, AlertCircle, Search, Wrench, User, Star, XCircle, AlertTriangle, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageSkeleton } from "@/components/ui/Skeleton";
+import { Select } from "@/components/ui/Select";
 import type { Room } from "@/lib/types";
 
 export default function HousekeepingPage() {
-  const { state, updateHousekeeping, updateHousekeepingAdvanced } = useStore();
+  const { state, hydrating, updateHousekeeping, updateHousekeepingAdvanced } = useStore();
   const addToast = useToast();
   const [filter, setFilter] = useState<"all" | "dirty" | "cleaning" | "maintenance">("all");
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<number | null>(null);
-  
+
   // State for inline editing staff
   const [editingStaffId, setEditingStaffId] = useState<number | null>(null);
   const [staffName, setStaffName] = useState("");
-  
+
   // State for maintenance note modal
   const [maintenanceRoom, setMaintenanceRoom] = useState<Room | null>(null);
   const [maintenanceNote, setMaintenanceNote] = useState("");
 
-  const rooms = state.rooms
-    .filter(r => r.active)
-    .filter(r => {
-      if (filter === "all") return true;
-      if (filter === "maintenance") return r.is_maintenance;
-      return r.housekeepingStatus === filter && !r.is_maintenance;
-    })
-    .filter(r => r.number.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      if (a.is_priority_cleaning && !b.is_priority_cleaning) return -1;
-      if (!a.is_priority_cleaning && b.is_priority_cleaning) return 1;
-      return a.number.localeCompare(b.number);
-    });
+  // Rooms whose guest checked out today are dirty *right now* — clean those
+  // before rooms that have simply sat dirty from an earlier day.
+  const today = new Date().toISOString().slice(0, 10);
+  const checkoutTodayRoomIds = useMemo(
+    () =>
+      new Set(
+        state.reservations
+          .filter(r => r.checkedOutAt && r.checkedOutAt.slice(0, 10) === today)
+          .map(r => r.roomId)
+      ),
+    [state.reservations, today]
+  );
+  const isPriority = (r: Room) => r.isPriorityCleaning || checkoutTodayRoomIds.has(r.id);
 
-  const stats = {
-    dirty: state.rooms.filter(r => r.housekeepingStatus === "dirty" && !r.is_maintenance && r.active).length,
-    cleaning: state.rooms.filter(r => r.housekeepingStatus === "cleaning" && !r.is_maintenance && r.active).length,
-    clean: state.rooms.filter(r => r.housekeepingStatus === "clean" && !r.is_maintenance && r.active).length,
-    maintenance: state.rooms.filter(r => r.is_maintenance && r.active).length,
-  };
+  const rooms = useMemo(
+    () =>
+      state.rooms
+        .filter(r => r.active)
+        .filter(r => {
+          if (filter === "all") return true;
+          if (filter === "maintenance") return r.isMaintenance;
+          return r.housekeepingStatus === filter && !r.isMaintenance;
+        })
+        .filter(r => r.number.toLowerCase().includes(search.toLowerCase()))
+        .sort((a, b) => {
+          const aPriority = isPriority(a);
+          const bPriority = isPriority(b);
+          if (aPriority && !bPriority) return -1;
+          if (!aPriority && bPriority) return 1;
+          return a.number.localeCompare(b.number);
+        }),
+    [state.rooms, filter, search, checkoutTodayRoomIds]
+  );
+
+  const stats = useMemo(
+    () => ({
+      dirty: state.rooms.filter(r => r.housekeepingStatus === "dirty" && !r.isMaintenance && r.active).length,
+      cleaning: state.rooms.filter(r => r.housekeepingStatus === "cleaning" && !r.isMaintenance && r.active).length,
+      clean: state.rooms.filter(r => r.housekeepingStatus === "clean" && !r.isMaintenance && r.active).length,
+      maintenance: state.rooms.filter(r => r.isMaintenance && r.active).length,
+    }),
+    [state.rooms]
+  );
 
   const updateStatus = async (room: Room, status: "clean" | "dirty" | "cleaning") => {
     setUpdating(room.id);
@@ -68,31 +93,37 @@ export default function HousekeepingPage() {
   const handleMaintenanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!maintenanceRoom) return;
-    await handleUpdateAdvanced(maintenanceRoom, { is_maintenance: true, maintenance_note: maintenanceNote }, `Oda ${maintenanceRoom.number} arızalı olarak işaretlendi.`);
+    await handleUpdateAdvanced(maintenanceRoom, { isMaintenance: true, maintenanceNote: maintenanceNote }, `Oda ${maintenanceRoom.number} arızalı olarak işaretlendi.`);
     setMaintenanceRoom(null);
     setMaintenanceNote("");
   };
 
   const handleStaffSubmit = async (room: Room) => {
-    await handleUpdateAdvanced(room, { assigned_staff: staffName || null }, `Oda ${room.number} personeli güncellendi.`);
+    await handleUpdateAdvanced(room, { assignedStaff: staffName || null }, `Oda ${room.number} personeli güncellendi.`);
     setEditingStaffId(null);
   };
 
   const handleFloorStaffSubmit = async (floor: string, staff: string, floorRooms: Room[]) => {
     try {
-      await Promise.all(floorRooms.map(room => updateHousekeepingAdvanced(room.id, { assigned_staff: staff || null })));
+      await Promise.all(floorRooms.map(room => updateHousekeepingAdvanced(room.id, { assignedStaff: staff || null })));
       addToast(`${floor}. Kat personeli başarıyla güncellendi.`, "success");
     } catch (e) {
       addToast("Bir hata oluştu.", "error");
     }
   };
 
-  const groupedRooms = rooms.reduce((acc, room) => {
-    const floor = room.number.charAt(0);
-    if (!acc[floor]) acc[floor] = [];
-    acc[floor].push(room);
-    return acc;
-  }, {} as Record<string, Room[]>);
+  const cleaningStaff = state.employees.filter(emp => emp.profession.toLowerCase().includes("temizlik"));
+
+  const groupedRooms = useMemo(
+    () =>
+      rooms.reduce((acc, room) => {
+        const floor = room.number.charAt(0);
+        if (!acc[floor]) acc[floor] = [];
+        acc[floor].push(room);
+        return acc;
+      }, {} as Record<string, Room[]>),
+    [rooms]
+  );
 
   return (
     <div className="flex flex-1 flex-col p-6">
@@ -108,6 +139,10 @@ export default function HousekeepingPage() {
         </div>
       </div>
 
+      {hydrating ? (
+        <PageSkeleton />
+      ) : (
+        <>
       {/* Stats / Filters */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <button 
@@ -162,28 +197,37 @@ export default function HousekeepingPage() {
               <div className="flex items-center gap-2 text-sm bg-[var(--surface-alt)] px-3 py-1.5 rounded-[var(--radius-pill)] border border-[var(--line)] shadow-sm focus-within:border-[var(--accent)] transition-colors">
                  <User size={14} className="text-[var(--muted)]" />
                  <span className="text-[var(--muted)] font-medium">Tüm Kata Ata:</span>
-                 <input 
-                   type="text" 
-                   placeholder="Personel adı + Enter" 
-                   className="bg-transparent outline-none w-36 text-sm font-semibold text-[var(--ink)] placeholder:font-medium"
-                   onKeyDown={(e) => {
-                     if (e.key === 'Enter') {
-                       handleFloorStaffSubmit(floor, e.currentTarget.value.trim(), groupedRooms[floor]);
-                       e.currentTarget.blur();
+                 <Select 
+                   className="bg-transparent border-none w-40 text-sm font-semibold text-[var(--ink)] cursor-pointer py-0 px-1 hover:bg-[var(--surface)]"
+                   value=""
+                   onChange={(e: any) => {
+                     if (e.target.value) {
+                       handleFloorStaffSubmit(floor, e.target.value, groupedRooms[floor]);
                      }
                    }}
-                 />
+                 >
+                   <option value="" disabled>Personel seç...</option>
+                   {cleaningStaff.map(emp => (
+                     <option key={emp.id} value={emp.fullName}>{emp.fullName}</option>
+                   ))}
+                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {groupedRooms[floor].map(room => (
-                <div key={room.id} className={cn("relative rounded-xl border p-5 flex flex-col gap-4 shadow-sm hover:shadow transition-all", room.is_maintenance ? "border-[var(--ink)] bg-[var(--surface-alt)] opacity-90" : "border-[var(--line)] bg-[var(--surface)]")}>
+                <div key={room.id} className={cn("relative rounded-xl border p-5 flex flex-col gap-4 shadow-sm hover:shadow transition-all", room.isMaintenance ? "border-[var(--ink)] bg-[var(--surface-alt)] opacity-90" : "border-[var(--line)] bg-[var(--surface)]")}>
                   
                   {/* Öncelik Badge */}
-                  {room.is_priority_cleaning && !room.is_maintenance && (
-                    <div className="absolute -top-3 -right-3 bg-[var(--crit)] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
-                      <Star size={10} className="fill-white" />
+                  {room.isPriorityCleaning && !room.isMaintenance && (
+                    <div className="absolute -top-3 -right-3 bg-[var(--accent)] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
+                      <Star size={10} className="fill-yellow-400 text-yellow-400" />
                       Öncelikli
+                    </div>
+                  )}
+                  {!room.isPriorityCleaning && checkoutTodayRoomIds.has(room.id) && !room.isMaintenance && (
+                    <div className="absolute -top-3 -right-3 bg-[var(--crit)] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
+                      <LogOut size={10} />
+                      Bugün Çıkış
                     </div>
                   )}
 
@@ -196,27 +240,27 @@ export default function HousekeepingPage() {
                     {/* Status Badge */}
                     <div className={cn(
                       "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider",
-                      room.is_maintenance && "bg-[var(--ink)] text-[var(--surface)]",
-                      !room.is_maintenance && room.housekeepingStatus === "clean" && "bg-[var(--ok-soft)] text-[var(--ok)]",
-                      !room.is_maintenance && room.housekeepingStatus === "dirty" && "bg-[var(--crit-soft)] text-[var(--crit)]",
-                      !room.is_maintenance && room.housekeepingStatus === "cleaning" && "bg-[var(--warn-soft)] text-[var(--warn)]",
+                      room.isMaintenance && "bg-[var(--ink)] text-[var(--surface)]",
+                      !room.isMaintenance && room.housekeepingStatus === "clean" && "bg-[var(--ok-soft)] text-[var(--ok)]",
+                      !room.isMaintenance && room.housekeepingStatus === "dirty" && "bg-[var(--crit-soft)] text-[var(--crit)]",
+                      !room.isMaintenance && room.housekeepingStatus === "cleaning" && "bg-[var(--warn-soft)] text-[var(--warn)]",
                     )}>
-                      {room.is_maintenance && <Wrench size={12} />}
-                      {!room.is_maintenance && room.housekeepingStatus === "clean" && <CheckCircle size={12} />}
-                      {!room.is_maintenance && room.housekeepingStatus === "dirty" && <AlertCircle size={12} />}
-                      {!room.is_maintenance && room.housekeepingStatus === "cleaning" && <Brush size={12} />}
+                      {room.isMaintenance && <Wrench size={12} />}
+                      {!room.isMaintenance && room.housekeepingStatus === "clean" && <CheckCircle size={12} />}
+                      {!room.isMaintenance && room.housekeepingStatus === "dirty" && <AlertCircle size={12} />}
+                      {!room.isMaintenance && room.housekeepingStatus === "cleaning" && <Brush size={12} />}
                       
-                      {room.is_maintenance ? "Bakımda" : 
+                      {room.isMaintenance ? "Bakımda" : 
                        room.housekeepingStatus === "clean" ? "Temiz" : 
                        room.housekeepingStatus === "dirty" ? "Kirli" : "Temizleniyor"}
                     </div>
                   </div>
 
                   {/* Maintenance Note */}
-                  {room.is_maintenance && room.maintenance_note && (
+                  {room.isMaintenance && room.maintenanceNote && (
                     <div className="bg-[var(--canvas)] border border-dashed border-[var(--ink)] p-3 rounded-lg text-sm text-[var(--ink)] font-medium flex items-start gap-2">
                       <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-                      <p>{room.maintenance_note}</p>
+                      <p>{room.maintenanceNote}</p>
                     </div>
                   )}
 
@@ -226,32 +270,39 @@ export default function HousekeepingPage() {
                       <User size={14} />
                       {editingStaffId === room.id ? (
                         <div className="flex items-center gap-1">
-                          <input 
-                            type="text" 
-                            className="bg-transparent border-b border-[var(--accent)] outline-none text-[var(--ink)] w-24"
-                            placeholder="Personel adı"
+                          <Select 
+                            className="bg-transparent border-none border-b border-[var(--accent)] rounded-none outline-none text-[var(--ink)] w-32 text-xs cursor-pointer py-0.5 px-1"
                             value={staffName}
-                            onChange={e => setStaffName(e.target.value)}
-                            autoFocus
+                            onChange={(e: any) => {
+                              const newStaffName = e.target.value;
+                              setStaffName(newStaffName);
+                              handleUpdateAdvanced(room, { assignedStaff: newStaffName || null }, `Oda ${room.number} personeli güncellendi.`);
+                              setEditingStaffId(null);
+                            }}
                             onKeyDown={e => {
-                              if (e.key === 'Enter') handleStaffSubmit(room);
                               if (e.key === 'Escape') setEditingStaffId(null);
                             }}
-                          />
-                          <button onClick={() => handleStaffSubmit(room)} className="text-[var(--ok)]"><CheckCircle size={14}/></button>
+                            autoFocus
+                          >
+                            <option value="">(Atanmadı)</option>
+                            {cleaningStaff.map(emp => (
+                               <option key={emp.id} value={emp.fullName}>{emp.fullName}</option>
+                            ))}
+                          </Select>
+                          <button onClick={() => setEditingStaffId(null)} className="text-[var(--muted)] hover:text-[var(--crit)]"><XCircle size={14}/></button>
                         </div>
                       ) : (
                         <span className="text-[var(--ink)]">
-                          {room.assigned_staff || "Personel Atanmadı"}
+                          {room.assignedStaff || "Personel Atanmadı"}
                         </span>
                       )}
                     </div>
                     {editingStaffId !== room.id && (
                       <button 
-                        onClick={() => { setEditingStaffId(room.id); setStaffName(room.assigned_staff || ""); }}
+                        onClick={() => { setEditingStaffId(room.id); setStaffName(room.assignedStaff || ""); }}
                         className="text-[10px] text-[var(--accent)] hover:underline font-bold uppercase"
                       >
-                        {room.assigned_staff ? "Değiştir" : "Ata"}
+                        {room.assignedStaff ? "Değiştir" : "Ata"}
                       </button>
                     )}
                   </div>
@@ -259,16 +310,16 @@ export default function HousekeepingPage() {
                   {/* Actions */}
                   <div className="pt-2 border-t border-[var(--line)] flex flex-col gap-2">
                     <div className="flex gap-2">
-                      {!room.is_maintenance && room.housekeepingStatus === "dirty" && (
+                      {!room.isMaintenance && room.housekeepingStatus === "dirty" && (
                         <button 
                           onClick={() => updateStatus(room, "cleaning")}
                           disabled={updating === room.id}
-                          className="flex-1 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                          className="flex-1 bg-orange-500 text-white hover:bg-orange-600 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
                         >
                           Temizliğe Başla
                         </button>
                       )}
-                      {!room.is_maintenance && room.housekeepingStatus === "cleaning" && (
+                      {!room.isMaintenance && room.housekeepingStatus === "cleaning" && (
                         <button 
                           onClick={() => updateStatus(room, "clean")}
                           disabled={updating === room.id}
@@ -277,7 +328,7 @@ export default function HousekeepingPage() {
                           Temizliği Bitir
                         </button>
                       )}
-                      {!room.is_maintenance && room.housekeepingStatus === "clean" && (
+                      {!room.isMaintenance && room.housekeepingStatus === "clean" && (
                         <button 
                           onClick={() => updateStatus(room, "dirty")}
                           disabled={updating === room.id}
@@ -286,9 +337,9 @@ export default function HousekeepingPage() {
                           Kirli İşaretle
                         </button>
                       )}
-                      {room.is_maintenance && (
+                      {room.isMaintenance && (
                         <button 
-                          onClick={() => handleUpdateAdvanced(room, { is_maintenance: false, maintenance_note: null }, "Oda bakım modundan çıkarıldı.")}
+                          onClick={() => handleUpdateAdvanced(room, { isMaintenance: false, maintenanceNote: null }, "Oda bakım modundan çıkarıldı.")}
                           disabled={updating === room.id}
                           className="flex-1 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
@@ -297,7 +348,7 @@ export default function HousekeepingPage() {
                       )}
                     </div>
                     
-                    {!room.is_maintenance && (
+                    {!room.isMaintenance && (
                       <div className="flex gap-2">
                         <button
                           onClick={() => setMaintenanceRoom(room)}
@@ -307,16 +358,16 @@ export default function HousekeepingPage() {
                           <Wrench size={12} /> Arıza Bildir
                         </button>
                         <button
-                          onClick={() => handleUpdateAdvanced(room, { is_priority_cleaning: !room.is_priority_cleaning }, room.is_priority_cleaning ? "Öncelik kaldırıldı." : "Oda öncelikli olarak işaretlendi.")}
+                          onClick={() => handleUpdateAdvanced(room, { isPriorityCleaning: !room.isPriorityCleaning }, room.isPriorityCleaning ? "Öncelik kaldırıldı." : "Oda öncelikli olarak işaretlendi.")}
                           disabled={updating === room.id}
                           className={cn(
                             "flex-1 border py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1",
-                            room.is_priority_cleaning 
-                              ? "border-[var(--crit)] bg-[var(--crit-soft)] text-[var(--crit)] hover:bg-[var(--crit)] hover:text-white"
+                            room.isPriorityCleaning 
+                              ? "border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
                               : "border-[var(--line)] bg-[var(--canvas)] hover:bg-[var(--surface-alt)] text-[var(--ink)]"
                           )}
                         >
-                          <Star size={12} className={room.is_priority_cleaning ? "fill-current" : ""} /> Öncelikli
+                          <Star size={12} className={room.isPriorityCleaning ? "text-yellow-400 fill-yellow-400" : ""} /> Öncelikli
                         </button>
                       </div>
                     )}
@@ -332,6 +383,8 @@ export default function HousekeepingPage() {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Maintenance Modal */}
       {maintenanceRoom && (
@@ -375,3 +428,4 @@ export default function HousekeepingPage() {
     </div>
   );
 }
+

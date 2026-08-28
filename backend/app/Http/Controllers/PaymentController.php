@@ -22,7 +22,7 @@ class PaymentController extends Controller
         $payments = Payment::query()
             ->when($request->filled('reservation_id'), fn ($q) => $q->where('reservation_id', $request->input('reservation_id')))
             ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate($this->perPage($request));
 
         return $this->paginated($payments, PaymentResource::class);
     }

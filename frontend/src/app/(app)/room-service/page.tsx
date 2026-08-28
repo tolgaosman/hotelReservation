@@ -3,10 +3,9 @@
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { useState, useMemo, useEffect } from "react";
-import { UtensilsCrossed, Plus, Search, Trash2, Printer, Coffee, List, CheckSquare, Square, X, Download } from "lucide-react";
+import { UtensilsCrossed, Plus, Search, Trash2, List, X, Download } from "lucide-react";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 import type { ReservationView, RoomService } from "@/lib/types";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const MENU_DATA = [
   {
@@ -39,7 +38,7 @@ const MENU_DATA = [
 ];
 
 export default function RoomServicePage() {
-  const { state, addRoomService, getRoomServices, deleteRoomService } = useStore();
+  const { state, hydrating, addRoomService, getRoomServices, deleteRoomService } = useStore();
   const addToast = useToast();
   
   const [search, setSearch] = useState("");
@@ -195,8 +194,15 @@ export default function RoomServicePage() {
     setSelectedMenuItems([]);
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!selectedReservation) return;
+
+    // jsPDF/jsPDF-autotable are heavy and only needed for this one action —
+    // load them on demand instead of shipping them in the page's initial bundle.
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
 
     const doc = new jsPDF();
     
@@ -251,6 +257,9 @@ export default function RoomServicePage() {
         </div>
       </div>
 
+      {hydrating ? (
+        <PageSkeleton />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:block">
         {/* Odalar Listesi */}
         <div className="lg:col-span-2 flex flex-col gap-4 print:hidden">
@@ -423,6 +432,7 @@ export default function RoomServicePage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Menu Modal */}
       {isMenuOpen && (

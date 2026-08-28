@@ -8,26 +8,31 @@ class RoomPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->isAdmin() || $user->hasPermission('rooms.view');
     }
 
     public function view(User $user): bool
     {
-        return true;
+        return $user->isAdmin() || $user->hasPermission('rooms.view');
     }
 
     public function create(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->hasPermission('rooms.create');
     }
 
     public function update(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->hasPermission('rooms.edit');
     }
 
     public function deactivate(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->hasPermission('rooms.deactivate');
+    }
+
+    public function updateHousekeeping(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('housekeeping.update_status');
     }
 }

@@ -44,7 +44,7 @@ export function RevenueCard({
         </span>
       }
     >
-      <div className="flex-1 w-full min-h-[150px] px-2 pb-4 pt-4">
+      <div className="h-[220px] w-full px-2 pb-4 pt-4">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 16, right: 8, left: -16, bottom: 0 }}>
             <defs>

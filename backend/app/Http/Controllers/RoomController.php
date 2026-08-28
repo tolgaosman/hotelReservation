@@ -25,7 +25,7 @@ class RoomController extends Controller
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->when($request->has('active'), fn ($q) => $q->where('active', $request->boolean('active')))
             ->orderBy('number')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate($this->perPage($request));
 
         return $this->paginated($rooms, RoomResource::class);
     }
@@ -75,7 +75,7 @@ class RoomController extends Controller
 
     public function updateHousekeeping(Request $request, Room $room): JsonResponse
     {
-        $this->authorize('update', $room);
+        $this->authorize('updateHousekeeping', $room);
 
         $validated = $request->validate([
             'housekeeping_status' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\HousekeepingStatus::class)],

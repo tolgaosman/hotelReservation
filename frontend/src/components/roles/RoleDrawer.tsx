@@ -9,6 +9,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+import { fieldError } from "@/lib/errors";
 import type { Permission, Role } from "@/lib/types";
 
 interface FormHandle {
@@ -76,6 +77,7 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClos
     const [description, setDescription] = useState(role?.description ?? "");
     const [selected, setSelected] = useState<Set<number>>(new Set(role?.permissionIds ?? []));
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
 
     const groups = useMemo(() => groupPermissions(store.state.permissions), [store.state.permissions]);
 
@@ -104,12 +106,16 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClos
 
     useImperativeHandle(ref, () => ({
       async submit() {
+        setFieldErrors(undefined);
         if (!name.trim()) return setError("Rol adı gereklidir.");
 
         const input = { name: name.trim(), description: description.trim(), permissionIds: Array.from(selected) };
         const result = isCreate ? await store.createRole(input) : await store.updateRole(role!.id, input);
 
-        if (!result.ok) return setError(result.error);
+        if (!result.ok) {
+          setFieldErrors(result.fieldErrors);
+          return setError(result.error);
+        }
         showToast(isCreate ? "Rol oluşturuldu." : "Rol güncellendi.");
         onClose();
       },
@@ -117,7 +123,7 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClos
 
     return (
       <div className="space-y-5">
-        <FormField label="Rol Adı">
+        <FormField label="Rol Adı" error={fieldError(fieldErrors, "name")}>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Örn. Resepsiyonist" />
         </FormField>
 

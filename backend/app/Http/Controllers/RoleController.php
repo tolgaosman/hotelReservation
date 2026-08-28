@@ -40,14 +40,9 @@ class RoleController extends Controller
         return $this->success(new RoleResource($role), 'Rol oluşturuldu.', 201);
     }
 
-    public function show(Role $role): JsonResponse
-    {
-        $this->authorize('view', $role);
-
-        $role->load('permissions')->loadCount('employees');
-
-        return $this->success(new RoleResource($role));
-    }
+    // No show() — the roles route excludes it (the index already eager-loads
+    // permissions/employee counts for every role, so a single-role fetch has
+    // no caller on the frontend).
 
     public function update(UpdateRoleRequest $request, Role $role): JsonResponse
     {

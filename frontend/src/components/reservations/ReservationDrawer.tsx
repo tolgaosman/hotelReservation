@@ -12,6 +12,7 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { getAvailableRooms, getPaymentsForReservation } from "@/lib/selectors";
 import { api } from "@/lib/api";
+import { fieldError } from "@/lib/errors";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import type { Guest, PaymentMethod, ReservationView, RoomService } from "@/lib/types";
 
@@ -48,6 +49,7 @@ const ReservationForm = forwardRef<
   const [companionQuery, setCompanionQuery] = useState("");
   const [companionIds, setCompanionIds] = useState<number[]>(reservation?.companions?.map((c) => c.id) ?? []);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
 
   const companionCandidates = useMemo(() => {
     const q = companionQuery.trim().toLowerCase();
@@ -68,7 +70,9 @@ const ReservationForm = forwardRef<
 
   useImperativeHandle(ref, () => ({
     async submit() {
+      setFieldErrors(undefined);
       if (!guestId) return setError("Bir misafir seçin.");
+      if (checkOut <= checkIn) return setError("Çıkış tarihi, giriş tarihinden sonra olmalı.");
       if (!roomId) return setError("Bir oda seçin.");
       if (companionIds.length + 1 > guestCount) {
         return setError("Misafir sayısı, ana misafir dahil belirtilen kişi sayısından az olamaz.");
@@ -76,7 +80,10 @@ const ReservationForm = forwardRef<
       const result = isCreate
         ? await store.createReservation({ guestId: Number(guestId), roomId: Number(roomId), checkIn, checkOut, guestCount, companions: companionIds })
         : await store.updateReservation(reservation!.id, { checkIn, checkOut, guestCount, roomId: Number(roomId), companions: companionIds });
-      if (!result.ok) return setError(result.error);
+      if (!result.ok) {
+        setFieldErrors(result.fieldErrors);
+        return setError(result.error);
+      }
       onSaved();
     },
   }));
@@ -99,7 +106,7 @@ const ReservationForm = forwardRef<
   return (
     <div className="space-y-4">
       {isCreate && (
-        <FormField label="Misafir">
+        <FormField label="Misafir" error={fieldError(fieldErrors, "guestId")}>
           <Input placeholder="İsimle ara..." value={guestQuery} onChange={(e) => setGuestQuery(e.target.value)} className="mb-2" />
           <Select value={guestId} onChange={(e) => setGuestId(e.target.value)}>
             <option value="">Seçin</option>
@@ -113,15 +120,15 @@ const ReservationForm = forwardRef<
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Giriş Tarihi">
+        <FormField label="Giriş Tarihi" error={fieldError(fieldErrors, "checkIn")}>
           <Input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
         </FormField>
-        <FormField label="Çıkış Tarihi">
+        <FormField label="Çıkış Tarihi" error={checkOut && checkOut <= checkIn ? "Girişten sonra olmalı." : fieldError(fieldErrors, "checkOut")}>
           <Input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
         </FormField>
       </div>
 
-      <FormField label={`Oda (${availableRooms.length} müsait)`}>
+      <FormField label={`Oda (${availableRooms.length} müsait)`} error={fieldError(fieldErrors, "roomId")}>
         <Select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
           <option value="">Seçin</option>
           {reservation && !availableRooms.some((r) => r.id === reservation.roomId) && (
@@ -137,11 +144,11 @@ const ReservationForm = forwardRef<
         </Select>
       </FormField>
 
-      <FormField label="Misafir Sayısı">
+      <FormField label="Misafir Sayısı" error={fieldError(fieldErrors, "guestCount")}>
         <Input type="number" min={1} value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} />
       </FormField>
 
-      <FormField label="Diğer Misafirler (opsiyonel)">
+      <FormField label="Diğer Misafirler (opsiyonel)" error={fieldError(fieldErrors, "companions")}>
         <Input
           placeholder="Kayıtlı misafirlerde ara..."
           value={companionQuery}
@@ -421,7 +428,7 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
                       </option>
                     ))}
                   </Select>
-                  <Input type="date" value={paymentDate} max={store.todayIso} onChange={(e) => setPaymentDate(e.target.value)} className="w-32" />
+                  <Input type="date" value={paymentDate} max={store.todayIso} onChange={(e) => setPaymentDate(e.target.value)} className="w-40" />
                   <Button size="sm" onClick={submitPayment}>
                     Ekle
                   </Button>

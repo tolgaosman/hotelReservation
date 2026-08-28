@@ -11,6 +11,7 @@ import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
 import { getGuestReservations } from "@/lib/selectors";
+import { fieldError } from "@/lib/errors";
 import { formatCurrency, formatDateRange } from "@/lib/format";
 import type { Guest, GuestSummary } from "@/lib/types";
 
@@ -58,9 +59,11 @@ const GuestForm = forwardRef<FormHandle, { guest?: GuestSummary; isCreate: boole
     const showToast = useToast();
     const [form, setForm] = useState<Omit<Guest, "id">>(guest ?? EMPTY);
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
 
     useImperativeHandle(ref, () => ({
       async submit() {
+        setFieldErrors(undefined);
         if (!form.fullName.trim()) return setError("Ad soyad gereklidir.");
         if (!form.phone.trim()) return setError("Telefon gereklidir.");
         if (form.phone.replace(/\D/g, "").length < 7) return setError("Geçerli bir telefon numarası girin.");
@@ -68,7 +71,10 @@ const GuestForm = forwardRef<FormHandle, { guest?: GuestSummary; isCreate: boole
           return setError("Geçerli bir e-posta adresi girin.");
         }
         const result = isCreate ? await store.createGuest(form) : await store.updateGuest(guest!.id, form);
-        if (!result.ok) return setError(result.error);
+        if (!result.ok) {
+          setFieldErrors(result.fieldErrors);
+          return setError(result.error);
+        }
         showToast(isCreate ? "Misafir eklendi." : "Misafir güncellendi.");
         onSaved();
       },
@@ -76,21 +82,21 @@ const GuestForm = forwardRef<FormHandle, { guest?: GuestSummary; isCreate: boole
 
     return (
       <div className="space-y-4">
-        <FormField label="Ad Soyad">
+        <FormField label="Ad Soyad" error={fieldError(fieldErrors, "fullName")}>
           <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
         </FormField>
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Telefon">
+          <FormField label="Telefon" error={fieldError(fieldErrors, "phone")}>
             <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           </FormField>
-          <FormField label="Ülke">
+          <FormField label="Ülke" error={fieldError(fieldErrors, "country")}>
             <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
           </FormField>
         </div>
-        <FormField label="E-posta">
+        <FormField label="E-posta" error={fieldError(fieldErrors, "email")}>
           <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </FormField>
-        <FormField label="Kimlik / Pasaport No">
+        <FormField label="Kimlik / Pasaport No" error={fieldError(fieldErrors, "identityNumber")}>
           <Input value={form.identityNumber} onChange={(e) => setForm({ ...form, identityNumber: e.target.value })} />
         </FormField>
         {error && <p className="text-sm font-medium text-[var(--crit)]">{error}</p>}

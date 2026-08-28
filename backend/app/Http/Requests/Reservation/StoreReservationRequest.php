@@ -19,7 +19,7 @@ class StoreReservationRequest extends FormRequest
         return [
             'guest_id' => ['required', 'integer', 'exists:guests,id'],
             'room_id' => ['required', 'integer', 'exists:rooms,id'],
-            'check_in' => ['required', 'date'],
+            'check_in' => ['required', 'date', 'after_or_equal:today'],
             'check_out' => ['required', 'date', 'after:check_in'],
             'guest_count' => ['required', 'integer', 'min:1'],
             'companions' => ['sometimes', 'array'],
@@ -37,6 +37,12 @@ class StoreReservationRequest extends FormRequest
             $room = Room::find($this->input('room_id'));
 
             if (! $room) {
+                return;
+            }
+
+            if (! $room->active || $room->status === \App\Enums\RoomStatus::Maintenance) {
+                $validator->errors()->add('room_id', 'Bu oda pasif veya bakımda, rezervasyon oluşturulamaz.');
+
                 return;
             }
 

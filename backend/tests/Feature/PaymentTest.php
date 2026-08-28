@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Guest;
+use App\Models\Permission;
 use App\Models\Reservation;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,6 +29,11 @@ class PaymentTest extends TestCase
             'room_id' => Room::factory()->create()->id,
             'guest_id' => Guest::factory()->create()->id,
             'total_amount' => $total,
+            // The factory's default status is random across all
+            // ReservationStatus cases (including Cancelled), which made this
+            // helper flaky once payments against a cancelled reservation
+            // were rejected — pin a payable status explicitly.
+            'status' => \App\Enums\ReservationStatus::Confirmed,
         ]);
     }
 
@@ -64,5 +71,39 @@ class PaymentTest extends TestCase
 
         $this->assertEquals(1000.0, $reservation->fresh()->paid_amount);
         $this->assertEquals(0.0, $reservation->fresh()->balance);
+    }
+
+    public function test_backdated_payment_created_at_is_applied(): void
+    {
+        $this->actingAdmin();
+        $reservation = $this->makeReservation(1000);
+
+        $response = $this->postJson('/api/payments', [
+            'reservation_id' => $reservation->id,
+            'amount' => 500,
+            'method' => 'cash',
+            'created_at' => '2026-01-15',
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertEquals('2026-01-15', $reservation->payments()->first()->created_at->toDateString());
+    }
+
+    public function test_personel_with_payments_permission_can_view_and_create_payments(): void
+    {
+        $viewPermission = Permission::create(['key' => 'payments.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'payments', 'group_label' => 'Ödemeler', 'is_page_permission' => true]);
+        $createPermission = Permission::create(['key' => 'payments.create', 'label' => 'Ödeme Alma', 'group' => 'payments', 'group_label' => 'Ödemeler']);
+        $role = Role::create(['name' => 'Test Resepsiyonist', 'slug' => 'test-resepsiyonist']);
+        $role->permissions()->sync([$viewPermission->id, $createPermission->id]);
+        $personel = User::factory()->create(['role_id' => $role->id]);
+        $this->actingAs($personel, 'sanctum');
+        $reservation = $this->makeReservation(1000);
+
+        $this->getJson('/api/payments')->assertStatus(200);
+        $this->postJson('/api/payments', [
+            'reservation_id' => $reservation->id,
+            'amount' => 100,
+            'method' => 'cash',
+        ])->assertStatus(201);
     }
 }

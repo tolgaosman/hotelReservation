@@ -14,13 +14,17 @@ class DashboardController extends Controller
     {
     }
 
-    public function stats(): JsonResponse
+    public function stats(Request $request): JsonResponse
     {
+        $this->authorizeDashboard($request);
+
         return $this->success($this->dashboard->stats());
     }
 
-    public function today(): JsonResponse
+    public function today(Request $request): JsonResponse
     {
+        $this->authorizeDashboard($request);
+
         $data = $this->dashboard->today();
 
         return $this->success([
@@ -31,9 +35,11 @@ class DashboardController extends Controller
 
     public function revenue(Request $request): JsonResponse
     {
+        $this->authorizeDashboard($request, 'dashboard.widget_revenue');
+
         $request->validate([
-            'from' => ['required', 'date'],
-            'to' => ['required', 'date', 'after_or_equal:from'],
+            'from' => ['required', 'date', 'after_or_equal:'.now()->subYears(5)->toDateString()],
+            'to' => ['required', 'date', 'after_or_equal:from', 'before_or_equal:'.now()->addDay()->toDateString()],
             'bucket' => ['sometimes', 'in:day,week,month'],
         ]);
 
@@ -44,5 +50,17 @@ class DashboardController extends Controller
         );
 
         return $this->success($series);
+    }
+
+    // Dashboard has no Eloquent model to hang a policy off, so the gate is a
+    // plain permission check here rather than $this->authorize().
+    private function authorizeDashboard(Request $request, ?string $extra = null): void
+    {
+        $user = $request->user();
+        abort_unless($user->isAdmin() || $user->hasPermission('dashboard.view'), 403);
+
+        if ($extra !== null) {
+            abort_unless($user->isAdmin() || $user->hasPermission($extra), 403);
+        }
     }
 }

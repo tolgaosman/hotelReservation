@@ -8,6 +8,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/Toast";
+import { fieldError } from "@/lib/errors";
 import type { Employee, EmployeeStatus } from "@/lib/types";
 
 export const PROFESSIONS = [
@@ -39,9 +40,11 @@ const EmployeeForm = forwardRef<FormHandle, { employee?: Employee; isCreate: boo
     const [status, setStatus] = useState<EmployeeStatus>(employee?.status ?? "active");
     const [notes, setNotes] = useState(employee?.notes ?? "");
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
 
     useImperativeHandle(ref, () => ({
       async submit() {
+        setFieldErrors(undefined);
         if (!fullName.trim()) return setError("Ad soyad gereklidir.");
         if (!profession.trim()) return setError("Meslek seçilmelidir.");
 
@@ -59,7 +62,10 @@ const EmployeeForm = forwardRef<FormHandle, { employee?: Employee; isCreate: boo
           ? await store.createEmployee(baseInput)
           : await store.updateEmployee(employee!.id, { ...baseInput, status });
 
-        if (!result.ok) return setError(result.error);
+        if (!result.ok) {
+          setFieldErrors(result.fieldErrors);
+          return setError(result.error);
+        }
         showToast(isCreate ? "Çalışan eklendi." : "Çalışan güncellendi.");
         onClose();
       },
@@ -67,12 +73,12 @@ const EmployeeForm = forwardRef<FormHandle, { employee?: Employee; isCreate: boo
 
     return (
       <div className="space-y-4">
-        <FormField label="Ad Soyad">
+        <FormField label="Ad Soyad" error={fieldError(fieldErrors, "fullName")}>
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Örn. Ayşe Yıldız" />
         </FormField>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Meslek">
+          <FormField label="Meslek" error={fieldError(fieldErrors, "profession")}>
             <Select value={profession} onChange={(e) => setProfession(e.target.value)}>
               {PROFESSIONS.map((p) => (
                 <option key={p} value={p}>
@@ -81,7 +87,7 @@ const EmployeeForm = forwardRef<FormHandle, { employee?: Employee; isCreate: boo
               ))}
             </Select>
           </FormField>
-          <FormField label="Rol (İzin Grubu)">
+          <FormField label="Rol (İzin Grubu)" error={fieldError(fieldErrors, "roleId")}>
             <Select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
               <option value="">Rol atanmadı</option>
               {store.state.roles.map((r) => (
@@ -94,16 +100,16 @@ const EmployeeForm = forwardRef<FormHandle, { employee?: Employee; isCreate: boo
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="E-posta">
+          <FormField label="E-posta" error={fieldError(fieldErrors, "email")}>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@hotel.test" />
           </FormField>
-          <FormField label="Telefon">
+          <FormField label="Telefon" error={fieldError(fieldErrors, "phone")}>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0532 000 00 00" />
           </FormField>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="İşe Başlama Tarihi">
+          <FormField label="İşe Başlama Tarihi" error={fieldError(fieldErrors, "hireDate")}>
             <Input type="date" value={hireDate} onChange={(e) => setHireDate(e.target.value)} />
           </FormField>
           {!isCreate && (

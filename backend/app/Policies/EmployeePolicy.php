@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Models\Employee;
 use App\Models\User;
 
 class EmployeePolicy
@@ -19,11 +18,11 @@ class EmployeePolicy
 
     public function create(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->hasPermission('employees.create');
     }
 
     public function update(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->hasPermission('employees.edit');
     }
 }

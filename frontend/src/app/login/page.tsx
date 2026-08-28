@@ -7,10 +7,12 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FormField } from "@/components/ui/FormField";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@hotel.test");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -61,12 +63,23 @@ export default function LoginPage() {
           </FormField>
 
           <FormField label="Şifre">
-            <Input 
-              type="password" 
-              required 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <Input 
+                type={showPassword ? "text" : "password"} 
+                required 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+                aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </FormField>
 
           {error && (
@@ -80,10 +93,12 @@ export default function LoginPage() {
           </Button>
         </form>
         
-        <div className="mt-6 text-center text-xs text-[var(--muted)]">
-          <p>Admin: admin@hotel.test / password</p>
-          <p>Personel: personel@hotel.test / password</p>
-        </div>
+        {process.env.NODE_ENV !== "production" && (
+          <div className="mt-6 text-center text-xs text-[var(--muted)]">
+            <p>Admin: admin@hotel.test / password</p>
+            <p>Personel: personel@hotel.test / password</p>
+          </div>
+        )}
       </div>
     </div>
   );

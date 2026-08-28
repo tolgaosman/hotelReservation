@@ -22,6 +22,7 @@ export function Select({ className, children, value, onChange, disabled, ...prop
     .map((child: any) => ({
       value: child.props.value,
       label: child.props.children,
+      disabled: child.props.disabled,
     }));
 
   const selectedOption = options.find((o) => o.value === value) || options[0];
@@ -55,7 +56,7 @@ export function Select({ className, children, value, onChange, disabled, ...prop
       {open && (
         <div className="absolute left-0 top-full z-50 mt-2 max-h-60 min-w-full w-max overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] shadow-lg">
           <div className="flex flex-col divide-y divide-[var(--color-line)]/60">
-            {options.map((opt) => (
+            {options.filter((opt) => !opt.disabled).map((opt) => (
               <div
                 key={opt.value}
                 onClick={() => handleSelect(opt.value)}

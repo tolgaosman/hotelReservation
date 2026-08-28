@@ -2,69 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BedDouble,
-  CalendarCheck,
-  LayoutDashboard,
-  Settings,
-  Users,
-  Wallet,
-  Sparkles,
-  CalendarDays,
-  UtensilsCrossed,
-  IdCard,
-  ShieldCheck,
-} from "lucide-react";
+import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NAV_CATEGORIES } from "@/lib/nav";
 
 import { useAuth } from "@/lib/auth";
-
-const NAV_CATEGORIES = [
-  {
-    title: "Ana Sayfa",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
-    ],
-  },
-  {
-    title: "Ön Büro",
-    items: [
-      { href: "/reservations", label: "Rezervasyonlar", icon: CalendarCheck, permission: "reservations.view" },
-      { href: "/calendar", label: "Takvim", icon: CalendarDays, permission: "calendar.view" },
-      { href: "/guests", label: "Misafirler", icon: Users, permission: "guests.view" },
-    ],
-  },
-  {
-    title: "Operasyon",
-    items: [
-      { href: "/rooms", label: "Odalar", icon: BedDouble, permission: "rooms.view" },
-      { href: "/housekeeping", label: "Temizlik", icon: Sparkles, permission: "housekeeping.view" },
-      { href: "/room-service", label: "Oda Servisi", icon: UtensilsCrossed, permission: "room_service.view" },
-    ],
-  },
-  {
-    title: "Finans",
-    items: [
-      { href: "/payments", label: "Ödemeler", icon: Wallet, permission: "payments.view" },
-    ],
-  },
-  {
-    title: "Yönetim",
-    adminOnly: true,
-    items: [
-      { href: "/employees", label: "Çalışanlar", icon: IdCard, permission: "employees.view" },
-      { href: "/roles", label: "Roller", icon: ShieldCheck, permission: "roles.view" },
-    ],
-  },
-];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout, hasPermission } = useAuth();
 
-  // A user with no permission assignment at all (no role yet) sees everything —
-  // the catalog only starts restricting once a role has actually been picked for them.
-  const unrestricted = user?.role === "admin" || (user?.permissions?.length ?? 0) === 0;
+  // Only admins bypass the granular permission catalog — a personel user
+  // with no role assigned yet gets zero permissions from the backend and is
+  // 403'd on every gated action, so hiding the sidebar accordingly (rather
+  // than showing everything) keeps nav visibility truthful to what the API
+  // will actually allow. See lib/auth.tsx's `unrestricted` for the same rule.
+  const unrestricted = user?.role === "admin";
 
   const visibleCategories = NAV_CATEGORIES.filter((c) => !c.adminOnly || user?.role === "admin")
     .map((c) => ({ ...c, items: c.items.filter((i) => unrestricted || hasPermission(i.permission)) }))

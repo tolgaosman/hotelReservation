@@ -12,7 +12,8 @@ import {
   type ReactNode,
 } from "react";
 import { api } from "./api";
-import { hasConflict } from "./availability";
+import { fetchAllPages } from "./fetchAllPages";
+import { extractFormError } from "./errors";
 import type {
   Employee,
   EmployeeStatus,
@@ -29,7 +30,9 @@ import type {
   RoomType,
 } from "./types";
 
-const TODAY_ISO = new Date().toISOString().split("T")[0];
+function todayIsoNow(): string {
+  return new Date().toISOString().split("T")[0];
+}
 
 interface StoreState {
   rooms: Room[];
@@ -65,14 +68,12 @@ function reducer(_state: StoreState, action: Action): StoreState {
   }
 }
 
-function nightsBetween(checkIn: string, checkOut: string): number {
-  return Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000);
-}
-
 interface StoreApi {
   state: StoreState;
   todayIso: string;
   hydrating: boolean;
+  loadError: boolean;
+  reload(): void;
   createReservation(input: {
     guestId: number;
     roomId: number;
@@ -147,29 +148,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   });
   
   const [hydrating, setHydrating] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [todayIso, setTodayIso] = useState(todayIsoNow);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const loadData = async () => {
+    setHydrating(true);
+    setLoadError(false);
     try {
-      const [rooms, guests, reservations, payments, roomServices] = await Promise.all([
-        api.get('/api/rooms?per_page=1000').then(res => res.data.data.items),
-        api.get('/api/guests?per_page=1000').then(res => res.data.data.items),
-        api.get('/api/reservations?per_page=1000').then(res => res.data.data.items),
-        api.get('/api/payments?per_page=1000').then(res => res.data.data.items),
-        api.get('/api/room-services?per_page=1000').then(res => res.data.data.items),
-      ]);
-
-      // Roles/employees/permissions are admin-gated on the backend — a
-      // non-admin user without those permissions gets a 403, which we treat
-      // as "nothing to show" rather than failing the whole app's hydration.
-      const [permissions, roles, employees] = await Promise.all([
+      const [rooms, guests, reservations, payments, roomServices, permissions, roles, employees] = await Promise.all([
+        // These endpoints are also paginated server-side (the backend clamps
+        // per_page), so fetchAllPages is used everywhere to stay correct as
+        // any of them grows past a single page.
+        fetchAllPages<Room>('/api/rooms'),
+        fetchAllPages<Guest>('/api/guests'),
+        fetchAllPages<Reservation>('/api/reservations'),
+        // Payments/room-services/roles/employees/permissions are permission-gated
+        // on the backend — a user without them gets a 403, which we treat as
+        // "nothing to show". Without these catches a single 403 rejects the whole
+        // Promise.all and the app hydrates with *no* data at all.
+        fetchAllPages<Payment>('/api/payments').catch(() => []),
+        fetchAllPages<RoomService>('/api/room-services').catch(() => []),
         api.get('/api/permissions').then(res => res.data.data).catch(() => []),
         api.get('/api/roles').then(res => res.data.data).catch(() => []),
-        api.get('/api/employees?per_page=1000').then(res => res.data.data.items).catch(() => []),
+        fetchAllPages<Employee>('/api/employees').catch(() => []),
       ]);
 
       dispatch({ type: "REPLACE_ALL", payload: { rooms, guests, reservations, payments, roomServices, permissions, roles, employees } });
     } catch (err) {
+      // Unlike the permission-gated endpoints above, rooms/guests/reservations
+      // failing means the backend itself is unreachable — surface that as a
+      // real error state instead of silently rendering empty lists forever.
       console.error("Failed to load initial data", err);
+      setLoadError(true);
     } finally {
       setHydrating(false);
     }
@@ -177,6 +188,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadToken]);
+
+  useEffect(() => {
+    const id = setInterval(() => setTodayIso(todayIsoNow()), 60_000);
+    return () => clearInterval(id);
   }, []);
 
   const set = useCallback((updater: (s: StoreState) => StoreState) => {
@@ -186,8 +203,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const storeApi = useMemo<StoreApi>(() => {
     return {
       state,
-      todayIso: TODAY_ISO,
+      todayIso,
       hydrating,
+      loadError,
+      reload: () => setReloadToken((t) => t + 1),
 
       async createReservation(input) {
         try {
@@ -195,7 +214,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, reservations: [res.data.data, ...prev.reservations] }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Rezervasyon oluşturulamadı." };
+          return extractFormError(err, "Rezervasyon oluşturulamadı.");
         }
       },
 
@@ -208,7 +227,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Rezervasyon güncellenemedi." };
+          return extractFormError(err, "Rezervasyon güncellenemedi.");
         }
       },
 
@@ -221,7 +240,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Hata oluştu." };
+          return extractFormError(err, "Hata oluştu.");
         }
       },
 
@@ -234,7 +253,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Hata oluştu." };
+          return extractFormError(err, "Hata oluştu.");
         }
       },
 
@@ -249,7 +268,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Hata oluştu." };
+          return extractFormError(err, "Hata oluştu.");
         }
       },
 
@@ -264,7 +283,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Hata oluştu." };
+          return extractFormError(err, "Hata oluştu.");
         }
       },
 
@@ -274,7 +293,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, payments: [res.data.data, ...prev.payments] }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Ödeme eklenemedi." };
+          return extractFormError(err, "Ödeme eklenemedi.");
         }
       },
 
@@ -284,7 +303,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, rooms: [...prev.rooms, res.data.data] }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Oda eklenemedi." };
+          return extractFormError(err, "Oda eklenemedi.");
         }
       },
 
@@ -297,7 +316,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Oda güncellenemedi." };
+          return extractFormError(err, "Oda güncellenemedi.");
         }
       },
 
@@ -310,7 +329,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Hata oluştu." };
+          return extractFormError(err, "Hata oluştu.");
         }
       },
 
@@ -323,7 +342,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Hata oluştu." };
+          return extractFormError(err, "Hata oluştu.");
         }
       },
 
@@ -333,7 +352,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, guests: [res.data.data, ...prev.guests] }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Misafir eklenemedi." };
+          return extractFormError(err, "Misafir eklenemedi.");
         }
       },
 
@@ -346,7 +365,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Misafir güncellenemedi." };
+          return extractFormError(err, "Misafir güncellenemedi.");
         }
       },
 
@@ -361,7 +380,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Oda servisi eklenemedi." };
+          return extractFormError(err, "Oda servisi eklenemedi.");
         }
       },
 
@@ -383,7 +402,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Hata oluştu." };
+          return extractFormError(err, "Hata oluştu.");
         }
       },
 
@@ -402,7 +421,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Silme işlemi başarısız oldu." };
+          return extractFormError(err, "Silme işlemi başarısız oldu.");
         }
       },
 
@@ -412,7 +431,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, roles: [...prev.roles, res.data.data] }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Rol oluşturulamadı." };
+          return extractFormError(err, "Rol oluşturulamadı.");
         }
       },
 
@@ -422,7 +441,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, roles: prev.roles.map((r) => (r.id === id ? res.data.data : r)) }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Rol güncellenemedi." };
+          return extractFormError(err, "Rol güncellenemedi.");
         }
       },
 
@@ -432,7 +451,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, roles: prev.roles.filter((r) => r.id !== id) }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Rol silinemedi." };
+          return extractFormError(err, "Rol silinemedi.");
         }
       },
 
@@ -442,7 +461,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, employees: [...prev.employees, res.data.data] }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Çalışan eklenemedi." };
+          return extractFormError(err, "Çalışan eklenemedi.");
         }
       },
 
@@ -452,11 +471,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           set((prev) => ({ ...prev, employees: prev.employees.map((e) => (e.id === id ? res.data.data : e)) }));
           return { ok: true };
         } catch (err: any) {
-          return { ok: false, error: err.response?.data?.message || "Çalışan güncellenemedi." };
+          return extractFormError(err, "Çalışan güncellenemedi.");
         }
       },
     };
-  }, [state, set, hydrating]);
+  }, [state, set, hydrating, loadError, todayIso]);
 
   return <StoreContext.Provider value={storeApi}>{children}</StoreContext.Provider>;
 }
