@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Topbar } from "@/components/layout/Topbar";
 import { Select } from "@/components/ui/Select";
-import { PageSkeleton, ChartSkeleton } from "@/components/ui/Skeleton";
+import { PageSkeleton, CountryMapCardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LayoutDashboard } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -18,7 +18,6 @@ import {
   getReservationCountryStats,
   getPaymentStats,
   getReservationStatusDistribution,
-  getReservationViews,
   getRoomStats,
   getTodayArrivals,
   getTodayDepartures,
@@ -32,7 +31,7 @@ import { ReservationStatusDonut } from "@/components/dashboard/ReservationStatus
 // keeps them out of the dashboard's initial JS bundle.
 const ReservationsByCountryCard = dynamic(
   () => import("@/components/dashboard/ReservationsByCountryCard").then((m) => m.ReservationsByCountryCard),
-  { ssr: false, loading: () => <ChartSkeleton /> }
+  { ssr: false, loading: () => <CountryMapCardSkeleton /> }
 );
 import { TodayCheckInsCard } from "@/components/dashboard/TodayCheckInsCard";
 import { TodayCheckOutsCard } from "@/components/dashboard/TodayCheckOutsCard";
@@ -43,13 +42,10 @@ export default function DashboardPage() {
   const store = useStore();
   const showToast = useToast();
   const router = useRouter();
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const [timeFilter, setTimeFilter] = useState("1_year");
   const { state } = store;
 
-  // Only admins bypass the widget catalog — see lib/auth.tsx's `unrestricted`.
-  const unrestricted = user?.role === "admin";
-  const canSee = (key: string) => unrestricted || hasPermission(key);
   const anyWidgetVisible = [
     "dashboard.widget_room_availability",
     "dashboard.widget_revenue",
@@ -59,14 +55,24 @@ export default function DashboardPage() {
     "dashboard.widget_total_revenue",
     "dashboard.widget_today_checkouts",
     "dashboard.widget_upcoming",
-  ].some(canSee);
+  ].some(hasPermission);
 
   // A role with no dashboard widgets shouldn't land on an empty dashboard —
   // send it straight to the first page it does have access to.
-  const redirectTarget =
-    !unrestricted && !anyWidgetVisible
-      ? getFirstAccessibleRoute({ isAdmin: user?.role === "admin", unrestricted, hasPermission })
-      : null;
+  const redirectTarget = !anyWidgetVisible ? getFirstAccessibleRoute({ unrestricted: false, hasPermission }) : null;
+
+  // Each row's own widgets, so a hidden sibling doesn't leave an empty flex
+  // group or an empty grid column taking up space next to the ones that did
+  // render — see the layout comment below for how these get consumed.
+  const showTopRow =
+    hasPermission("dashboard.widget_room_availability") ||
+    hasPermission("dashboard.widget_revenue") ||
+    hasPermission("dashboard.widget_status_donut");
+  const showActivityColumn =
+    hasPermission("dashboard.widget_today_checkins") ||
+    hasPermission("dashboard.widget_today_checkouts") ||
+    hasPermission("dashboard.widget_upcoming");
+  const showTotalRevenue = hasPermission("dashboard.widget_total_revenue");
 
   useEffect(() => {
     if (redirectTarget && redirectTarget !== "/dashboard") {
@@ -96,22 +102,30 @@ export default function DashboardPage() {
   const statusRows = useMemo(() => getReservationStatusDistribution(state), [state]);
   const arrivals = useMemo(() => getTodayArrivals(state), [state]);
   const departures = useMemo(() => getTodayDepartures(state), [state]);
-  const upcoming = useMemo(() => getUpcomingReservations(state, 4), [state]);
+  const upcoming = useMemo(() => getUpcomingReservations(state), [state]);
   const paymentStats = useMemo(() => getPaymentStats(state), [state]);
   const countryStats = useMemo(() => getReservationCountryStats(state), [state]);
 
   const recentPayments = useMemo(() => {
-    const views = getReservationViews(state);
-    const byReservation = new Map(views.map((v) => [v.id, v]));
+    // Built straight from reservations/guests/rooms rather than
+    // getReservationViews(), which drops a reservation entirely when either
+    // side is missing — a role with guests.view but not rooms.view (e.g.
+    // Muhasebeci) would otherwise lose the guest name too, even though it's
+    // fully available.
+    const reservationById = new Map(state.reservations.map((r) => [r.id, r]));
+    const guestById = new Map(state.guests.map((g) => [g.id, g]));
+    const roomById = new Map(state.rooms.map((r) => [r.id, r]));
     return [...state.payments]
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
       .slice(0, 50)
       .map((payment) => {
-        const view = byReservation.get(payment.reservationId);
+        const reservation = reservationById.get(payment.reservationId);
+        const guest = reservation ? guestById.get(reservation.guestId) : undefined;
+        const room = reservation ? roomById.get(reservation.roomId) : undefined;
         return {
           payment,
-          guestName: view?.guest.fullName ?? "Bilinmiyor",
-          roomNumber: view?.room.number ?? "—",
+          guestName: guest?.fullName ?? "Bilinmiyor",
+          roomNumber: room?.number ?? "—",
         };
       });
   }, [state]);
@@ -139,7 +153,7 @@ export default function DashboardPage() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
               Veri Periyodu:
             </span>
-            <div className="w-36">
+            <div className="w-24">
               <Select 
                 value={timeFilter} 
                 onChange={(e) => setTimeFilter(e.target.value)} 
@@ -176,56 +190,63 @@ export default function DashboardPage() {
             <>
               {/* Brick layout: each row is a flex-wrap group where every visible
                   widget carries flex-grow, so hiding a sibling (per role/permission)
-                  makes the rest stretch to fill the row instead of leaving a gap. */}
-              <div className="flex flex-wrap gap-6">
-                {canSee("dashboard.widget_room_availability") && (
-                  <div className="min-w-[260px] flex-1 basis-72">
-                    <RoomAvailabilityCard stats={roomStats} />
-                  </div>
-                )}
-                {canSee("dashboard.widget_revenue") && (
-                  <div className="min-w-[380px] flex-[2] basis-[26rem]">
-                    <RevenueCard store={state} days={effectiveDays} subtitle={labelsMap[timeFilter]} />
-                  </div>
-                )}
-                {canSee("dashboard.widget_status_donut") && (
-                  <div className="min-w-[260px] flex-1 basis-72">
-                    <ReservationStatusDonut rows={statusRows} />
-                  </div>
-                )}
-              </div>
+                  makes the rest stretch to fill the row instead of leaving a gap.
+                  The row itself is skipped when every widget in it is hidden, so
+                  it doesn't leave an empty gap in the page's vertical spacing. */}
+              {showTopRow && (
+                <div className="flex flex-wrap gap-6">
+                  {hasPermission("dashboard.widget_room_availability") && (
+                    <div className="min-w-[260px] flex-1 basis-72 [&>*]:h-full">
+                      <RoomAvailabilityCard stats={roomStats} />
+                    </div>
+                  )}
+                  {hasPermission("dashboard.widget_revenue") && (
+                    <div className="min-w-[380px] flex-[2] basis-[26rem] [&>*]:h-full">
+                      <RevenueCard store={state} days={effectiveDays} subtitle={labelsMap[timeFilter]} />
+                    </div>
+                  )}
+                  {hasPermission("dashboard.widget_status_donut") && (
+                    <div className="min-w-[260px] flex-1 basis-72 [&>*]:h-full">
+                      <ReservationStatusDonut rows={statusRows} />
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {canSee("dashboard.widget_country") && (
+              {hasPermission("dashboard.widget_country") && (
                 <ReservationsByCountryCard total={countryStats.total} countries={countryStats.countries} />
               )}
 
-              <div className="flex flex-wrap gap-6">
-                {canSee("dashboard.widget_today_checkins") && (
-                  <div className="min-w-[360px] flex-[2] basis-[28rem]">
-                    <TodayCheckInsCard rows={arrivals} onConfirm={handleConfirm} onCheckIn={handleCheckIn} />
-                  </div>
-                )}
-                {canSee("dashboard.widget_total_revenue") && (
-                  <div className="min-w-[300px] flex-1 basis-80">
+              {(showActivityColumn || showTotalRevenue) && (
+                <div className="flex flex-wrap items-start gap-6 [&>*]:min-w-[320px] [&>*]:flex-1">
+                  {showActivityColumn && (
+                    <div className="flex flex-col gap-6 [&>*]:max-h-[380px]">
+                      {hasPermission("dashboard.widget_today_checkins") && (
+                        <TodayCheckInsCard
+                          rows={arrivals}
+                          onConfirm={hasPermission("reservations.confirm") ? handleConfirm : undefined}
+                          onCheckIn={hasPermission("reservations.checkin") ? handleCheckIn : undefined}
+                        />
+                      )}
+                      {hasPermission("dashboard.widget_today_checkouts") && (
+                        <TodayCheckOutsCard
+                          rows={departures}
+                          onCheckOut={hasPermission("reservations.checkout") ? handleCheckOut : undefined}
+                        />
+                      )}
+                      {hasPermission("dashboard.widget_upcoming") && <UpcomingReservationsCard rows={upcoming} />}
+                    </div>
+                  )}
+                  {showTotalRevenue && (
                     <TotalRevenueCard
                       totalCollected={stats.totalCollected}
                       outstanding={paymentStats.outstanding}
                       activeReservations={stats.activeReservations}
                       recentPayments={recentPayments}
                     />
-                  </div>
-                )}
-                {canSee("dashboard.widget_today_checkouts") && (
-                  <div className="min-w-[300px] flex-1 basis-80">
-                    <TodayCheckOutsCard rows={departures} onCheckOut={handleCheckOut} />
-                  </div>
-                )}
-                {canSee("dashboard.widget_upcoming") && (
-                  <div className="min-w-[300px] flex-1 basis-80">
-                    <UpcomingReservationsCard rows={upcoming} />
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

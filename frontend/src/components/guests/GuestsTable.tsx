@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { FileSpreadsheet, Search } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { exportToCsv } from "@/lib/exportCsv";
 import { formatCurrency } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
 import type { GuestSummary } from "@/lib/types";
@@ -55,20 +56,44 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
     { key: "spent", header: "Toplam Harcama", sortValue: (g) => g.totalSpent, render: (g) => <span className="text-[var(--ok)] font-medium">{formatCurrency(g.totalSpent)}</span> },
   ];
 
+  const handleExportCsv = () => {
+    exportToCsv(
+      "misafirler.csv",
+      [
+        { header: "Ad Soyad", value: (g: GuestSummary) => g.fullName },
+        { header: "Ülke", value: (g: GuestSummary) => g.country },
+        { header: "Telefon", value: (g: GuestSummary) => g.phone },
+        { header: "E-posta", value: (g: GuestSummary) => g.email },
+        { header: "Rezervasyon", value: (g: GuestSummary) => String(g.totalBookings) },
+        { header: "Toplam Harcama", value: (g: GuestSummary) => String(g.totalSpent) },
+      ],
+      filteredByQuery
+    );
+  };
+
   return (
     <Card
       title="Tüm Misafirler"
       subtitle={`${filteredByQuery.length} / ${guests.length} misafir`}
       action={
-        <div className="flex items-center gap-2 rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2">
-          <Search size={14} className="text-[var(--muted)]" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="İsim veya e-posta ara"
-            className="w-40 bg-transparent text-xs text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2">
+            <Search size={14} className="text-[var(--muted)]" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="İsim veya e-posta ara"
+              className="w-40 bg-transparent text-xs text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
+            />
+          </div>
+          <button
+            onClick={handleExportCsv}
+            title="CSV Olarak İndir"
+            className="flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] p-2 text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+          >
+            <FileSpreadsheet size={14} />
+          </button>
         </div>
       }
     >

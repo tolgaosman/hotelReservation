@@ -9,17 +9,17 @@ import { api } from "./api";
 // parallel rather than one round-trip at a time — as data grows past a
 // single page this stays a small number of concurrent requests instead of a
 // serial chain.
-export async function fetchAllPages<T>(url: string): Promise<T[]> {
+export async function fetchAllPages<T>(url: string, signal?: AbortSignal): Promise<T[]> {
   const perPage = 1000;
 
-  const first = await api.get(url, { params: { per_page: perPage, page: 1 } });
+  const first = await api.get(url, { params: { per_page: perPage, page: 1 }, signal });
   const items: T[] = first.data.data.items;
   const lastPage: number = first.data.data.meta.lastPage;
 
   if (lastPage > 1) {
     const rest = await Promise.all(
       Array.from({ length: lastPage - 1 }, (_, i) =>
-        api.get(url, { params: { per_page: perPage, page: i + 2 } }).then(res => res.data.data.items as T[])
+        api.get(url, { params: { per_page: perPage, page: i + 2 }, signal }).then(res => res.data.data.items as T[])
       )
     );
     for (const page of rest) items.push(...page);

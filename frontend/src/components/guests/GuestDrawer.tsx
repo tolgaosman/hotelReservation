@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { getGuestReservations } from "@/lib/selectors";
 import { fieldError } from "@/lib/errors";
@@ -107,16 +108,19 @@ const GuestForm = forwardRef<FormHandle, { guest?: GuestSummary; isCreate: boole
 
 export function GuestDrawer({ open, onClose, guest }: Props) {
   const store = useStore();
+  const { hasPermission } = useAuth();
   const isCreate = !guest;
   const [editing, setEditing] = useState(false);
   const formRef = useRef<FormHandle>(null);
+
+  const canEdit = hasPermission("guests.edit");
 
   function handleClose() {
     setEditing(false);
     onClose();
   }
 
-  const showForm = isCreate || editing;
+  const showForm = isCreate || (editing && canEdit);
   const reservations = guest ? getGuestReservations(store.state, guest.id) : [];
 
   return (
@@ -131,13 +135,15 @@ export function GuestDrawer({ open, onClose, guest }: Props) {
             <Button variant="secondary" onClick={() => (isCreate ? handleClose() : setEditing(false))}>
               Vazgeç
             </Button>
-            <Button onClick={() => formRef.current?.submit()}>{isCreate ? "Ekle" : "Kaydet"}</Button>
+            {(isCreate ? hasPermission("guests.create") : canEdit) && (
+              <Button onClick={() => formRef.current?.submit()}>{isCreate ? "Ekle" : "Kaydet"}</Button>
+            )}
           </>
-        ) : (
+        ) : canEdit ? (
           <Button variant="secondary" onClick={() => setEditing(true)}>
             Düzenle
           </Button>
-        )
+        ) : undefined
       }
     >
       {showForm ? (

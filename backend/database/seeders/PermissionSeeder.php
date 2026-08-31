@@ -71,6 +71,8 @@ class PermissionSeeder extends Seeder
                 'permissions' => [
                     'housekeeping.view' => ['Sayfayı Görüntüleme', true],
                     'housekeeping.update_status' => ['Temizlik Durumu Güncelleme', false],
+                    'housekeeping.assign_staff' => ['Temizlik Personeli Atama', false],
+                    'housekeeping.maintenance' => ['Arıza Bildirme / Giderme', false],
                 ],
             ],
             'room_service' => [
@@ -102,12 +104,19 @@ class PermissionSeeder extends Seeder
                     'roles.view' => ['Sayfayı Görüntüleme', true],
                     'roles.create' => ['Yeni Rol Ekleme', false],
                     'roles.edit' => ['Rol Düzenleme', false],
+                    'roles.delete' => ['Rol Silme', false],
                 ],
             ],
             'settings' => [
                 'label' => 'Ayarlar',
                 'permissions' => [
                     'settings.view' => ['Sayfayı Görüntüleme', true],
+                ],
+            ],
+            'audit_logs' => [
+                'label' => 'Aktivite Kayıtları',
+                'permissions' => [
+                    'audit_logs.view' => ['Sayfayı Görüntüleme', true],
                 ],
             ],
         ];

@@ -1,6 +1,13 @@
-import { getAvailableRooms, isRoomReserved } from "./availability";
+import { getAvailableRooms } from "./availability";
 import { COUNTRY_NAME_EN } from "./countries";
-const TODAY_ISO = new Date().toISOString().split("T")[0];
+// A function, not a frozen constant: this module stays loaded for the whole
+// session, so a module-level `const TODAY_ISO = new Date()...` would freeze
+// at first import and silently go stale after a midnight rollover. store.tsx
+// already refreshes its own `todayIso` every 60s for exactly this reason —
+// this file just wasn't reading it, so match that intent locally instead.
+function getTodayIso(): string {
+  return new Date().toISOString().split("T")[0];
+}
 import type {
   DashboardStats,
   Guest,
@@ -25,31 +32,82 @@ interface Store {
   roomServices?: RoomService[];
 }
 
-function paidAmountFor(reservationId: number, payments: Payment[]): number {
-  return payments.filter((p) => p.reservationId === reservationId).reduce((sum, p) => sum + p.amount, 0);
+// Groups payments by reservation once, computing each group's sum and most
+// recent createdAt in a single pass — replaces per-reservation .filter()
+// (+ .sort() for the latter) that made getReservationViews O(reservations ×
+// payments) over the full dataset.
+interface PaymentAgg {
+  sum: number;
+  lastPaymentAt?: string;
 }
 
-function roomServiceAmountFor(reservationId: number, roomServices: RoomService[]): number {
-  return roomServices.filter((rs) => rs.reservationId === reservationId).reduce((sum, rs) => sum + rs.amount, 0);
+function buildPaymentIndex(payments: Payment[]): Map<number, PaymentAgg> {
+  const byReservation = new Map<number, PaymentAgg>();
+  for (const p of payments) {
+    const agg = byReservation.get(p.reservationId);
+    if (!agg) {
+      byReservation.set(p.reservationId, { sum: p.amount, lastPaymentAt: p.createdAt });
+    } else {
+      agg.sum += p.amount;
+      if (agg.lastPaymentAt === undefined || p.createdAt > agg.lastPaymentAt) agg.lastPaymentAt = p.createdAt;
+    }
+  }
+  return byReservation;
 }
 
-// Most recent payment date for a reservation, so "payments" views can sort
-// by when money last actually changed hands rather than when the booking
-// was made.
-function lastPaymentAtFor(reservationId: number, payments: Payment[]): string | undefined {
-  return payments
-    .filter((p) => p.reservationId === reservationId)
-    .map((p) => p.createdAt)
-    .sort()
-    .at(-1);
+function buildRoomServiceIndex(roomServices: RoomService[]): Map<number, number> {
+  const byReservation = new Map<number, number>();
+  for (const rs of roomServices) {
+    byReservation.set(rs.reservationId, (byReservation.get(rs.reservationId) ?? 0) + rs.amount);
+  }
+  return byReservation;
 }
 
-export function toView(reservation: Reservation, store: Store): ReservationView | null {
-  const guest = store.guests.find((g) => g.id === reservation.guestId);
-  const room = store.rooms.find((r) => r.id === reservation.roomId);
-  if (!guest || !room) return null;
-  const paidAmount = paidAmountFor(reservation.id, store.payments);
-  const roomServiceAmount = roomServiceAmountFor(reservation.id, store.roomServices ?? []);
+interface ReservationIndices {
+  guestById: Map<number, Guest>;
+  roomById: Map<number, Room>;
+  paymentsByReservation: Map<number, PaymentAgg>;
+  roomServiceAmountByReservation: Map<number, number>;
+}
+
+function buildReservationIndices(store: Store): ReservationIndices {
+  return {
+    guestById: new Map(store.guests.map((g) => [g.id, g])),
+    roomById: new Map(store.rooms.map((r) => [r.id, r])),
+    paymentsByReservation: buildPaymentIndex(store.payments),
+    roomServiceAmountByReservation: buildRoomServiceIndex(store.roomServices ?? []),
+  };
+}
+
+// Placeholder guest/room used when the signed-in role can see the
+// reservation (reservations.view) but lacks guests.view or rooms.view — e.g.
+// Muhasebeci has reservations.view + guests.view but not rooms.view.
+// Silently dropping the whole reservation in that case (the old behavior)
+// undercounted every list/count derived from it — today's arrivals, a
+// guest's stay history, country stats via a different path, etc. — not just
+// hiding the field the role can't see, but hiding activity that happened.
+const UNKNOWN_GUEST: Guest = { id: -1, fullName: "Bilinmiyor", phone: "", email: "", identityNumber: "", country: "" };
+const UNKNOWN_ROOM: Room = {
+  id: -1,
+  number: "—",
+  type: "Standart",
+  capacity: 0,
+  nightlyRate: 0,
+  amenities: [],
+  status: "available",
+  housekeepingStatus: "clean",
+  isMaintenance: false,
+  maintenanceNote: null,
+  assignedStaff: null,
+  isPriorityCleaning: false,
+  active: false,
+};
+
+function toViewWithIndices(reservation: Reservation, indices: ReservationIndices): ReservationView {
+  const guest = indices.guestById.get(reservation.guestId) ?? UNKNOWN_GUEST;
+  const room = indices.roomById.get(reservation.roomId) ?? UNKNOWN_ROOM;
+  const paidAmount = indices.paymentsByReservation.get(reservation.id)?.sum ?? 0;
+  const roomServiceAmount = indices.roomServiceAmountByReservation.get(reservation.id) ?? 0;
   return {
     ...reservation,
     guest,
@@ -58,37 +116,51 @@ export function toView(reservation: Reservation, store: Store): ReservationView 
     balance: reservation.totalAmount - paidAmount,
     roomServiceAmount,
     roomAmount: reservation.totalAmount - roomServiceAmount,
-    lastPaymentAt: lastPaymentAtFor(reservation.id, store.payments),
+    lastPaymentAt: indices.paymentsByReservation.get(reservation.id)?.lastPaymentAt,
   };
 }
 
+// Convenience for one-off lookups (e.g. a single selected reservation) where
+// building full-store indices for one row is fine. Bulk callers should use
+// getReservationViews(), which builds the indices once for the whole list.
+export function toView(reservation: Reservation, store: Store): ReservationView {
+  return toViewWithIndices(reservation, buildReservationIndices(store));
+}
+
 export function getReservationViews(store: Store): ReservationView[] {
-  return store.reservations
-    .map((r) => toView(r, store))
-    .filter((r): r is ReservationView => r !== null);
+  const indices = buildReservationIndices(store);
+  return store.reservations.map((r) => toViewWithIndices(r, indices));
 }
 
 export { getAvailableRooms };
 
 export function getRoomStats(store: Store): RoomStats {
   const active = store.rooms.filter((r) => r.active);
+  // Build the set of rooms with a future pending/confirmed stay once instead
+  // of calling isRoomReserved() (a full reservations scan) per active room.
+  const todayIso = getTodayIso();
+  const reservedRoomIds = new Set(
+    store.reservations
+      .filter((r) => (r.status === "confirmed" || r.status === "pending") && r.checkIn > todayIso)
+      .map((r) => r.roomId)
+  );
   return {
     total: active.length,
     available: active.filter((r) => r.status === "available").length,
     occupied: active.filter((r) => r.status === "occupied").length,
     maintenance: active.filter((r) => r.status === "maintenance").length,
-    reserved: active.filter((r) => r.status === "available" && isRoomReserved(r.id, TODAY_ISO, store.reservations))
-      .length,
+    reserved: active.filter((r) => r.status === "available" && reservedRoomIds.has(r.id)).length,
   };
 }
 
 export function getDashboardStats(store: Store): DashboardStats {
   const roomStats = getRoomStats(store);
+  const todayIso = getTodayIso();
   const todayArrivals = store.reservations.filter(
-    (r) => r.checkIn === TODAY_ISO && r.status !== "cancelled"
+    (r) => r.checkIn === todayIso && r.status !== "cancelled"
   ).length;
   const todayDepartures = store.reservations.filter(
-    (r) => r.checkOut === TODAY_ISO && (r.status === "checked_in" || r.status === "completed")
+    (r) => r.checkOut === todayIso && (r.status === "checked_in" || r.status === "completed")
   ).length;
   const activeReservations = store.reservations.filter(
     (r) => r.status === "confirmed" || r.status === "checked_in" || r.status === "pending"
@@ -113,7 +185,7 @@ export function getDashboardStats(store: Store): DashboardStats {
 }
 
 function isoDate(offset: number): string {
-  const d = new Date(TODAY_ISO);
+  const d = new Date(getTodayIso());
   d.setDate(d.getDate() + offset);
   return [
     d.getFullYear(),
@@ -123,7 +195,7 @@ function isoDate(offset: number): string {
 }
 
 function daysSince(iso: string): number {
-  const diff = new Date(TODAY_ISO).getTime() - new Date(iso).getTime();
+  const diff = new Date(getTodayIso()).getTime() - new Date(iso).getTime();
   return Math.round(diff / 86_400_000);
 }
 
@@ -277,27 +349,41 @@ export function getReservationStatusDistribution(
 }
 
 export function getTodayArrivals(store: Store): ReservationView[] {
-  return getReservationViews(store).filter((r) => r.checkIn === TODAY_ISO && r.status !== "cancelled");
+  const todayIso = getTodayIso();
+  return getReservationViews(store).filter((r) => r.checkIn === todayIso && r.status !== "cancelled");
 }
 
 export function getTodayDepartures(store: Store): ReservationView[] {
+  const todayIso = getTodayIso();
   return getReservationViews(store).filter(
-    (r) => r.checkOut === TODAY_ISO && (r.status === "checked_in" || r.status === "completed")
+    (r) => r.checkOut === todayIso && (r.status === "checked_in" || r.status === "completed")
   );
 }
 
 export function getUpcomingReservations(store: Store, limit = 6): ReservationView[] {
+  const todayIso = getTodayIso();
   return getReservationViews(store)
-    .filter((r) => r.checkIn > TODAY_ISO && (r.status === "confirmed" || r.status === "pending"))
+    .filter((r) => r.checkIn > todayIso && (r.status === "confirmed" || r.status === "pending"))
     .sort((a, b) => (a.checkIn < b.checkIn ? -1 : 1))
     .slice(0, limit);
 }
 
 export function getGuestSummaries(store: Store): GuestSummary[] {
+  // One pass over reservations + one pass over payments instead of, per
+  // guest, filtering the whole reservations array then summing payments per
+  // booking — was O(guests × reservations × payments).
+  const paidByReservation = buildPaymentIndex(store.payments);
+  const bookingsByGuest = new Map<number, { count: number; spent: number }>();
+  for (const r of store.reservations) {
+    if (r.status === "cancelled") continue;
+    const agg = bookingsByGuest.get(r.guestId) ?? { count: 0, spent: 0 };
+    agg.count += 1;
+    agg.spent += paidByReservation.get(r.id)?.sum ?? 0;
+    bookingsByGuest.set(r.guestId, agg);
+  }
   return store.guests.map((guest) => {
-    const bookings = store.reservations.filter((r) => r.guestId === guest.id && r.status !== "cancelled");
-    const totalSpent = bookings.reduce((sum, r) => sum + paidAmountFor(r.id, store.payments), 0);
-    return { ...guest, totalBookings: bookings.length, totalSpent };
+    const agg = bookingsByGuest.get(guest.id);
+    return { ...guest, totalBookings: agg?.count ?? 0, totalSpent: agg?.spent ?? 0 };
   });
 }
 
@@ -316,12 +402,17 @@ export function getRoomReservations(store: Store, roomId: number): ReservationVi
 export function getPaymentStats(store: Store) {
   const nonCancelled = store.reservations.filter((r) => r.status !== "cancelled");
   const totalCollected = store.payments.reduce((sum, p) => sum + p.amount, 0);
+  // Group once instead of the previous filter() per reservation (called twice
+  // each, for outstanding + fullyPaidCount) — was O(reservations × payments).
+  const paidByReservation = buildPaymentIndex(store.payments);
   const outstanding = nonCancelled.reduce(
-    (sum, r) => sum + (r.totalAmount - paidAmountFor(r.id, store.payments)),
+    (sum, r) => sum + (r.totalAmount - (paidByReservation.get(r.id)?.sum ?? 0)),
     0
   );
-  const fullyPaidCount = nonCancelled.filter((r) => paidAmountFor(r.id, store.payments) >= r.totalAmount).length;
-  const thisMonth = TODAY_ISO.slice(0, 7);
+  const fullyPaidCount = nonCancelled.filter(
+    (r) => (paidByReservation.get(r.id)?.sum ?? 0) >= r.totalAmount
+  ).length;
+  const thisMonth = getTodayIso().slice(0, 7);
   const thisMonthCollected = store.payments
     .filter((p) => p.createdAt.slice(0, 7) === thisMonth)
     .reduce((sum, p) => sum + p.amount, 0);

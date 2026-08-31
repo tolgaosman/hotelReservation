@@ -6,11 +6,16 @@ use App\Http\Requests\Employee\StoreEmployeeRequest;
 use App\Http\Requests\Employee\UpdateEmployeeRequest;
 use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
+use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
+    public function __construct(private readonly AuditLogService $auditLog)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Employee::class);
@@ -31,6 +36,7 @@ class EmployeeController extends Controller
     public function store(StoreEmployeeRequest $request): JsonResponse
     {
         $employee = Employee::create($request->validated())->load('role');
+        $this->auditLog->record('employee.create', $employee);
 
         return $this->success(new EmployeeResource($employee), 'Çalışan eklendi.', 201);
     }
@@ -45,6 +51,7 @@ class EmployeeController extends Controller
     public function update(UpdateEmployeeRequest $request, Employee $employee): JsonResponse
     {
         $employee->update($request->validated());
+        $this->auditLog->record('employee.update', $employee);
 
         return $this->success(new EmployeeResource($employee->load('role')), 'Çalışan güncellendi.');
     }

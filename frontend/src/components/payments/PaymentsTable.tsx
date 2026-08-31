@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { FileSpreadsheet, Search } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { Select } from "@/components/ui/Select";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { StatusBadge, statusLabel } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
+import { exportToCsv } from "@/lib/exportCsv";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
 import type { PaymentStatus, ReservationView } from "@/lib/types";
@@ -71,20 +71,45 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
     },
   ];
 
+  const handleExportCsv = () => {
+    exportToCsv(
+      "odemeler.csv",
+      [
+        { header: "Misafir", value: (r: ReservationView) => r.guest.fullName },
+        { header: "Oda", value: (r: ReservationView) => r.room.number },
+        { header: "Toplam", value: (r: ReservationView) => String(r.totalAmount) },
+        { header: "Ödenen", value: (r: ReservationView) => String(r.paidAmount) },
+        { header: "Bakiye", value: (r: ReservationView) => String(r.balance) },
+        { header: "Son Ödeme", value: (r: ReservationView) => (r.lastPaymentAt ? formatDate(r.lastPaymentAt) : "") },
+        { header: "Durum", value: (r: ReservationView) => statusLabel(paymentStatusOf(r)) },
+      ],
+      filteredByQuery
+    );
+  };
+
   return (
     <Card
       title="Ödeme Geçmişi"
       subtitle={`${filteredByQuery.length} / ${reservations.length} rezervasyon`}
       action={
-        <div className="flex items-center gap-2 rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2">
-          <Search size={14} className="text-[var(--muted)]" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Misafir veya oda ara"
-            className="w-40 bg-transparent text-xs text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2">
+            <Search size={14} className="text-[var(--muted)]" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Misafir veya oda ara"
+              className="w-40 bg-transparent text-xs text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
+            />
+          </div>
+          <button
+            onClick={handleExportCsv}
+            title="CSV Olarak İndir"
+            className="flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] p-2 text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+          >
+            <FileSpreadsheet size={14} />
+          </button>
         </div>
       }
     >

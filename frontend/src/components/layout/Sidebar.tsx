@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_CATEGORIES } from "@/lib/nav";
 
@@ -12,15 +11,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user, logout, hasPermission } = useAuth();
 
-  // Only admins bypass the granular permission catalog — a personel user
-  // with no role assigned yet gets zero permissions from the backend and is
-  // 403'd on every gated action, so hiding the sidebar accordingly (rather
-  // than showing everything) keeps nav visibility truthful to what the API
-  // will actually allow. See lib/auth.tsx's `unrestricted` for the same rule.
-  const unrestricted = user?.role === "admin";
-
-  const visibleCategories = NAV_CATEGORIES.filter((c) => !c.adminOnly || user?.role === "admin")
-    .map((c) => ({ ...c, items: c.items.filter((i) => unrestricted || hasPermission(i.permission)) }))
+  // hasPermission() already bypasses for admins and returns false for a
+  // null user, so it's the only check needed here — a personel user with no
+  // role assigned yet gets zero permissions from the backend and is 403'd on
+  // every gated action, so hiding the sidebar accordingly keeps nav
+  // visibility truthful to what the API will actually allow.
+  const visibleCategories = NAV_CATEGORIES.map((c) => ({ ...c, items: c.items.filter((i) => hasPermission(i.permission)) }))
     .filter((c) => c.items.length > 0);
 
   return (
@@ -59,13 +55,6 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-4 pt-4 border-t border-[var(--line)] shrink-0">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-medium text-[var(--color-muted)] transition-colors duration-200 [transition-timing-function:var(--ease-organic)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] mb-2"
-        >
-          <Settings size={17} strokeWidth={2} />
-          Ayarlar
-        </Link>
         <div className="flex items-center justify-between rounded-[var(--radius-control)] bg-[var(--surface-alt)] p-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-[var(--ink)]">{user?.name}</p>

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\Guest;
 use App\Models\Payment;
@@ -9,6 +10,7 @@ use App\Models\Reservation;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomService;
+use App\Policies\AuditLogPolicy;
 use App\Policies\EmployeePolicy;
 use App\Policies\GuestPolicy;
 use App\Policies\PaymentPolicy;
@@ -38,5 +40,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Employee::class, EmployeePolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(RoomService::class, RoomServicePolicy::class);
+        Gate::policy(AuditLog::class, AuditLogPolicy::class);
     }
 }

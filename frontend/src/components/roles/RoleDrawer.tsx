@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { Input, Textarea } from "@/components/ui/Input";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { fieldError } from "@/lib/errors";
@@ -68,8 +69,8 @@ function PermissionCheckbox({
   );
 }
 
-const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClose: () => void }>(
-  function RoleForm({ role, isCreate, onClose }, ref) {
+const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; readOnly: boolean; onClose: () => void }>(
+  function RoleForm({ role, isCreate, readOnly, onClose }, ref) {
     const store = useStore();
     const showToast = useToast();
 
@@ -124,7 +125,7 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClos
     return (
       <div className="space-y-5">
         <FormField label="Rol Adı" error={fieldError(fieldErrors, "name")}>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Örn. Resepsiyonist" />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Örn. Resepsiyonist" disabled={readOnly} />
         </FormField>
 
         <FormField label="Görev Tanımı">
@@ -133,6 +134,7 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClos
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Bu rolün sorumluluklarını kısaca açıklayın"
+            disabled={readOnly}
           />
         </FormField>
 
@@ -151,6 +153,7 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClos
                         <PermissionCheckbox
                           label={`${g.groupLabel} — Sayfayı Görüntüleme`}
                           checked={pageChecked}
+                          disabled={readOnly}
                           onChange={() => togglePage(g.page!, subIds)}
                           emphasis
                         />
@@ -164,7 +167,7 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClos
                           key={p.id}
                           label={p.label}
                           checked={selected.has(p.id)}
-                          disabled={!pageChecked}
+                          disabled={readOnly || !pageChecked}
                           onChange={() => toggleSub(p.id)}
                         />
                       ))}
@@ -183,8 +186,10 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; onClos
 );
 
 export function RoleDrawer({ open, onClose, role }: { open: boolean; onClose: () => void; role?: Role }) {
+  const { hasPermission } = useAuth();
   const formRef = useRef<FormHandle>(null);
   const isCreate = !role;
+  const canSave = isCreate ? hasPermission("roles.create") : hasPermission("roles.edit");
 
   return (
     <Drawer
@@ -196,13 +201,13 @@ export function RoleDrawer({ open, onClose, role }: { open: boolean; onClose: ()
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Vazgeç
+            {canSave ? "Vazgeç" : "Kapat"}
           </Button>
-          <Button onClick={() => formRef.current?.submit()}>{isCreate ? "Oluştur" : "Kaydet"}</Button>
+          {canSave && <Button onClick={() => formRef.current?.submit()}>{isCreate ? "Oluştur" : "Kaydet"}</Button>}
         </>
       }
     >
-      <RoleForm key={open ? (role?.id ?? "new") : "closed"} ref={formRef} role={role} isCreate={isCreate} onClose={onClose} />
+      <RoleForm key={open ? (role?.id ?? "new") : "closed"} ref={formRef} role={role} isCreate={isCreate} readOnly={!canSave} onClose={onClose} />
     </Drawer>
   );
 }

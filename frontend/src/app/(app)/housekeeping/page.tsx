@@ -1,6 +1,7 @@
 "use client";
 
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { useMemo, useState } from "react";
 import { Sparkles, Brush, CheckCircle, AlertCircle, Search, Wrench, User, Star, XCircle, AlertTriangle, LogOut } from "lucide-react";
@@ -10,7 +11,15 @@ import { Select } from "@/components/ui/Select";
 import type { Room } from "@/lib/types";
 
 export default function HousekeepingPage() {
-  const { state, hydrating, updateHousekeeping, updateHousekeepingAdvanced } = useStore();
+  const { state, loading: loadingFlags, updateHousekeeping, updateHousekeepingAdvanced } = useStore();
+  const { hasPermission } = useAuth();
+  const canStatus = hasPermission("housekeeping.update_status");
+  const canAssign = hasPermission("housekeeping.assign_staff");
+  const canMaint = hasPermission("housekeeping.maintenance");
+  // Only rooms + reservations (checkout-today priority) + employees
+  // (cleaning-staff list) feed this page; don't wait on guests/payments/
+  // roomServices/roles/permissions.
+  const hydrating = loadingFlags.rooms || loadingFlags.reservations || loadingFlags.employees;
   const addToast = useToast();
   const [filter, setFilter] = useState<"all" | "dirty" | "cleaning" | "maintenance">("all");
   const [search, setSearch] = useState("");
@@ -193,25 +202,27 @@ export default function HousekeepingPage() {
           <div key={floor}>
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-[var(--line)]">
               <h2 className="text-xl font-bold text-[var(--ink)]">{floor}. Kat Odaları</h2>
-              
-              <div className="flex items-center gap-2 text-sm bg-[var(--surface-alt)] px-3 py-1.5 rounded-[var(--radius-pill)] border border-[var(--line)] shadow-sm focus-within:border-[var(--accent)] transition-colors">
-                 <User size={14} className="text-[var(--muted)]" />
-                 <span className="text-[var(--muted)] font-medium">Tüm Kata Ata:</span>
-                 <Select 
-                   className="bg-transparent border-none w-40 text-sm font-semibold text-[var(--ink)] cursor-pointer py-0 px-1 hover:bg-[var(--surface)]"
-                   value=""
-                   onChange={(e: any) => {
-                     if (e.target.value) {
-                       handleFloorStaffSubmit(floor, e.target.value, groupedRooms[floor]);
-                     }
-                   }}
-                 >
-                   <option value="" disabled>Personel seç...</option>
-                   {cleaningStaff.map(emp => (
-                     <option key={emp.id} value={emp.fullName}>{emp.fullName}</option>
-                   ))}
-                 </Select>
-              </div>
+
+              {canAssign && (
+                <div className="flex items-center gap-2 text-sm bg-[var(--surface-alt)] px-3 py-1.5 rounded-[var(--radius-pill)] border border-[var(--line)] shadow-sm focus-within:border-[var(--accent)] transition-colors">
+                   <User size={14} className="text-[var(--muted)]" />
+                   <span className="text-[var(--muted)] font-medium">Tüm Kata Ata:</span>
+                   <Select
+                     className="bg-transparent border-none w-40 text-sm font-semibold text-[var(--ink)] cursor-pointer py-0 px-1 hover:bg-[var(--surface)]"
+                     value=""
+                     onChange={(e: any) => {
+                       if (e.target.value) {
+                         handleFloorStaffSubmit(floor, e.target.value, groupedRooms[floor]);
+                       }
+                     }}
+                   >
+                     <option value="" disabled>Personel seç...</option>
+                     {cleaningStaff.map(emp => (
+                       <option key={emp.id} value={emp.fullName}>{emp.fullName}</option>
+                     ))}
+                   </Select>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {groupedRooms[floor].map(room => (
@@ -297,8 +308,8 @@ export default function HousekeepingPage() {
                         </span>
                       )}
                     </div>
-                    {editingStaffId !== room.id && (
-                      <button 
+                    {editingStaffId !== room.id && canAssign && (
+                      <button
                         onClick={() => { setEditingStaffId(room.id); setStaffName(room.assignedStaff || ""); }}
                         className="text-[10px] text-[var(--accent)] hover:underline font-bold uppercase"
                       >
@@ -308,70 +319,78 @@ export default function HousekeepingPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="pt-2 border-t border-[var(--line)] flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      {!room.isMaintenance && room.housekeepingStatus === "dirty" && (
-                        <button 
-                          onClick={() => updateStatus(room, "cleaning")}
-                          disabled={updating === room.id}
-                          className="flex-1 bg-orange-500 text-white hover:bg-orange-600 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-                        >
-                          Temizliğe Başla
-                        </button>
+                  {(canStatus || canMaint) && (
+                    <div className="pt-2 border-t border-[var(--line)] flex flex-col gap-2">
+                      {(canStatus || (room.isMaintenance && canMaint)) && (
+                        <div className="flex gap-2">
+                          {!room.isMaintenance && room.housekeepingStatus === "dirty" && canStatus && (
+                            <button
+                              onClick={() => updateStatus(room, "cleaning")}
+                              disabled={updating === room.id}
+                              className="flex-1 bg-orange-500 text-white hover:bg-orange-600 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                            >
+                              Temizliğe Başla
+                            </button>
+                          )}
+                          {!room.isMaintenance && room.housekeepingStatus === "cleaning" && canStatus && (
+                            <button
+                              onClick={() => updateStatus(room, "clean")}
+                              disabled={updating === room.id}
+                              className="flex-1 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                            >
+                              Temizliği Bitir
+                            </button>
+                          )}
+                          {!room.isMaintenance && room.housekeepingStatus === "clean" && canStatus && (
+                            <button
+                              onClick={() => updateStatus(room, "dirty")}
+                              disabled={updating === room.id}
+                              className="flex-1 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                            >
+                              Kirli İşaretle
+                            </button>
+                          )}
+                          {room.isMaintenance && canMaint && (
+                            <button
+                              onClick={() => handleUpdateAdvanced(room, { isMaintenance: false, maintenanceNote: null }, "Oda bakım modundan çıkarıldı.")}
+                              disabled={updating === room.id}
+                              className="flex-1 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                              <CheckCircle size={16} /> Arıza Giderildi
+                            </button>
+                          )}
+                        </div>
                       )}
-                      {!room.isMaintenance && room.housekeepingStatus === "cleaning" && (
-                        <button 
-                          onClick={() => updateStatus(room, "clean")}
-                          disabled={updating === room.id}
-                          className="flex-1 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-                        >
-                          Temizliği Bitir
-                        </button>
-                      )}
-                      {!room.isMaintenance && room.housekeepingStatus === "clean" && (
-                        <button 
-                          onClick={() => updateStatus(room, "dirty")}
-                          disabled={updating === room.id}
-                          className="flex-1 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-                        >
-                          Kirli İşaretle
-                        </button>
-                      )}
-                      {room.isMaintenance && (
-                        <button 
-                          onClick={() => handleUpdateAdvanced(room, { isMaintenance: false, maintenanceNote: null }, "Oda bakım modundan çıkarıldı.")}
-                          disabled={updating === room.id}
-                          className="flex-1 bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                          <CheckCircle size={16} /> Arıza Giderildi
-                        </button>
+
+                      {!room.isMaintenance && (canMaint || canStatus) && (
+                        <div className="flex gap-2">
+                          {canMaint && (
+                            <button
+                              onClick={() => setMaintenanceRoom(room)}
+                              disabled={updating === room.id}
+                              className="flex-1 border border-[var(--line)] bg-[var(--canvas)] hover:bg-[var(--surface-alt)] text-[var(--ink)] py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Wrench size={12} /> Arıza Bildir
+                            </button>
+                          )}
+                          {canStatus && (
+                            <button
+                              onClick={() => handleUpdateAdvanced(room, { isPriorityCleaning: !room.isPriorityCleaning }, room.isPriorityCleaning ? "Öncelik kaldırıldı." : "Oda öncelikli olarak işaretlendi.")}
+                              disabled={updating === room.id}
+                              className={cn(
+                                "flex-1 border py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1",
+                                room.isPriorityCleaning
+                                  ? "border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+                                  : "border-[var(--line)] bg-[var(--canvas)] hover:bg-[var(--surface-alt)] text-[var(--ink)]"
+                              )}
+                            >
+                              <Star size={12} className={room.isPriorityCleaning ? "text-yellow-400 fill-yellow-400" : ""} /> Öncelikli
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
-                    
-                    {!room.isMaintenance && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setMaintenanceRoom(room)}
-                          disabled={updating === room.id}
-                          className="flex-1 border border-[var(--line)] bg-[var(--canvas)] hover:bg-[var(--surface-alt)] text-[var(--ink)] py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Wrench size={12} /> Arıza Bildir
-                        </button>
-                        <button
-                          onClick={() => handleUpdateAdvanced(room, { isPriorityCleaning: !room.isPriorityCleaning }, room.isPriorityCleaning ? "Öncelik kaldırıldı." : "Oda öncelikli olarak işaretlendi.")}
-                          disabled={updating === room.id}
-                          className={cn(
-                            "flex-1 border py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1",
-                            room.isPriorityCleaning 
-                              ? "border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
-                              : "border-[var(--line)] bg-[var(--canvas)] hover:bg-[var(--surface-alt)] text-[var(--ink)]"
-                          )}
-                        >
-                          <Star size={12} className={room.isPriorityCleaning ? "text-yellow-400 fill-yellow-400" : ""} /> Öncelikli
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

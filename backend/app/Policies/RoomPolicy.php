@@ -35,4 +35,14 @@ class RoomPolicy
     {
         return $user->isAdmin() || $user->hasPermission('housekeeping.update_status');
     }
+
+    public function assignHousekeepingStaff(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('housekeeping.assign_staff');
+    }
+
+    public function manageMaintenance(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('housekeeping.maintenance');
+    }
 }

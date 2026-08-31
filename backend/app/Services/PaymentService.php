@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
+    public function __construct(private readonly AuditLogService $auditLog)
+    {
+    }
+
     public function wouldExceedBalance(Reservation $reservation, float $amount): bool
     {
         return bccomp((string) ($reservation->paid_amount + $amount), (string) $reservation->total_amount, 2) > 0;
@@ -40,6 +44,8 @@ class PaymentService
                 $payment->created_at = $data['created_at'];
                 $payment->save();
             }
+
+            $this->auditLog->record('payment.create', $payment);
 
             return $payment;
         });

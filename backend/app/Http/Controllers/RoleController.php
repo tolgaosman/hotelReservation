@@ -6,11 +6,16 @@ use App\Http\Requests\Role\StoreRoleRequest;
 use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Models\Role;
+use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 
 class RoleController extends Controller
 {
+    public function __construct(private readonly AuditLogService $auditLog)
+    {
+    }
+
     public function index(): JsonResponse
     {
         $this->authorize('viewAny', Role::class);
@@ -36,6 +41,7 @@ class RoleController extends Controller
 
         $role->permissions()->sync($validated['permission_ids'] ?? []);
         $role->load('permissions')->loadCount('employees');
+        $this->auditLog->record('role.create', $role);
 
         return $this->success(new RoleResource($role), 'Rol oluşturuldu.', 201);
     }
@@ -56,6 +62,7 @@ class RoleController extends Controller
 
         $role->permissions()->sync($validated['permission_ids'] ?? []);
         $role->load('permissions')->loadCount('employees');
+        $this->auditLog->record('role.update', $role);
 
         return $this->success(new RoleResource($role), 'Rol güncellendi.');
     }
@@ -72,7 +79,9 @@ class RoleController extends Controller
             return $this->error('Bu role atanmış çalışanlar var, önce onları başka bir role taşıyın.', null, 422);
         }
 
+        $roleName = $role->name;
         $role->delete();
+        $this->auditLog->record('role.delete', null, ['name' => $roleName]);
 
         return $this->success(null, 'Rol silindi.');
     }

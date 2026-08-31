@@ -39,8 +39,32 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   );
 }
 
-export function ChartSkeleton() {
-  return <Skeleton className="h-64 w-full" />;
+/** Mirrors ReservationsByCountryCard's real layout so its lazy-loaded map
+ *  chunk doesn't slam the page with a height jump once it finishes loading. */
+export function CountryMapCardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)]/85">
+      <div className="flex flex-col gap-4 p-6 lg:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 pb-6 lg:pb-0 lg:pr-6">
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-52" />
+            <Skeleton className="h-3 w-64" />
+          </div>
+          <Skeleton className="h-[300px] w-full lg:h-[400px]" />
+          <Skeleton className="h-3 w-40" />
+        </div>
+        <div className="flex w-full shrink-0 flex-col gap-3 border-t border-[var(--color-line)] pt-6 lg:w-96 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-8 w-24" />
+          <div className="mt-2 flex flex-col gap-2.5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-6 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /** Generic full-page loading placeholder for list pages (hero banner + table). */

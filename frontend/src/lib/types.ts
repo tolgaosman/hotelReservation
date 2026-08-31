@@ -197,3 +197,15 @@ export interface Employee {
   status: EmployeeStatus;
   notes: string | null;
 }
+
+export interface AuditLog {
+  id: number;
+  userId: number | null;
+  userName: string | null;
+  action: string;
+  auditableType: string | null;
+  auditableId: number | null;
+  changes: Record<string, unknown> | null;
+  ipAddress: string | null;
+  createdAt: string;
+}

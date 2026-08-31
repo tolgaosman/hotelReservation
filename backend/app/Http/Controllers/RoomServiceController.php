@@ -7,11 +7,16 @@ use App\Http\Resources\ReservationResource;
 use App\Http\Resources\RoomServiceResource;
 use App\Models\Reservation;
 use App\Models\RoomService;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class RoomServiceController extends Controller
 {
+    public function __construct(private readonly AuditLogService $auditLog)
+    {
+    }
+
     /**
      * All room-service charges across every reservation, so the frontend can
      * break "Toplam Tutar" into room + room-service amounts anywhere a
@@ -54,9 +59,11 @@ class RoomServiceController extends Controller
                 throw new DomainActionException('İptal edilmiş bir rezervasyona ek hizmet eklenemez.');
             }
 
-            $locked->roomServices()->create($validated);
+            $roomService = $locked->roomServices()->create($validated);
             $locked->total_amount += $validated['amount'];
             $locked->save();
+
+            $this->auditLog->record('room_service.create', $roomService, $validated);
         });
 
         $reservation->refresh()->load(['guest', 'room']);
@@ -81,6 +88,7 @@ class RoomServiceController extends Controller
             $locked->total_amount = $newTotal;
             $locked->save();
 
+            $this->auditLog->record('room_service.delete', null, ['id' => $roomService->id, 'description' => $roomService->description, 'amount' => (float) $roomService->amount]);
             $roomService->delete();
         });
 

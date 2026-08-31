@@ -46,8 +46,10 @@ class DashboardService
 
     public function todayCheckIns(): int
     {
+        // check_in is a plain DATE column, so a direct equality is sargable
+        // (whereDate() wraps the column in a function and can't use an index).
         return Reservation::query()
-            ->whereDate('check_in', Carbon::today())
+            ->where('check_in', Carbon::today()->toDateString())
             ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
             ->count();
     }
@@ -55,7 +57,7 @@ class DashboardService
     public function todayCheckOuts(): int
     {
         return Reservation::query()
-            ->whereDate('check_out', Carbon::today())
+            ->where('check_out', Carbon::today()->toDateString())
             ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->count();
     }
@@ -64,13 +66,15 @@ class DashboardService
     {
         $checkIns = Reservation::query()
             ->with(['guest', 'room'])
-            ->whereDate('check_in', Carbon::today())
+            ->withSum('payments', 'amount')
+            ->where('check_in', Carbon::today()->toDateString())
             ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
             ->get();
 
         $checkOuts = Reservation::query()
             ->with(['guest', 'room'])
-            ->whereDate('check_out', Carbon::today())
+            ->withSum('payments', 'amount')
+            ->where('check_out', Carbon::today()->toDateString())
             ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->get();
 

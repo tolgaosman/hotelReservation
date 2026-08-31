@@ -33,30 +33,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Mount-once: verifying the token against /api/me is a one-time bootstrap.
+  // It used to depend on [pathname, router] and so re-fired on every single
+  // navigation — on the single-threaded dev backend that meant an extra
+  // ~request's worth of latency on every page change.
   useEffect(() => {
+    let cancelled = false;
+
     async function initAuth() {
       const token = getStoredToken();
       if (!token) {
         setLoading(false);
-        if (pathname !== "/login") router.push("/login");
         return;
       }
 
       try {
         setAuthToken(token);
         const res = await api.get("/api/me");
-        setUser(res.data.data ?? res.data);
+        if (!cancelled) setUser(res.data.data ?? res.data);
       } catch (error) {
         console.error("Auth init failed", error);
         setAuthToken(null);
-        if (pathname !== "/login") router.push("/login");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     initAuth();
-  }, [pathname, router]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Separate effect for the redirect-when-unauthenticated behavior, which
+  // does need to re-check on every route change (e.g. a stale tab navigating
+  // after the session died elsewhere) — without re-hitting the network.
+  useEffect(() => {
+    if (loading) return;
+    if (!user && pathname !== "/login") router.push("/login");
+  }, [loading, user, pathname, router]);
 
   const login = (token: string, userData: User) => {
     setAuthToken(token);
@@ -69,7 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // only unconditional bypass.
     const unrestricted = isAdmin;
     const destination = getFirstAccessibleRoute({
-      isAdmin,
       unrestricted,
       hasPermission: (key) => userData.permissions?.includes(key) ?? false,
     });

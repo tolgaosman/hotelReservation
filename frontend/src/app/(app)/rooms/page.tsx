@@ -6,6 +6,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Button } from "@/components/ui/Button";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { getRoomStats } from "@/lib/selectors";
 import { RoomsHeroBanner } from "@/components/rooms/RoomsHeroBanner";
 import { RoomsStatsGrid } from "@/components/rooms/RoomsStatsGrid";
@@ -16,8 +17,12 @@ import type { Room } from "@/lib/types";
 
 export default function RoomsPage() {
   const store = useStore();
+  const { hasPermission } = useAuth();
   const activeRooms = useMemo(() => store.state.rooms.filter((r) => r.active), [store.state.rooms]);
   const stats = useMemo(() => getRoomStats(store.state), [store.state]);
+  // Only rooms + reservations feed this page (getRoomStats, RoomsHeroBanner);
+  // don't wait on guests/payments/roomServices/roles/permissions/employees.
+  const loading = store.loading.rooms || store.loading.reservations;
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -36,14 +41,16 @@ export default function RoomsPage() {
         title="Odalar"
         subtitle="Oda envanterini ve müsaitlik durumunu yönetin"
         action={
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus size={14} /> Oda Ekle
-          </Button>
+          hasPermission("rooms.create") ? (
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus size={14} /> Oda Ekle
+            </Button>
+          ) : undefined
         }
       />
 
       <main className="flex-1 space-y-6 p-6 lg:p-8">
-        {store.hydrating ? (
+        {loading ? (
           <PageSkeleton />
         ) : (
           <>

@@ -22,6 +22,10 @@ const VARIANT_MAP: Record<Variant, { className: string; label: string }> = {
   completed: { className: "border border-[var(--line)] bg-[var(--surface-alt)] text-[var(--muted)]", label: "Tamamlandı" },
 };
 
+export function statusLabel(status: Variant): string {
+  return VARIANT_MAP[status].label;
+}
+
 export function StatusBadge({ status, className }: { status: Variant; className?: string }) {
   const config = VARIANT_MAP[status];
   return (

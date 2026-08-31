@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
@@ -48,4 +49,6 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::get('permissions', [PermissionController::class, 'index']);
     Route::apiResource('roles', RoleController::class)->except(['show']);
     Route::apiResource('employees', EmployeeController::class)->except(['destroy']);
+
+    Route::get('audit-logs', [AuditLogController::class, 'index']);
 });

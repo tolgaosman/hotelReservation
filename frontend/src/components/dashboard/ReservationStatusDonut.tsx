@@ -34,9 +34,12 @@ export function ReservationStatusDonut({ rows }: { rows: Row[] }) {
 
   return (
     <Card title="Rezervasyon Durumu" subtitle={`${total} toplam işlem`} padded className="flex flex-col h-full">
-      <div className="mt-2 flex flex-1 flex-col xl:flex-row items-center justify-center gap-6">
+      <div className="mt-2 flex flex-1 flex-col xl:flex-row items-center justify-center gap-6 px-4">
         <div className="relative size-32 shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
+          {/* debounce absorbs the resize burst while the flex-wrap row above is
+              still settling widths — without it recharts replays its mount
+              animation on every intermediate measurement, reading as judder. */}
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <PieChart>
               <Pie 
                 data={activeRowsWithPct} 
@@ -70,9 +73,9 @@ export function ReservationStatusDonut({ rows }: { rows: Row[] }) {
             .filter((r) => r.count > 0)
             .sort((a, b) => b.count - a.count)
             .map((r) => (
-              <div 
-                key={r.status} 
-                className="flex items-center justify-between gap-2 rounded-xl border border-[var(--color-line)] bg-[var(--color-canvas)]/30 px-3 py-1.5 transition-colors hover:bg-[var(--color-surface-alt)]"
+              <div
+                key={r.status}
+                className="flex items-center justify-between gap-2 rounded-xl border border-[var(--color-line)] bg-[var(--color-canvas)]/30 px-4 py-2 transition-colors hover:bg-[var(--color-surface-alt)]"
               >
                 <div className="flex items-center gap-2">
                   <span className="size-2 shrink-0 rounded-full shadow-sm" style={{ backgroundColor: COLOR[r.status] }} />
@@ -88,9 +91,9 @@ export function ReservationStatusDonut({ rows }: { rows: Row[] }) {
       </div>
 
       {terminalRows.length > 0 && (
-        <div className="mt-5 flex flex-col gap-2">
+        <div className="mt-5 flex flex-col gap-2 px-4 pb-2">
           {terminalRows.map((row) => (
-            <div key={row.status} className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-canvas)]/50 px-4 py-2.5">
+            <div key={row.status} className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-canvas)]/50 px-5 py-2.5">
               <div className="flex items-center gap-2.5">
                 <span className="size-2 shrink-0 rounded-full shadow-sm" style={{ backgroundColor: COLOR[row.status] }} />
                 <span className="text-sm font-semibold text-[var(--color-muted)]">{row.label}</span>

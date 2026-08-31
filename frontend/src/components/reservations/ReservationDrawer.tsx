@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { getAvailableRooms, getPaymentsForReservation } from "@/lib/selectors";
 import { api } from "@/lib/api";
@@ -216,6 +217,7 @@ interface Props {
 export function ReservationDrawer({ open, onClose, reservation }: Props) {
   const store = useStore();
   const showToast = useToast();
+  const { hasPermission } = useAuth();
   const isCreate = !reservation;
   const [editing, setEditing] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -223,7 +225,16 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
   const [paymentDate, setPaymentDate] = useState(store.todayIso);
   const formRef = useRef<FormHandle>(null);
 
-  const showForm = isCreate || editing;
+  const canEdit = hasPermission("reservations.edit");
+  const canConfirm = hasPermission("reservations.confirm");
+  const canCheckIn = hasPermission("reservations.checkin");
+  const canCheckOut = hasPermission("reservations.checkout");
+  const canCancel = hasPermission("reservations.cancel");
+  const canPay = hasPermission("payments.create");
+
+  const showForm = isCreate || (editing && canEdit);
+  const canShowInvoice = reservation && (reservation.status === "completed" || reservation.status === "checked_in");
+  const anyDetailAction = canConfirm || canCheckIn || canCheckOut || canCancel || canEdit || canShowInvoice;
   const payments = reservation ? getPaymentsForReservation(store.state, reservation.id) : [];
   
   const [roomServices, setRoomServices] = useState<RoomService[]>([]);
@@ -293,38 +304,40 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
             <Button variant="secondary" onClick={() => (isCreate ? handleClose() : setEditing(false))}>
               Vazgeç
             </Button>
-            <Button onClick={() => formRef.current?.submit()}>{isCreate ? "Oluştur" : "Kaydet"}</Button>
+            {(isCreate ? hasPermission("reservations.create") : canEdit) && (
+              <Button onClick={() => formRef.current?.submit()}>{isCreate ? "Oluştur" : "Kaydet"}</Button>
+            )}
           </>
-        ) : (
+        ) : reservation && anyDetailAction ? (
           <>
-            {reservation!.status === "pending" && (
+            {reservation.status === "pending" && canConfirm && (
               <Button variant="secondary" onClick={() => runAction(() => store.confirmReservation(reservation!.id), "Onaylandı.")}>
                 Onayla
               </Button>
             )}
-            {reservation!.status === "confirmed" && (
+            {reservation.status === "confirmed" && canCheckIn && (
               <Button onClick={() => runAction(() => store.checkIn(reservation!.id), "Check-in yapıldı.")}>Check-in</Button>
             )}
-            {reservation!.status === "checked_in" && (
+            {reservation.status === "checked_in" && canCheckOut && (
               <Button onClick={() => runAction(() => store.checkOut(reservation!.id), "Check-out yapıldı.")}>Check-out</Button>
             )}
-            {(reservation!.status === "completed" || reservation!.status === "checked_in") && (
+            {canShowInvoice && (
               <Button variant="secondary" onClick={downloadInvoice}>
                 Fatura İndir
               </Button>
             )}
-            {(reservation!.status === "pending" || reservation!.status === "confirmed") && (
+            {(reservation.status === "pending" || reservation.status === "confirmed") && canCancel && (
               <Button variant="danger" onClick={() => runAction(() => store.cancelReservation(reservation!.id), "Rezervasyon iptal edildi.")}>
                 İptal Et
               </Button>
             )}
-            {(reservation!.status === "pending" || reservation!.status === "confirmed") && (
+            {(reservation.status === "pending" || reservation.status === "confirmed") && canEdit && (
               <Button variant="ghost" onClick={() => setEditing(true)}>
                 Düzenle
               </Button>
             )}
           </>
-        )
+        ) : undefined
       }
     >
       {showForm ? (
@@ -410,7 +423,7 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
               </div>
             </div>
 
-            {reservation.balance > 0 && reservation.status !== "cancelled" && (
+            {canPay && reservation.balance > 0 && reservation.status !== "cancelled" && (
               <div className="space-y-2 rounded-[var(--radius-control)] bg-[var(--surface-alt)] p-4">
                 <p className="text-xs font-semibold text-[var(--ink-soft)]">Ödeme Ekle</p>
                 <div className="flex gap-2">

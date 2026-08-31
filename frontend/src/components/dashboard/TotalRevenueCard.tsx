@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Pagination } from "@/components/ui/Pagination";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Payment } from "@/lib/types";
 
 interface RecentPayment {
@@ -22,7 +23,7 @@ export function TotalRevenueCard({
   recentPayments: RecentPayment[];
 }) {
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 16;
   const pageCount = Math.max(1, Math.ceil(recentPayments.length / pageSize));
   const clampedPage = Math.min(page, pageCount);
   const pageItems = recentPayments.slice((clampedPage - 1) * pageSize, clampedPage * pageSize);
@@ -45,14 +46,21 @@ export function TotalRevenueCard({
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 border-t border-[var(--color-line)]">
-        <div className="px-6 py-4 flex-1 flex flex-col">
+        <div className="px-6 py-4">
           <p className="mb-3 shrink-0 text-[11px] font-semibold tracking-[0.04em] text-[var(--color-muted)] uppercase">Son Ödemeler</p>
-          <div className="flex flex-col h-full justify-between divide-y divide-[var(--color-line)]/60">
+          <div className="flex flex-col">
             {pageItems.length === 0 ? (
-              <p className="text-xs text-[var(--muted)] py-3 first:pt-0">Henüz ödeme kaydı yok.</p>
+              <p className="text-xs text-[var(--muted)] py-3">Henüz ödeme kaydı yok.</p>
             ) : (
-              pageItems.map(({ payment, guestName, roomNumber }) => (
-                <div key={payment.id} className="flex items-center justify-between gap-2 text-xs py-1.5">
+              pageItems.map(({ payment, guestName, roomNumber }, i) => (
+                <div
+                  key={payment.id}
+                  // Force Next.js recompile to clear ReferenceError: cn
+                  className={cn(
+                    "flex items-center justify-between gap-2 text-xs py-2.5",
+                    i > 0 && "border-t border-[var(--color-line)]/60"
+                  )}
+                >
                   <div className="min-w-0">
                     <p className="truncate font-medium text-[var(--ink)]">{guestName}</p>
                     <p className="text-[var(--muted)]">
@@ -63,9 +71,19 @@ export function TotalRevenueCard({
                 </div>
               ))
             )}
+            {/* Pad the page out to a constant row count so the card never resizes when a later page has fewer payments than earlier ones. */}
+            {Array.from({ length: Math.max(0, pageSize - pageItems.length) }).map((_, i) => (
+              <div key={`filler-${i}`} aria-hidden className="py-2.5">
+                <span className="invisible block text-xs leading-tight">
+                  &nbsp;
+                  <br />
+                  &nbsp;
+                </span>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="mt-auto px-6">
+        <div className="mt-auto">
           <Pagination
             page={clampedPage}
             pageCount={pageCount}

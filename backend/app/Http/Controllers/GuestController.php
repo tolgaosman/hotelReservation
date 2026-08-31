@@ -8,11 +8,16 @@ use App\Http\Resources\GuestResource;
 use App\Http\Resources\GuestSummaryResource;
 use App\Http\Resources\ReservationResource;
 use App\Models\Guest;
+use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GuestController extends Controller
 {
+    public function __construct(private readonly AuditLogService $auditLog)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Guest::class);
@@ -35,6 +40,7 @@ class GuestController extends Controller
     public function store(StoreGuestRequest $request): JsonResponse
     {
         $guest = Guest::create($request->validated());
+        $this->auditLog->record('guest.create', $guest);
 
         return $this->success(new GuestResource($guest), 'Misafir oluşturuldu.', 201);
     }
@@ -49,6 +55,7 @@ class GuestController extends Controller
     public function update(UpdateGuestRequest $request, Guest $guest): JsonResponse
     {
         $guest->update($request->validated());
+        $this->auditLog->record('guest.update', $guest);
 
         return $this->success(new GuestResource($guest), 'Misafir güncellendi.');
     }
@@ -57,7 +64,7 @@ class GuestController extends Controller
     {
         $this->authorize('view', $guest);
 
-        $reservations = $guest->reservations()->with('room')->orderByDesc('check_in')->get();
+        $reservations = $guest->reservations()->with('room')->withSum('payments', 'amount')->orderByDesc('check_in')->get();
 
         return $this->success(ReservationResource::collection($reservations));
     }

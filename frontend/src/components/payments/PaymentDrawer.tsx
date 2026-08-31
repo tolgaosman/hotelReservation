@@ -102,8 +102,24 @@ export function PaymentDrawer({
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Tutar (₺)" error={fieldError(fieldErrors, "amount")}>
-            <Input type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <FormField
+            label={
+              <div className="flex items-center justify-between">
+                <span>Tutar (₺)</span>
+                {selected && selected.balance > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAmount(String(selected.balance))}
+                    className="text-[10px] font-bold text-[var(--accent)] hover:underline"
+                  >
+                    Kalanın Tamamı
+                  </button>
+                )}
+              </div>
+            }
+            error={fieldError(fieldErrors, "amount")}
+          >
+            <Input type="number" min={1} max={selected?.balance} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </FormField>
           <FormField label="Yöntem">
             <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>

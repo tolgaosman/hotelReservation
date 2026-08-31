@@ -1,6 +1,7 @@
 "use client";
 
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { useState, useMemo, useEffect } from "react";
 import { UtensilsCrossed, Plus, Search, Trash2, List, X, Download } from "lucide-react";
@@ -39,6 +40,9 @@ const MENU_DATA = [
 
 export default function RoomServicePage() {
   const { state, hydrating, addRoomService, getRoomServices, deleteRoomService } = useStore();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("room_service.create");
+  const canDelete = hasPermission("room_service.delete");
   const addToast = useToast();
   
   const [search, setSearch] = useState("");
@@ -309,65 +313,69 @@ export default function RoomServicePage() {
         <div className="lg:col-span-1 print:w-full print:block">
           <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-6 shadow-sm print:shadow-none print:border-none print:p-0">
             <h3 className="text-lg font-bold text-[var(--ink)] mb-4 flex items-center gap-2 print:hidden">
-              <Plus size={18} className="text-[var(--accent)]"/>
-              Yeni Sipariş Ekle
+              {canCreate && <Plus size={18} className="text-[var(--accent)]"/>}
+              {canCreate ? "Yeni Sipariş Ekle" : "Oda Ekstresi"}
             </h3>
-            
+
             {!selectedReservation ? (
               <div className="py-8 text-center text-sm font-medium text-[var(--muted)] bg-[var(--surface-alt)] rounded-xl border border-dashed border-[var(--line)]">
-                Lütfen sipariş girmek için yandaki listeden bir oda seçin.
+                {canCreate
+                  ? "Lütfen sipariş girmek için yandaki listeden bir oda seçin."
+                  : "Detayları görüntülemek için yandaki listeden bir oda seçin."}
               </div>
             ) : (
               <>
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4 print:hidden">
-                  <div className="p-3 bg-[var(--surface-alt)] rounded-lg mb-2">
-                    <p className="text-xs text-[var(--muted)] font-semibold uppercase tracking-wider mb-1">Seçili Oda</p>
-                    <p className="text-[var(--ink)] font-bold text-[var(--accent)]">{selectedReservation.room.number} <span className="text-[var(--ink)]">- {selectedReservation.guest.fullName}</span></p>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-semibold text-[var(--ink)]">Ürün / Hizmet Açıklaması</label>
-                      <button 
-                        type="button" 
-                        onClick={() => setIsMenuOpen(true)}
-                        className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1 bg-[var(--accent)]/10 px-2 py-1 rounded-md"
-                      >
-                        <List size={12}/> Menüden Seç
-                      </button>
+                {canCreate && (
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-4 print:hidden">
+                    <div className="p-3 bg-[var(--surface-alt)] rounded-lg mb-2">
+                      <p className="text-xs text-[var(--muted)] font-semibold uppercase tracking-wider mb-1">Seçili Oda</p>
+                      <p className="text-[var(--ink)] font-bold text-[var(--accent)]">{selectedReservation.room.number} <span className="text-[var(--ink)]">- {selectedReservation.guest.fullName}</span></p>
                     </div>
-                    <input 
-                      type="text" 
-                      required
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Örn: Karışık Tost ve Ayran"
-                      className="w-full rounded-lg border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-                    />
-                  </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-[var(--ink)]">Tutar (₺)</label>
-                    <input 
-                      type="number" 
-                      required
-                      min="0"
-                      step="0.01"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full rounded-lg border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-                    />
-                  </div>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-semibold text-[var(--ink)]">Ürün / Hizmet Açıklaması</label>
+                        <button
+                          type="button"
+                          onClick={() => setIsMenuOpen(true)}
+                          className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1 bg-[var(--accent)]/10 px-2 py-1 rounded-md"
+                        >
+                          <List size={12}/> Menüden Seç
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Örn: Karışık Tost ve Ayran"
+                        className="w-full rounded-lg border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+                      />
+                    </div>
 
-                  <button 
-                    type="submit"
-                    disabled={submitting}
-                    className="mt-4 w-full bg-[var(--ink)] text-[var(--surface)] hover:bg-[var(--ink)]/90 font-bold py-2.5 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {submitting ? "Ekleniyor..." : "Hesaba Ekle"}
-                  </button>
-                </form>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-semibold text-[var(--ink)]">Tutar (₺)</label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="0.01"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full rounded-lg border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="mt-4 w-full bg-[var(--ink)] text-[var(--surface)] hover:bg-[var(--ink)]/90 font-bold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {submitting ? "Ekleniyor..." : "Hesaba Ekle"}
+                    </button>
+                  </form>
+                )}
 
                 {/* Ekstre Listesi */}
                 <div id="print-receipt" className="mt-8 border-t border-[var(--line)] pt-6 print:mt-0 print:border-none print:pt-0">
@@ -397,7 +405,7 @@ export default function RoomServicePage() {
                             <tr>
                               <th className="px-3 py-2 font-semibold">Açıklama</th>
                               <th className="px-3 py-2 font-semibold text-right">Tutar</th>
-                              <th className="px-2 py-2 w-8 print:hidden"></th>
+                              {canDelete && <th className="px-2 py-2 w-8 print:hidden"></th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[var(--line)]">
@@ -410,15 +418,17 @@ export default function RoomServicePage() {
                                 <td className="px-3 py-2 font-bold text-[var(--ok)] text-right">
                                   ₺{Number(item.amount).toLocaleString('tr-TR')}
                                 </td>
-                                <td className="px-2 py-2 text-right print:hidden">
-                                  <button 
-                                    onClick={() => handleDelete(item.id)}
-                                    className="text-[var(--muted)] hover:text-[var(--crit)] transition-colors p-1"
-                                    title="İptal Et / Sil"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </td>
+                                {canDelete && (
+                                  <td className="px-2 py-2 text-right print:hidden">
+                                    <button
+                                      onClick={() => handleDelete(item.id)}
+                                      className="text-[var(--muted)] hover:text-[var(--crit)] transition-colors p-1"
+                                      title="İptal Et / Sil"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>

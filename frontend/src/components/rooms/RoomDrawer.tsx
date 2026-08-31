@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { getRoomReservations } from "@/lib/selectors";
 import { fieldError } from "@/lib/errors";
@@ -27,8 +28,8 @@ interface FormHandle {
 // Form state is initialized straight from props (useState initializer, no
 // effect) and reset by remounting via `key` whenever the drawer re-opens —
 // the recommended alternative to "sync state from props in an effect".
-const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClose: () => void }>(
-  function RoomForm({ room, isCreate, onClose }, ref) {
+const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOnly: boolean; onClose: () => void }>(
+  function RoomForm({ room, isCreate, readOnly, onClose }, ref) {
     const store = useStore();
     const showToast = useToast();
 
@@ -131,12 +132,12 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
         )}
 
         <FormField label="Oda Numarası" error={fieldError(fieldErrors, "number")}>
-          <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Örn. 101" />
+          <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Örn. 101" disabled={readOnly} />
         </FormField>
 
         <div className="grid grid-cols-2 gap-4">
           <FormField label="Oda Tipi" error={fieldError(fieldErrors, "type")}>
-            <Select value={type} onChange={(e) => setType(e.target.value as RoomType)}>
+            <Select value={type} onChange={(e) => setType(e.target.value as RoomType)} disabled={readOnly}>
               {ROOM_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -145,16 +146,16 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
             </Select>
           </FormField>
           <FormField label="Kapasite" error={fieldError(fieldErrors, "capacity")}>
-            <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+            <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} disabled={readOnly} />
           </FormField>
         </div>
 
         {!isCreate && (
           <FormField label="Oda Durumu">
-            <Select 
-              value={status} 
-              onChange={(e) => setStatus(e.target.value as RoomStatus)} 
-              disabled={room?.status === "occupied"}
+            <Select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as RoomStatus)}
+              disabled={readOnly || room?.status === "occupied"}
             >
               <option value="available">Müsait</option>
               <option value="maintenance">Bakımda</option>
@@ -164,7 +165,7 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
         )}
 
         <FormField label="Gecelik Ücret (₺)" error={fieldError(fieldErrors, "nightlyRate")}>
-          <Input type="number" min={0} value={nightlyRate} onChange={(e) => setNightlyRate(Number(e.target.value))} />
+          <Input type="number" min={0} value={nightlyRate} onChange={(e) => setNightlyRate(Number(e.target.value))} disabled={readOnly} />
         </FormField>
 
         <FormField label="Özellikler">
@@ -173,12 +174,13 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
               <button
                 key={a}
                 type="button"
+                disabled={readOnly}
                 onClick={() => toggleAmenity(a)}
                 className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-medium transition-colors ${
                   amenities.includes(a)
                     ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-ink)]"
                     : "border-[var(--line)] bg-[var(--surface-alt)] text-[var(--ink-soft)]"
-                }`}
+                } ${readOnly ? "opacity-60 cursor-default" : ""}`}
               >
                 {a}
               </button>
@@ -225,8 +227,12 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; onClos
 );
 
 export function RoomDrawer({ open, onClose, room }: { open: boolean; onClose: () => void; room?: Room }) {
+  const { hasPermission } = useAuth();
   const formRef = useRef<FormHandle>(null);
   const isCreate = !room;
+  const canSave = isCreate ? hasPermission("rooms.create") : hasPermission("rooms.edit");
+  const canDeactivate = hasPermission("rooms.deactivate");
+  const readOnly = !canSave;
 
   return (
     <Drawer
@@ -236,19 +242,19 @@ export function RoomDrawer({ open, onClose, room }: { open: boolean; onClose: ()
       subtitle={isCreate ? "Envantere yeni bir oda ekleyin" : "Oda bilgilerini düzenleyin"}
       footer={
         <>
-          {!isCreate && room!.status !== "occupied" && (
+          {!isCreate && room!.status !== "occupied" && canDeactivate && (
             <Button variant="danger" onClick={() => formRef.current?.deactivate()} className="mr-auto">
               Pasife Al
             </Button>
           )}
           <Button variant="secondary" onClick={onClose}>
-            Vazgeç
+            {canSave ? "Vazgeç" : "Kapat"}
           </Button>
-          <Button onClick={() => formRef.current?.submit()}>{isCreate ? "Ekle" : "Kaydet"}</Button>
+          {canSave && <Button onClick={() => formRef.current?.submit()}>{isCreate ? "Ekle" : "Kaydet"}</Button>}
         </>
       }
     >
-      <RoomForm key={open ? (room?.id ?? "new") : "closed"} ref={formRef} room={room} isCreate={isCreate} onClose={onClose} />
+      <RoomForm key={open ? (room?.id ?? "new") : "closed"} ref={formRef} room={room} isCreate={isCreate} readOnly={readOnly} onClose={onClose} />
     </Drawer>
   );
 }

@@ -34,6 +34,8 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   pageSize?: number;
   initialSort?: SortState;
+  /** Tighter row padding for compact contexts like dashboard widgets. */
+  dense?: boolean;
 }
 
 function ColumnFilter({
@@ -122,7 +124,15 @@ function ColumnFilter({
   );
 }
 
-export function DataTable<T>({ columns, rows, getRowKey, onRowClick, pageSize = 10, initialSort }: DataTableProps<T>) {
+export function DataTable<T>({
+  columns,
+  rows,
+  getRowKey,
+  onRowClick,
+  pageSize = 10,
+  initialSort,
+  dense = false,
+}: DataTableProps<T>) {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sort, setSort] = useState<SortState | null>(initialSort || null);
@@ -172,14 +182,16 @@ export function DataTable<T>({ columns, rows, getRowKey, onRowClick, pageSize = 
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] table-fixed border-collapse text-sm">
+        <table className="w-full border-collapse text-xs">
           <thead>
             <tr className="bg-[var(--surface-alt)]">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  style={{ width: `${100 / columns.length}%` }}
-                  className="px-4 py-3 text-center text-[11px] font-semibold tracking-[0.04em] text-[var(--muted)] uppercase"
+                  className={cn(
+                    "whitespace-nowrap px-2 text-center text-[10px] font-semibold tracking-[0.04em] text-[var(--muted)] uppercase",
+                    dense ? "py-2" : "py-3"
+                  )}
                 >
                   <div className="inline-flex items-center justify-center">
                     {col.sortValue ? (
@@ -213,23 +225,53 @@ export function DataTable<T>({ columns, rows, getRowKey, onRowClick, pageSize = 
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--line)]">
-            {pageRows.map((row) => (
+          <tbody>
+            {pageRows.map((row, i) => (
               <tr
                 key={getRowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn(
                   "transition-colors duration-150",
+                  i > 0 && "border-t border-[var(--line)]",
                   onRowClick ? "cursor-pointer hover:bg-[var(--surface-alt)]" : "hover:bg-[var(--surface-alt)]"
                 )}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    style={{ width: `${100 / columns.length}%` }}
-                    className={cn("break-words px-4 py-3.5 text-center tabular-nums text-[var(--ink)]", col.className)}
+                    className={cn(
+                      "whitespace-nowrap px-2 text-center tabular-nums text-[var(--ink)]",
+                      // Fixed height keeps every row the same size regardless of
+                      // whether a cell renders a Button, a StatusBadge, or plain
+                      // text — those have different intrinsic heights (e.g. the
+                      // secondary Button's 1px border makes it 2px taller than the
+                      // borderless primary Button), and without this rows would
+                      // visibly vary row-to-row and table-to-table.
+                      dense ? "h-[42px] py-1.5" : "py-3",
+                      col.className
+                    )}
                   >
                     {col.render(row)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {/* Pad the page out to a constant row count so the table (and the
+                pagination bar beneath it) never resizes when a later page has
+                fewer rows than earlier ones. */}
+            {Array.from({ length: Math.max(0, pageSize - pageRows.length) }).map((_, i) => (
+              <tr key={`filler-${i}`} aria-hidden className="pointer-events-none">
+                {columns.map((col) => (
+                  <td key={col.key} className={cn("px-2", dense ? "h-[42px] py-1.5" : "py-3")}>
+                    <span className="invisible block leading-tight">
+                      &nbsp;
+                      {!dense && (
+                        <>
+                          <br />
+                          &nbsp;
+                        </>
+                      )}
+                    </span>
                   </td>
                 ))}
               </tr>

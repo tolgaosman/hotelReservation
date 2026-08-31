@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class ReservationService
 {
+    public function __construct(private readonly AuditLogService $auditLog)
+    {
+    }
+
     /**
      * Whether the room already has an overlapping active reservation for the
      * given date range. Same-day turnover (an existing checkout equal to the
@@ -61,6 +65,8 @@ class ReservationService
 
             $reservation->companions()->sync($data['companions'] ?? []);
 
+            $this->auditLog->record('reservation.create', $reservation);
+
             return $reservation;
         });
     }
@@ -105,6 +111,8 @@ class ReservationService
                 $reservation->companions()->sync($data['companions']);
             }
 
+            $this->auditLog->record('reservation.update', $reservation);
+
             return $reservation;
         });
     }
@@ -113,6 +121,7 @@ class ReservationService
     {
         $this->assertTransition($reservation, ReservationStatus::Pending, ReservationStatus::Confirmed);
         $reservation->update(['status' => ReservationStatus::Confirmed]);
+        $this->auditLog->record('reservation.confirm', $reservation);
 
         return $reservation;
     }
@@ -127,6 +136,7 @@ class ReservationService
             'status' => ReservationStatus::Cancelled,
             'cancelled_at' => now(),
         ]);
+        $this->auditLog->record('reservation.cancel', $reservation);
 
         return $reservation;
     }
@@ -141,6 +151,7 @@ class ReservationService
                 'checked_in_at' => now(),
             ]);
             $reservation->room()->update(['status' => RoomStatus::Occupied]);
+            $this->auditLog->record('reservation.check_in', $reservation);
 
             return $reservation;
         });
@@ -159,6 +170,7 @@ class ReservationService
                 'status' => RoomStatus::Available,
                 'housekeeping_status' => \App\Enums\HousekeepingStatus::Dirty,
             ]);
+            $this->auditLog->record('reservation.check_out', $reservation);
 
             return $reservation;
         });

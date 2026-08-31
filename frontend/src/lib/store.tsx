@@ -11,6 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import axios from "axios";
 import { api } from "./api";
 import { fetchAllPages } from "./fetchAllPages";
 import { extractFormError } from "./errors";
@@ -56,22 +57,48 @@ const INITIAL_STATE: StoreState = {
   employees: [],
 };
 
-type Action = { type: "REPLACE_ALL"; payload: StoreState } | { type: "SET"; payload: StoreState };
+type Action =
+  | { type: "SET_COLLECTION"; key: keyof StoreState; payload: StoreState[keyof StoreState] }
+  | { type: "SET"; payload: StoreState };
 
-function reducer(_state: StoreState, action: Action): StoreState {
+function reducer(state: StoreState, action: Action): StoreState {
   switch (action.type) {
-    case "REPLACE_ALL":
+    case "SET_COLLECTION":
+      return { ...state, [action.key]: action.payload };
     case "SET":
       return action.payload;
     default:
-      return _state;
+      return state;
   }
 }
+
+/**
+ * Every page used to gate its whole render on the single `hydrating` flag,
+ * which only flips once ALL 8 endpoints resolve — so e.g. the roles page sat
+ * behind the reservations/payments fetches (each 2 paginated round-trips on
+ * the seeded dataset) despite reading neither. `loading` tracks each
+ * collection independently so a page can wait only on what it actually reads.
+ */
+type LoadingFlags = Record<keyof StoreState, boolean>;
+
+const ALL_LOADING: LoadingFlags = {
+  rooms: true,
+  guests: true,
+  reservations: true,
+  payments: true,
+  roomServices: true,
+  permissions: true,
+  roles: true,
+  employees: true,
+};
 
 interface StoreApi {
   state: StoreState;
   todayIso: string;
+  /** True until every collection has loaded — kept for pages/gates that legitimately need the whole dataset. */
   hydrating: boolean;
+  /** Per-collection loading state, for pages that only read a subset (e.g. roles/employees don't need reservations/payments). */
+  loading: LoadingFlags;
   loadError: boolean;
   reload(): void;
   createReservation(input: {
@@ -147,47 +174,91 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     stateRef.current = state;
   });
   
-  const [hydrating, setHydrating] = useState(true);
+  const [loading, setLoading] = useState<LoadingFlags>(ALL_LOADING);
   const [loadError, setLoadError] = useState(false);
   const [todayIso, setTodayIso] = useState(todayIsoNow);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const loadData = async () => {
-    setHydrating(true);
+  // OR of every per-collection flag — true until all 8 have loaded. Kept for
+  // pages/gates that genuinely need the whole dataset (e.g. the dashboard).
+  const hydrating = Object.values(loading).some(Boolean);
+
+  // React StrictMode (on by default in `next dev`) deliberately mounts every
+  // effect twice to surface missing cleanup — without this, that meant the
+  // full 8-endpoint load ran twice back-to-back on every dev page load, and
+  // on the single-threaded PHP dev server the second pass had to wait in
+  // line behind the first, roughly doubling the real wait. `signal` lets the
+  // first (StrictMode-simulated-unmount) pass's in-flight requests be
+  // aborted instead of running to completion.
+  // A 403 means the signed-in role simply lacks that resource's view
+  // permission (every one of these 8 endpoints is permission-gated on the
+  // backend, not just the 5 previously wrapped here) — that's normal and
+  // should render as "nothing to show", not the hard error state. Anything
+  // else (network failure, 5xx, aborts) still propagates so a real outage
+  // is reported instead of silently hydrating with empty data.
+  function ignorePermissionDenied<T>(promise: Promise<T>, fallback: T): Promise<T> {
+    return promise.catch((err) => {
+      if (axios.isCancel(err)) throw err;
+      if (axios.isAxiosError(err) && err.response?.status === 403) return fallback;
+      throw err;
+    });
+  }
+
+  const loadData = async (signal: AbortSignal) => {
+    setLoading(ALL_LOADING);
     setLoadError(false);
+
+    // Dispatches each collection as soon as it resolves and clears only its
+    // own flag, instead of waiting for Promise.all and replacing everything
+    // at once — so a page gating on e.g. loading.roles alone doesn't sit
+    // behind the reservations/payments fetches (each 2 paginated
+    // round-trips on the seeded dataset) that it never reads.
+    function load<K extends keyof StoreState>(key: K, fetcher: () => Promise<StoreState[K]>) {
+      return fetcher()
+        .then((data) => {
+          dispatch({ type: "SET_COLLECTION", key, payload: data });
+          setLoading((prev) => ({ ...prev, [key]: false }));
+        })
+        .catch((err) => {
+          // Aborted means a newer loadData() run (StrictMode's second mount,
+          // or an explicit reload()) already owns this key — don't dispatch
+          // stale/empty data over it and don't touch its loading flag.
+          if (axios.isCancel(err)) return;
+          setLoading((prev) => ({ ...prev, [key]: false }));
+          throw err;
+        });
+    }
+
     try {
-      const [rooms, guests, reservations, payments, roomServices, permissions, roles, employees] = await Promise.all([
+      await Promise.all([
         // These endpoints are also paginated server-side (the backend clamps
         // per_page), so fetchAllPages is used everywhere to stay correct as
-        // any of them grows past a single page.
-        fetchAllPages<Room>('/api/rooms'),
-        fetchAllPages<Guest>('/api/guests'),
-        fetchAllPages<Reservation>('/api/reservations'),
-        // Payments/room-services/roles/employees/permissions are permission-gated
-        // on the backend — a user without them gets a 403, which we treat as
-        // "nothing to show". Without these catches a single 403 rejects the whole
-        // Promise.all and the app hydrates with *no* data at all.
-        fetchAllPages<Payment>('/api/payments').catch(() => []),
-        fetchAllPages<RoomService>('/api/room-services').catch(() => []),
-        api.get('/api/permissions').then(res => res.data.data).catch(() => []),
-        api.get('/api/roles').then(res => res.data.data).catch(() => []),
-        fetchAllPages<Employee>('/api/employees').catch(() => []),
+        // any of them grows past a single page. Every endpoint here is
+        // permission-gated on the backend, so a role that lacks the
+        // corresponding view permission gets a 403 — ignorePermissionDenied
+        // treats that as "nothing to show" instead of failing the whole load.
+        load('rooms', () => ignorePermissionDenied(fetchAllPages<Room>('/api/rooms', signal), [])),
+        load('guests', () => ignorePermissionDenied(fetchAllPages<Guest>('/api/guests', signal), [])),
+        load('reservations', () => ignorePermissionDenied(fetchAllPages<Reservation>('/api/reservations', signal), [])),
+        load('payments', () => ignorePermissionDenied(fetchAllPages<Payment>('/api/payments', signal), [])),
+        load('roomServices', () => ignorePermissionDenied(fetchAllPages<RoomService>('/api/room-services', signal), [])),
+        load('permissions', () => ignorePermissionDenied(api.get('/api/permissions', { signal }).then(res => res.data.data), [])),
+        load('roles', () => ignorePermissionDenied(api.get('/api/roles', { signal }).then(res => res.data.data), [])),
+        load('employees', () => ignorePermissionDenied(fetchAllPages<Employee>('/api/employees', signal), [])),
       ]);
-
-      dispatch({ type: "REPLACE_ALL", payload: { rooms, guests, reservations, payments, roomServices, permissions, roles, employees } });
     } catch (err) {
-      // Unlike the permission-gated endpoints above, rooms/guests/reservations
-      // failing means the backend itself is unreachable — surface that as a
-      // real error state instead of silently rendering empty lists forever.
+      // A non-403 failure here means the backend itself is unreachable (or a
+      // genuine server error) — surface that as a real error state instead
+      // of silently rendering empty lists forever.
       console.error("Failed to load initial data", err);
       setLoadError(true);
-    } finally {
-      setHydrating(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    const controller = new AbortController();
+    loadData(controller.signal);
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadToken]);
 
@@ -205,6 +276,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       state,
       todayIso,
       hydrating,
+      loading,
       loadError,
       reload: () => setReloadToken((t) => t + 1),
 
@@ -475,7 +547,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [state, set, hydrating, loadError, todayIso]);
+  }, [state, set, hydrating, loading, loadError, todayIso]);
 
   return <StoreContext.Provider value={storeApi}>{children}</StoreContext.Provider>;
 }

@@ -23,6 +23,7 @@ class ReservationController extends Controller
 
         $reservations = Reservation::query()
             ->with(['guest', 'room', 'companions'])
+            ->withSum('payments', 'amount')
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->when($request->filled('guest_id'), fn ($q) => $q->where('guest_id', $request->input('guest_id')))
             ->when($request->filled('room_id'), fn ($q) => $q->where('room_id', $request->input('room_id')))

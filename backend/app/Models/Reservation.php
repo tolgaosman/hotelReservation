@@ -79,17 +79,24 @@ class Reservation extends Model
         ));
     }
 
+    /**
+     * Prefers the aggregate loaded by ->withSum('payments', 'amount'); the query
+     * fallback only runs on single-model paths that never eager-load it. Without
+     * shouldCache() every read re-runs the sum, and `balance` reads it again.
+     */
     protected function paidAmount(): Attribute
     {
         return Attribute::make(
-            get: fn () => (float) $this->payments()->sum('amount'),
-        );
+            get: fn () => array_key_exists('payments_sum_amount', $this->attributes)
+                ? (float) $this->attributes['payments_sum_amount']
+                : (float) $this->payments()->sum('amount'),
+        )->shouldCache();
     }
 
     protected function balance(): Attribute
     {
         return Attribute::make(
             get: fn () => round((float) $this->total_amount - $this->paid_amount, 2),
-        );
+        )->shouldCache();
     }
 }

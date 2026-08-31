@@ -45,7 +45,10 @@ export function RevenueCard({
       }
     >
       <div className="h-[220px] w-full px-2 pb-4 pt-4">
-        <ResponsiveContainer width="100%" height="100%">
+        {/* debounce absorbs the resize burst while the flex-wrap row above is
+            still settling widths — without it recharts replays its mount
+            animation on every intermediate measurement, reading as judder. */}
+        <ResponsiveContainer width="100%" height="100%" debounce={150}>
           <AreaChart data={data} margin={{ top: 16, right: 8, left: -16, bottom: 0 }}>
             <defs>
               <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">

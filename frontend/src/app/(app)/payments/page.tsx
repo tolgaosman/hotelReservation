@@ -6,6 +6,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Button } from "@/components/ui/Button";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { getPaymentStats, getReservationViews } from "@/lib/selectors";
 import { PaymentsHeroBanner } from "@/components/payments/PaymentsHeroBanner";
 import { PaymentsTable } from "@/components/payments/PaymentsTable";
@@ -14,6 +15,7 @@ import { ReservationDrawer } from "@/components/reservations/ReservationDrawer";
 
 export default function PaymentsPage() {
   const store = useStore();
+  const { hasPermission } = useAuth();
   const stats = useMemo(() => getPaymentStats(store.state), [store.state]);
   const views = useMemo(
     () => getReservationViews(store.state).filter((r) => r.status !== "cancelled"),
@@ -32,9 +34,11 @@ export default function PaymentsPage() {
         title="Ödemeler"
         subtitle="Tahsilatları ve kalan bakiyeleri takip edin"
         action={
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus size={14} /> Ödeme Ekle
-          </Button>
+          hasPermission("payments.create") ? (
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus size={14} /> Ödeme Ekle
+            </Button>
+          ) : undefined
         }
       />
 

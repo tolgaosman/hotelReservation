@@ -6,6 +6,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Button } from "@/components/ui/Button";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { getReservationViews } from "@/lib/selectors";
 import { ReservationsHeroBanner } from "@/components/reservations/ReservationsHeroBanner";
 import { ReservationsTable } from "@/components/reservations/ReservationsTable";
@@ -13,6 +14,7 @@ import { ReservationDrawer } from "@/components/reservations/ReservationDrawer";
 
 export default function ReservationsPage() {
   const store = useStore();
+  const { hasPermission } = useAuth();
   const views = useMemo(() => getReservationViews(store.state), [store.state]);
   const totalCollected = useMemo(() => store.state.payments.reduce((sum, p) => sum + p.amount, 0), [store.state]);
 
@@ -31,9 +33,11 @@ export default function ReservationsPage() {
         title="Rezervasyonlar"
         subtitle="Rezervasyonları, check-in/check-out işlemlerini ve iptalleri yönetin"
         action={
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus size={14} /> Yeni Rezervasyon
-          </Button>
+          hasPermission("reservations.create") ? (
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus size={14} /> Yeni Rezervasyon
+            </Button>
+          ) : undefined
         }
       />
 

@@ -37,26 +37,31 @@ function StoreLoadGate({ children }: { children: ReactNode }) {
 // any authenticated user regardless of permission. This mirrors the same
 // unrestricted/permission check the sidebar uses, but as an actual gate.
 function RouteGuard({ children }: { children: ReactNode }) {
-  const { user, hasPermission } = useAuth();
+  const { loading, hasPermission } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-
-  const isAdmin = user?.role === "admin";
-  const unrestricted = isAdmin;
 
   const category = NAV_CATEGORIES.find((c) =>
     c.items.some((i) => pathname === i.href || pathname?.startsWith(`${i.href}/`))
   );
   const item = category?.items.find((i) => pathname === i.href || pathname?.startsWith(`${i.href}/`));
-  const allowed =
-    !item || unrestricted || ((!category?.adminOnly || isAdmin) && hasPermission(item.permission));
+  const allowed = !item || hasPermission(item.permission);
 
+  // On a hard refresh, StoreProvider (and this component with it) mounts as
+  // soon as a token is found in storage — before /api/me has resolved and
+  // set `user`. hasPermission() reads `user`, so while it's still null every
+  // route computes as "not allowed", and without the `loading` check below
+  // this effect would fire a redirect to /login on every single refresh, a
+  // moment before the real auth check comes back positive. Wait for
+  // AuthProvider to actually finish before deciding.
   useEffect(() => {
+    if (loading) return;
     if (!allowed) {
-      router.replace(getFirstAccessibleRoute({ isAdmin, unrestricted, hasPermission }) ?? "/login");
+      router.replace(getFirstAccessibleRoute({ unrestricted: false, hasPermission }) ?? "/login");
     }
-  }, [allowed, isAdmin, unrestricted, hasPermission, router]);
+  }, [loading, allowed, hasPermission, router]);
 
+  if (loading) return null;
   if (!allowed) return null;
 
   return <>{children}</>;

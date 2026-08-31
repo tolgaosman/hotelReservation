@@ -85,7 +85,7 @@ detaylar için [CLAUDE.md](CLAUDE.md)).
 
 ## Bilinen Sınırlamalar
 
-- E-posta bildirimleri, oda fotoğrafları ve kupon/indirim sistemi henüz yok
+- E-posta bildirimleri ve oda fotoğrafları henüz yok
   (görev dokümanının opsiyonel maddeleri).
 - Frontend'de sunucu tarafı sayfalama/filtreleme yerine tüm veri girişte
   indirilip tarayıcıda filtreleniyor — küçük/orta veri hacmi için sorun

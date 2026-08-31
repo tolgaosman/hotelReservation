@@ -21,6 +21,10 @@ export const api = axios.create({
     'Accept': 'application/json',
     'Content-Type': 'application/json',
   },
+  // Without this, a hung request never rejects, so the store's Promise.all
+  // hydration never resolves and `hydrating` stays true forever — the app
+  // just looks permanently loading with no error surfaced.
+  timeout: 20_000,
 });
 
 const TOKEN_STORAGE_KEY = 'hotel_auth_token';

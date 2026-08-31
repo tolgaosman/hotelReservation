@@ -48,6 +48,7 @@ class RoleSeeder extends Seeder
                     'payments.view', 'payments.create',
                     'reservations.view', 'reservations.edit',
                     'guests.view', 'guests.edit',
+                    'rooms.view',
                     'employees.view',
                     'roles.view',
                     'settings.view',
@@ -88,7 +89,7 @@ class RoleSeeder extends Seeder
                 'description' => 'Odaların temizlik, hazırlık ve bakım kontrollerini gerçekleştirir.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_room_availability',
-                    'housekeeping.view', 'housekeeping.update_status',
+                    'housekeeping.view', 'housekeeping.update_status', 'housekeeping.maintenance',
                     'rooms.view',
                     'settings.view',
                 ],
@@ -98,7 +99,7 @@ class RoleSeeder extends Seeder
                 'description' => 'Temizlik ekibinin planlamasını yapar, oda hazırlık standartlarını denetler.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_room_availability',
-                    'housekeeping.view', 'housekeeping.update_status',
+                    'housekeeping.view', 'housekeeping.update_status', 'housekeeping.assign_staff', 'housekeeping.maintenance',
                     'rooms.view', 'rooms.edit',
                     'employees.view',
                     'settings.view',
@@ -109,6 +110,7 @@ class RoleSeeder extends Seeder
                 'description' => 'Oda servisi siparişlerini karşılar ve misafirlere odalarında servis yapar.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_today_checkins',
+                    'reservations.view',
                     'room_service.view', 'room_service.create',
                     'settings.view',
                 ],
@@ -118,6 +120,7 @@ class RoleSeeder extends Seeder
                 'description' => 'Oda servisi ekibini yönetir; sipariş, menü ve servis kalitesi süreçlerini denetler.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_today_checkins',
+                    'reservations.view',
                     'room_service.view', 'room_service.create', 'room_service.delete',
                     'employees.view',
                     'settings.view',

@@ -11,13 +11,16 @@ export function TodayCheckOutsCard({
   onCheckOut,
 }: {
   rows: ReservationView[];
-  onCheckOut: (id: number) => void;
+  onCheckOut?: (id: number) => void;
 }) {
   const columns: Column<ReservationView>[] = [
     { key: "guest", header: "Misafir", render: (r) => <span className="font-medium">{r.guest.fullName}</span> },
     { key: "room", header: "Oda", render: (r) => r.room.number },
+    { key: "type", header: "Tip", render: (r) => <span className="text-[var(--muted)]">{r.room.type}</span> },
     { key: "status", header: "Durum", render: (r) => <StatusBadge status={r.status} /> },
-    {
+  ];
+  if (onCheckOut) {
+    columns.push({
       key: "action",
       header: "",
       render: (r) =>
@@ -28,15 +31,17 @@ export function TodayCheckOutsCard({
         ) : (
           <span className="text-xs text-[var(--muted)]">Tamamlandı</span>
         ),
-    },
-  ];
+    });
+  }
 
   return (
-    <Card title="Bugünkü Çıkışlar" subtitle={`${rows.length} misafir`}>
+    <Card title="Bugünkü Çıkışlar" subtitle={`${rows.length} misafir`} className="flex h-full flex-col">
       {rows.length === 0 ? (
-        <EmptyState icon={LogOut} title="Bugün çıkış yok" description="Bugün için planlanmış bir çıkış bulunmuyor." />
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState icon={LogOut} title="Bugün çıkış yok" description="Bugün için planlanmış bir çıkış bulunmuyor." />
+        </div>
       ) : (
-        <DataTable columns={columns} rows={rows} getRowKey={(r) => r.id} pageSize={5} />
+        <DataTable columns={columns} rows={rows} getRowKey={(r) => r.id} pageSize={5} dense />
       )}
     </Card>
   );

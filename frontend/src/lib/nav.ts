@@ -9,6 +9,8 @@ import {
   UtensilsCrossed,
   IdCard,
   ShieldCheck,
+  Settings,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,7 +23,6 @@ interface NavItem {
 
 interface NavCategory {
   title: string;
-  adminOnly?: boolean;
   items: NavItem[];
 }
 
@@ -58,23 +59,29 @@ export const NAV_CATEGORIES: NavCategory[] = [
   },
   {
     title: "Yönetim",
-    adminOnly: true,
     items: [
       { href: "/employees", label: "Çalışanlar", icon: IdCard, permission: "employees.view" },
       { href: "/roles", label: "Roller", icon: ShieldCheck, permission: "roles.view" },
     ],
   },
+  {
+    title: "Sistem",
+    items: [
+      { href: "/settings", label: "Ayarlar", icon: Settings, permission: "settings.view" },
+      { href: "/audit-logs", label: "Aktivite Kayıtları", icon: ScrollText, permission: "audit_logs.view" },
+    ],
+  },
 ];
 
 // Walks NAV_CATEGORIES in display order and returns the first page a role
-// (isAdmin / unrestricted / hasPermission) is actually allowed to open —
-// used to bounce a role away from a page it can't see instead of rendering
-// a blank "no access" view.
+// (unrestricted / hasPermission) is actually allowed to open — used to
+// bounce a role away from a page it can't see instead of rendering a blank
+// "no access" view. "Sistem" is last on purpose: every seeded role has
+// settings.view, so it must never win over a real work page.
 export function getFirstAccessibleRoute(
-  { isAdmin, unrestricted, hasPermission }: { isAdmin: boolean; unrestricted: boolean; hasPermission: (key: string) => boolean }
+  { unrestricted, hasPermission }: { unrestricted: boolean; hasPermission: (key: string) => boolean }
 ): string | null {
   for (const category of NAV_CATEGORIES) {
-    if (category.adminOnly && !isAdmin) continue;
     for (const item of category.items) {
       if (unrestricted || hasPermission(item.permission)) return item.href;
     }
