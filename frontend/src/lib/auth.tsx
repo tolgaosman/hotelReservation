@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { api, setAuthToken, getStoredToken } from "./api";
 import { getFirstAccessibleRoute } from "./nav";
@@ -73,7 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user && pathname !== "/login") router.push("/login");
   }, [loading, user, pathname, router]);
 
-  const login = (token: string, userData: User) => {
+  // Stable across renders: without useCallback, a fresh `hasPermission`
+  // identity on every AuthProvider render meant AppShell's effect (which
+  // lists it as a dep) re-ran on every render, and any consumer memoizing
+  // against it (the dashboard calls it ~14 times per render) could never
+  // treat it as a stable dependency.
+  const login = useCallback((token: string, userData: User) => {
     setAuthToken(token);
     setUser(userData);
     const isAdmin = userData.role === "admin";
@@ -88,9 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasPermission: (key) => userData.permissions?.includes(key) ?? false,
     });
     router.push(destination ?? "/dashboard");
-  };
+  }, [router]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await api.post("/api/logout");
     } catch (e) {
@@ -99,16 +104,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthToken(null);
     setUser(null);
     router.push("/login");
-  };
+  }, [router]);
 
-  function hasPermission(key: string): boolean {
+  const hasPermission = useCallback((key: string): boolean => {
     if (!user) return false;
     if (user.role === "admin") return true;
     return user.permissions?.includes(key) ?? false;
-  }
+  }, [user]);
+
+  const value = useMemo<AuthContextType>(
+    () => ({ user, loading, login, logout, hasPermission }),
+    [user, loading, login, logout, hasPermission]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

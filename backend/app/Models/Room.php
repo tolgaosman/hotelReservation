@@ -19,7 +19,6 @@ class Room extends Model
         'amenities',
         'status',
         'housekeeping_status',
-        'active',
         'is_maintenance',
         'maintenance_note',
         'assigned_staff',
@@ -34,7 +33,6 @@ class Room extends Model
             'amenities' => 'array',
             'status' => RoomStatus::class,
             'housekeeping_status' => \App\Enums\HousekeepingStatus::class,
-            'active' => 'boolean',
             'is_maintenance' => 'boolean',
             'is_priority_cleaning' => 'boolean',
         ];
@@ -43,10 +41,5 @@ class Room extends Model
     public function reservations(): HasMany
     {
         return $this->hasMany(Reservation::class);
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('active', true);
     }
 }

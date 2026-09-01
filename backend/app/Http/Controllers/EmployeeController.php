@@ -20,8 +20,11 @@ class EmployeeController extends Controller
     {
         $this->authorize('viewAny', Employee::class);
 
+        $visibleProfessions = $request->user()->isAdmin() ? null : $request->user()->permissionRole?->visible_professions;
+
         $employees = Employee::query()
             ->with('role')
+            ->when($visibleProfessions, fn ($q) => $q->whereIn('profession', $visibleProfessions))
             ->when($request->string('search')->trim()->isNotEmpty(), function ($q) use ($request) {
                 $search = '%'.$request->string('search').'%';
                 $q->where(fn ($q2) => $q2->where('full_name', 'like', $search)->orWhere('profession', 'like', $search));

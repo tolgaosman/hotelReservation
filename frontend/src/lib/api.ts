@@ -1,7 +1,27 @@
 import axios from 'axios';
 
-const toCamelCase = (str: string) => str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+// A list response (e.g. /api/reservations, ~1800 rows × ~40 keys each,
+// nested guest/room/companions objects) re-runs these conversions on every
+// one of those keys, but the actual set of distinct key names repeats across
+// every row — caching the conversion turns ~75k regex calls per response
+// into a handful, one per distinct key ever seen.
+const camelCache = new Map<string, string>();
+const snakeCache = new Map<string, string>();
+
+const toCamelCase = (str: string) => {
+  const cached = camelCache.get(str);
+  if (cached !== undefined) return cached;
+  const result = str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+  camelCache.set(str, result);
+  return result;
+};
+const toSnakeCase = (str: string) => {
+  const cached = snakeCache.get(str);
+  if (cached !== undefined) return cached;
+  const result = str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  snakeCache.set(str, result);
+  return result;
+};
 
 const deepMapKeys = (obj: any, mapFn: (key: string) => string): any => {
   if (Array.isArray(obj)) {
@@ -15,8 +35,18 @@ const deepMapKeys = (obj: any, mapFn: (key: string) => string): any => {
   return obj;
 };
 
+function getBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    return `http://${window.location.hostname}:8000`;
+  }
+  return 'http://localhost:8000';
+}
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  baseURL: getBaseUrl(),
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -55,6 +85,9 @@ if (initialToken) {
 }
 
 api.interceptors.request.use((config) => {
+  if (!process.env.NEXT_PUBLIC_API_URL && typeof window !== 'undefined' && window.location.hostname) {
+    config.baseURL = `http://${window.location.hostname}:8000`;
+  }
   if (config.data && !(config.data instanceof FormData)) {
     config.data = deepMapKeys(config.data, toSnakeCase);
   }

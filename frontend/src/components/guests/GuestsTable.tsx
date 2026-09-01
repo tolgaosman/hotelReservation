@@ -5,7 +5,7 @@ import { FileSpreadsheet, Search } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { exportToCsv } from "@/lib/exportCsv";
+import { exportToExcel } from "@/lib/exportExcel";
 import { formatCurrency } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
 import type { GuestSummary } from "@/lib/types";
@@ -56,9 +56,10 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
     { key: "spent", header: "Toplam Harcama", sortValue: (g) => g.totalSpent, render: (g) => <span className="text-[var(--ok)] font-medium">{formatCurrency(g.totalSpent)}</span> },
   ];
 
-  const handleExportCsv = () => {
-    exportToCsv(
-      "misafirler.csv",
+  const handleExportExcel = () => {
+    exportToExcel(
+      "misafirler.xlsx",
+      "Misafirler",
       [
         { header: "Ad Soyad", value: (g: GuestSummary) => g.fullName },
         { header: "Ülke", value: (g: GuestSummary) => g.country },
@@ -73,6 +74,7 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
 
   return (
     <Card
+      hover={false}
       title="Tüm Misafirler"
       subtitle={`${filteredByQuery.length} / ${guests.length} misafir`}
       action={
@@ -88,8 +90,8 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
             />
           </div>
           <button
-            onClick={handleExportCsv}
-            title="CSV Olarak İndir"
+            onClick={handleExportExcel}
+            title="Excel Olarak İndir"
             className="flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] p-2 text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
           >
             <FileSpreadsheet size={14} />

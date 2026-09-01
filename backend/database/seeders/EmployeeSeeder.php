@@ -29,8 +29,8 @@ class EmployeeSeeder extends Seeder
             ['name' => 'Hatice Aydın', 'role' => 'Temizlikçi', 'email' => 'hatice.aydin@hotel.test', 'phone' => '0532 111 22 37', 'hire' => '2023-05-02'],
             ['name' => 'Fatma Şen', 'role' => 'Temizlikçi', 'email' => 'fatma.sen@hotel.test', 'phone' => '0532 111 22 47', 'hire' => '2022-09-01'],
             ['name' => 'Gülşen Öztürk', 'role' => 'Temizlikçi', 'email' => 'gulsen.ozturk@hotel.test', 'phone' => '0532 111 22 48', 'hire' => '2023-01-25'],
-            ['name' => 'Ramazan Arslan', 'role' => 'Temizlikçi', 'email' => 'ramazan.arslan@hotel.test', 'phone' => '0532 111 22 49', 'hire' => '2021-12-10'],
-            ['name' => 'Mehmet Kaya', 'role' => 'Temizlik Sorumlusu', 'email' => 'mehmet.kaya@hotel.test', 'phone' => '0532 111 22 38', 'hire' => '2021-11-15'],
+            ['name' => 'Ramazan Arslan', 'role' => 'Tamirci', 'email' => 'ramazan.arslan@hotel.test', 'phone' => '0532 111 22 49', 'hire' => '2021-12-10'],
+            ['name' => 'Mehmet Kaya', 'role' => 'Temizlik & Tamir Sorumlusu', 'email' => 'mehmet.kaya@hotel.test', 'phone' => '0532 111 22 38', 'hire' => '2021-11-15'],
 
             // Garson
             ['name' => 'Deniz Aksoy', 'role' => 'Garson', 'email' => 'deniz.aksoy@hotel.test', 'phone' => '0532 111 22 39', 'hire' => '2023-08-07'],

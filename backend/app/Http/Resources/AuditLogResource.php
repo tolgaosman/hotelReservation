@@ -13,6 +13,8 @@ class AuditLogResource extends JsonResource
             'id' => $this->id,
             'user_id' => $this->user_id,
             'user_name' => $this->whenLoaded('user', fn () => $this->user?->name),
+            'department' => $this->whenLoaded('user', fn () => $this->user?->permissionRole?->department?->value),
+            'department_label' => $this->whenLoaded('user', fn () => $this->user?->permissionRole?->department?->label()),
             'action' => $this->action,
             'auditable_type' => $this->auditable_type,
             'auditable_id' => $this->auditable_id,

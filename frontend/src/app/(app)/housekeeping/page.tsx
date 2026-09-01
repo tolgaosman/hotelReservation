@@ -16,6 +16,7 @@ export default function HousekeepingPage() {
   const canStatus = hasPermission("housekeeping.update_status");
   const canAssign = hasPermission("housekeeping.assign_staff");
   const canMaint = hasPermission("housekeeping.maintenance");
+  const canPriority = hasPermission("housekeeping.mark_priority");
   // Only rooms + reservations (checkout-today priority) + employees
   // (cleaning-staff list) feed this page; don't wait on guests/payments/
   // roomServices/roles/permissions.
@@ -50,7 +51,7 @@ export default function HousekeepingPage() {
   const rooms = useMemo(
     () =>
       state.rooms
-        .filter(r => r.active)
+        .filter(r => r.status !== "passive")
         .filter(r => {
           if (filter === "all") return true;
           if (filter === "maintenance") return r.isMaintenance;
@@ -69,10 +70,10 @@ export default function HousekeepingPage() {
 
   const stats = useMemo(
     () => ({
-      dirty: state.rooms.filter(r => r.housekeepingStatus === "dirty" && !r.isMaintenance && r.active).length,
-      cleaning: state.rooms.filter(r => r.housekeepingStatus === "cleaning" && !r.isMaintenance && r.active).length,
-      clean: state.rooms.filter(r => r.housekeepingStatus === "clean" && !r.isMaintenance && r.active).length,
-      maintenance: state.rooms.filter(r => r.isMaintenance && r.active).length,
+      dirty: state.rooms.filter(r => r.housekeepingStatus === "dirty" && !r.isMaintenance && r.status !== "passive").length,
+      cleaning: state.rooms.filter(r => r.housekeepingStatus === "cleaning" && !r.isMaintenance && r.status !== "passive").length,
+      clean: state.rooms.filter(r => r.housekeepingStatus === "clean" && !r.isMaintenance && r.status !== "passive").length,
+      maintenance: state.rooms.filter(r => r.isMaintenance && r.status !== "passive").length,
     }),
     [state.rooms]
   );
@@ -159,7 +160,7 @@ export default function HousekeepingPage() {
           className={cn("p-4 rounded-xl border flex flex-col gap-1 transition-all", filter === "all" ? "border-[var(--ink)] bg-[var(--surface-alt)] shadow-sm" : "border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface-alt)]/50")}
         >
           <span className="text-sm font-semibold text-[var(--muted)]">Tüm Odalar</span>
-          <span className="text-2xl font-black text-[var(--ink)]">{state.rooms.filter(r=>r.active).length}</span>
+          <span className="text-2xl font-black text-[var(--ink)]">{state.rooms.filter(r => r.status !== "passive").length}</span>
         </button>
         <button 
           onClick={() => setFilter("dirty")}
@@ -319,7 +320,7 @@ export default function HousekeepingPage() {
                   </div>
 
                   {/* Actions */}
-                  {(canStatus || canMaint) && (
+                  {(canStatus || canMaint || canPriority) && (
                     <div className="pt-2 border-t border-[var(--line)] flex flex-col gap-2">
                       {(canStatus || (room.isMaintenance && canMaint)) && (
                         <div className="flex gap-2">
@@ -362,7 +363,7 @@ export default function HousekeepingPage() {
                         </div>
                       )}
 
-                      {!room.isMaintenance && (canMaint || canStatus) && (
+                      {!room.isMaintenance && (canMaint || canPriority) && (
                         <div className="flex gap-2">
                           {canMaint && (
                             <button
@@ -373,7 +374,7 @@ export default function HousekeepingPage() {
                               <Wrench size={12} /> Arıza Bildir
                             </button>
                           )}
-                          {canStatus && (
+                          {canPriority && (
                             <button
                               onClick={() => handleUpdateAdvanced(room, { isPriorityCleaning: !room.isPriorityCleaning }, room.isPriorityCleaning ? "Öncelik kaldırıldı." : "Oda öncelikli olarak işaretlendi.")}
                               disabled={updating === room.id}

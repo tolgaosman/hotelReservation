@@ -99,4 +99,32 @@ class EmployeeControllerTest extends TestCase
             'profession' => 'Garson',
         ])->assertStatus(201);
     }
+
+    public function test_supervisor_role_only_sees_its_scoped_professions(): void
+    {
+        $role = Role::factory()->create(['visible_professions' => ['Garson']]);
+        $role->permissions()->sync([Permission::factory()->create(['key' => 'employees.view'])->id]);
+        $supervisor = User::factory()->create(['role_id' => $role->id]);
+        $this->actingAs($supervisor, 'sanctum');
+
+        Employee::factory()->create(['full_name' => 'Görünür Garson', 'profession' => 'Garson']);
+        Employee::factory()->create(['full_name' => 'Görünmez Muhasebeci', 'profession' => 'Muhasebeci']);
+
+        $response = $this->getJson('/api/employees')->assertStatus(200);
+        $names = collect($response->json('data.items'))->pluck('full_name');
+
+        $this->assertTrue($names->contains('Görünür Garson'));
+        $this->assertFalse($names->contains('Görünmez Muhasebeci'));
+    }
+
+    public function test_unscoped_personel_sees_every_profession(): void
+    {
+        $this->actingPersonel(['employees.view']);
+
+        Employee::factory()->create(['profession' => 'Garson']);
+        Employee::factory()->create(['profession' => 'Muhasebeci']);
+
+        $response = $this->getJson('/api/employees')->assertStatus(200);
+        $this->assertCount(2, $response->json('data.items'));
+    }
 }

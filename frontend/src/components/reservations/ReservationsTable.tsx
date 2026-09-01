@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { FileSpreadsheet, Search } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { StatusBadge, statusLabel } from "@/components/ui/status-badge";
+import { StatusBadge, statusLabel, STATUS_EXCEL_COLORS } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
-import { exportToCsv } from "@/lib/exportCsv";
+import { exportToExcel } from "@/lib/exportExcel";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
 import type { ReservationStatus, ReservationView } from "@/lib/types";
@@ -70,9 +70,10 @@ export function ReservationsTable({
     },
   ], []);
 
-  const handleExportCsv = () => {
-    exportToCsv(
-      "rezervasyonlar.csv",
+  const handleExportExcel = () => {
+    exportToExcel(
+      "rezervasyonlar.xlsx",
+      "Rezervasyonlar",
       [
         { header: "Misafir", value: (r: ReservationView) => r.guest.fullName },
         { header: "Oda", value: (r: ReservationView) => r.room.number },
@@ -81,7 +82,7 @@ export function ReservationsTable({
         { header: "Çıkış", value: (r: ReservationView) => formatDate(r.checkOut) },
         { header: "Tutar", value: (r: ReservationView) => String(r.totalAmount) },
         { header: "Bakiye", value: (r: ReservationView) => String(r.balance) },
-        { header: "Durum", value: (r: ReservationView) => statusLabel(r.status) },
+        { header: "Durum", value: (r: ReservationView) => statusLabel(r.status), fill: (r: ReservationView) => STATUS_EXCEL_COLORS[r.status] },
       ],
       filteredByQuery
     );
@@ -89,6 +90,7 @@ export function ReservationsTable({
 
   return (
     <Card
+      hover={false}
       title="Rezervasyon Listesi"
       subtitle={`${filteredByQuery.length} / ${reservations.length} rezervasyon`}
       action={
@@ -104,8 +106,8 @@ export function ReservationsTable({
             />
           </div>
           <button
-            onClick={handleExportCsv}
-            title="CSV Olarak İndir"
+            onClick={handleExportExcel}
+            title="Excel Olarak İndir"
             className="flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] p-2 text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
           >
             <FileSpreadsheet size={14} />

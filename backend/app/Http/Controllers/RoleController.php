@@ -37,6 +37,7 @@ class RoleController extends Controller
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']),
             'description' => $validated['description'] ?? null,
+            'department' => $validated['department'] ?? null,
         ]);
 
         $role->permissions()->sync($validated['permission_ids'] ?? []);
@@ -58,6 +59,7 @@ class RoleController extends Controller
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']),
             'description' => $validated['description'] ?? null,
+            'department' => $validated['department'] ?? null,
         ]);
 
         $role->permissions()->sync($validated['permission_ids'] ?? []);

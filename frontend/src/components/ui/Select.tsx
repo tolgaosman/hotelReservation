@@ -1,8 +1,12 @@
-import React, { useState, useRef, useEffect, type SelectHTMLAttributes } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function Select({ className, children, value, onChange, disabled, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  align?: "left" | "right";
+}
+
+export function Select({ className, children, value, onChange, disabled, align = "left", ...props }: SelectProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -40,8 +44,8 @@ export function Select({ className, children, value, onChange, disabled, ...prop
         onClick={() => !disabled && setOpen(!open)}
         className={cn(
           "flex items-center justify-between rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)]",
-          "px-3.5 py-2.5 text-sm text-[var(--ink)] outline-none transition-colors duration-200",
-          open && "border-[var(--accent)] bg-[var(--surface)]",
+          "px-3.5 py-2.5 text-sm font-medium text-[var(--ink)] outline-none transition-colors duration-200",
+          open && "border-[var(--line-strong)] bg-[var(--surface)]",
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
           className
         )}
@@ -54,15 +58,21 @@ export function Select({ className, children, value, onChange, disabled, ...prop
       </div>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 max-h-60 min-w-full w-max overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] shadow-lg">
-          <div className="flex flex-col divide-y divide-[var(--color-line)]/60">
+        <div 
+          className={cn(
+            "absolute top-full z-50 mt-2 max-h-60 min-w-full w-max overflow-y-auto rounded-[var(--radius-control)]",
+            "border border-[var(--line)] bg-[var(--surface)] py-1 shadow-[var(--shadow-pop)]",
+            align === "right" ? "right-0" : "left-0"
+          )}
+        >
+          <div className="flex flex-col">
             {options.filter((opt) => !opt.disabled).map((opt) => (
               <div
                 key={opt.value}
                 onClick={() => handleSelect(opt.value)}
                 className={cn(
-                  "cursor-pointer px-4 py-3 text-sm text-center transition-colors hover:bg-[var(--surface-alt)]",
-                  value === opt.value ? "bg-[var(--accent-soft)] font-medium text-[var(--accent-ink)]" : "text-[var(--ink)]"
+                  "cursor-pointer px-4 py-2 text-[13px] font-medium text-center transition-colors hover:bg-[var(--surface-alt)]",
+                  value === opt.value ? "bg-[var(--accent-soft)]/50 text-[var(--accent-ink)]" : "text-[var(--ink)]"
                 )}
               >
                 {opt.label}

@@ -11,14 +11,25 @@ interface CardProps {
   className?: string;
   /** Set false for cards that manage their own inner padding (tables). */
   padded?: boolean;
+  /** Defaults to true. Set false if the card contains dropdowns that need to break out of bounds. */
+  overflowHidden?: boolean;
+  /** Defaults to true. Set false for table cards: no lift-on-hover, just a slow-filling accent border. */
+  hover?: boolean;
 }
 
-export function Card({ title, subtitle, action, menu, children, className, padded = false }: CardProps) {
+export function Card({ title, subtitle, action, menu, children, className, padded = false, overflowHidden = true, hover = true }: CardProps) {
   return (
     <div
       className={cn(
-        "overflow-hidden flex flex-col rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)]/85 backdrop-blur-xl shadow-[var(--shadow-card)]",
-        "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
+        // backdrop-blur-xl used to sit here — with a solid canvas behind
+        // every card it added no visible effect, only a full re-rasterization
+        // of everything under the card (176-path map, chart canvases) on
+        // every repaint, including its own hover transition below.
+        "flex flex-col rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)]/85 shadow-[var(--shadow-card)]",
+        hover
+          ? "transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-md"
+          : "transition-[border-color] duration-700 [transition-timing-function:var(--ease-organic)] hover:border-[var(--color-accent)]",
+        overflowHidden && "overflow-hidden",
         className
       )}
     >

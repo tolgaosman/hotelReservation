@@ -13,6 +13,8 @@ export interface Column<T> {
   filterFixedHeight?: boolean;
   /** Presence of this makes the column header clickable to sort by the returned value. */
   sortValue?: (row: T) => string | number;
+  /** Fixed column width (e.g. "18%"), for tables whose columns should stay evenly spread regardless of content length. */
+  width?: string;
 }
 
 type SortDir = "asc" | "desc";
@@ -178,11 +180,19 @@ export function DataTable<T>({
   const pageCount = Math.max(1, Math.ceil(sortedRows.length / pageSize));
   const clampedPage = Math.min(page, pageCount);
   const pageRows = sortedRows.slice((clampedPage - 1) * pageSize, clampedPage * pageSize);
+  const hasFixedWidths = columns.some((c) => c.width);
 
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-xs">
+        <table className={cn("w-full border-collapse text-xs", hasFixedWidths && "table-fixed")}>
+          {hasFixedWidths && (
+            <colgroup>
+              {columns.map((col) => (
+                <col key={col.key} style={{ width: col.width }} />
+              ))}
+            </colgroup>
+          )}
           <thead>
             <tr className="bg-[var(--surface-alt)]">
               {columns.map((col) => (

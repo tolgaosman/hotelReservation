@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { LogOut } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,26 +14,31 @@ export function TodayCheckOutsCard({
   rows: ReservationView[];
   onCheckOut?: (id: number) => void;
 }) {
-  const columns: Column<ReservationView>[] = [
-    { key: "guest", header: "Misafir", render: (r) => <span className="font-medium">{r.guest.fullName}</span> },
-    { key: "room", header: "Oda", render: (r) => r.room.number },
-    { key: "type", header: "Tip", render: (r) => <span className="text-[var(--muted)]">{r.room.type}</span> },
-    { key: "status", header: "Durum", render: (r) => <StatusBadge status={r.status} /> },
-  ];
-  if (onCheckOut) {
-    columns.push({
-      key: "action",
-      header: "",
-      render: (r) =>
-        r.status === "checked_in" ? (
-          <Button size="sm" variant="secondary" onClick={() => onCheckOut(r.id)}>
-            <LogOut size={13} /> Check-out
-          </Button>
-        ) : (
-          <span className="text-xs text-[var(--muted)]">Tamamlandı</span>
-        ),
-    });
-  }
+  // Memoized so DataTable's own useMemo (keyed on `columns`) isn't
+  // invalidated by a fresh array identity on every render.
+  const columns: Column<ReservationView>[] = useMemo(() => {
+    const base: Column<ReservationView>[] = [
+      { key: "guest", header: "Misafir", render: (r) => <span className="font-medium">{r.guest.fullName}</span> },
+      { key: "room", header: "Oda", render: (r) => r.room.number },
+      { key: "type", header: "Tip", render: (r) => <span className="text-[var(--muted)]">{r.room.type}</span> },
+      { key: "status", header: "Durum", render: (r) => <StatusBadge status={r.status} /> },
+    ];
+    if (onCheckOut) {
+      base.push({
+        key: "action",
+        header: "",
+        render: (r) =>
+          r.status === "checked_in" ? (
+            <Button size="sm" variant="secondary" onClick={() => onCheckOut(r.id)}>
+              <LogOut size={13} /> Check-out
+            </Button>
+          ) : (
+            <span className="text-xs text-[var(--muted)]">Tamamlandı</span>
+          ),
+      });
+    }
+    return base;
+  }, [onCheckOut]);
 
   return (
     <Card title="Bugünkü Çıkışlar" subtitle={`${rows.length} misafir`} className="flex h-full flex-col">

@@ -14,7 +14,6 @@ class DashboardService
     public function stats(): array
     {
         $roomCounts = Room::query()
-            ->active()
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status')

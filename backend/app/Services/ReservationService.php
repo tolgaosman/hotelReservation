@@ -48,6 +48,10 @@ class ReservationService
             $checkIn = Carbon::parse($data['check_in']);
             $checkOut = Carbon::parse($data['check_out']);
 
+            if (in_array($room->status, [RoomStatus::Passive, RoomStatus::Maintenance], true)) {
+                throw new DomainActionException('Pasif veya bakımdaki bir oda için rezervasyon oluşturulamaz.');
+            }
+
             if ($this->hasConflict($room->id, $checkIn, $checkOut)) {
                 throw new DomainActionException('Bu oda seçilen tarihlerde başka bir aktif rezervasyona sahip.');
             }
@@ -81,6 +85,13 @@ class ReservationService
             $room = $data['room_id'] ?? null
                 ? Room::query()->lockForUpdate()->findOrFail($data['room_id'])
                 : $reservation->room()->lockForUpdate()->first();
+
+            // Only enforce this when the caller is actively (re)picking a room —
+            // an existing reservation shouldn't be blocked from unrelated edits
+            // just because its already-assigned room was later marked passive/maintenance.
+            if (isset($data['room_id']) && in_array($room->status, [RoomStatus::Passive, RoomStatus::Maintenance], true)) {
+                throw new DomainActionException('Pasif veya bakımdaki bir oda için rezervasyon oluşturulamaz.');
+            }
 
             $checkIn = isset($data['check_in']) ? Carbon::parse($data['check_in']) : $reservation->check_in;
             $checkOut = isset($data['check_out']) ? Carbon::parse($data['check_out']) : $reservation->check_out;

@@ -28,6 +28,8 @@
   --crit-soft: #fbecea;
   --info: #6b8fa8;
   --info-soft: #ecf2f6;
+  --amber: #c68a2e;
+  --amber-soft: #f6ecda;
 
   /* Choropleth: tek hue (lacivert, ~265°) sequential rampa — --geo-5 marka
      lacivertiyle (--accent) birebir aynı, adımlar eşit algısal aralıkla. */
@@ -76,6 +78,8 @@
   --color-crit-soft: var(--crit-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
 
   --color-geo-0: var(--geo-0);
   --color-geo-1: var(--geo-1);
@@ -100,5 +104,27 @@
   /* Numeric columns must stay aligned between rows regardless of digit width. */
   table {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Slow ambient drift for the login page's background glows — transform/opacity only. */
+@keyframes ambient-drift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(2%, -3%) scale(1.06);
+    opacity: 1;
+  }
+}
+
+.ambient-drift {
+  animation: ambient-drift 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-drift {
+    animation: none;
   }
 }

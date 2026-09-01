@@ -15,6 +15,8 @@ class RoleResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'is_system' => $this->is_system,
+            'department' => $this->department?->value,
+            'department_label' => $this->department?->label(),
             'employee_count' => $this->when($this->employees_count !== null, fn () => $this->employees_count),
             'permission_ids' => $this->whenLoaded('permissions', fn () => $this->permissions->pluck('id')->values()),
             'permission_keys' => $this->whenLoaded('permissions', fn () => $this->permissions->pluck('key')->values()),

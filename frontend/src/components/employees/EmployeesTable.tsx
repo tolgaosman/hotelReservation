@@ -5,9 +5,13 @@ import { FileSpreadsheet, Search } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { exportToCsv } from "@/lib/exportCsv";
+import { exportToExcel } from "@/lib/exportExcel";
 import { matchesQuery } from "@/lib/utils";
 import type { Employee } from "@/lib/types";
+
+function initials(fullName: string): string {
+  return fullName.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+}
 
 export function EmployeesTable({ employees, onRowClick }: { employees: Employee[]; onRowClick?: (e: Employee) => void }) {
   const [query, setQuery] = useState("");
@@ -28,6 +32,7 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
     {
       key: "fullName",
       header: "Ad Soyad",
+      width: "26%",
       sortValue: (e) => e.fullName,
       render: (e) => (
         <div className="text-left">
@@ -39,6 +44,7 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
     {
       key: "profession",
       header: "Meslek",
+      width: "16%",
       filterOptions: professionOptions,
       filterFn: (e, val) => e.profession === val,
       sortValue: (e) => e.profession,
@@ -47,6 +53,7 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
     {
       key: "role",
       header: "Rol",
+      width: "16%",
       render: (e) => (
         <span className="inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-ink)]">
           {e.roleName || "Atanmadı"}
@@ -56,17 +63,20 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
     {
       key: "phone",
       header: "Telefon",
+      width: "16%",
       render: (e) => <span className="text-sm text-[var(--ink)]">{e.phone || "—"}</span>,
     },
     {
       key: "hireDate",
       header: "İşe Başlama",
+      width: "14%",
       sortValue: (e) => e.hireDate ?? "",
       render: (e) => <span className="text-sm text-[var(--muted)]">{e.hireDate ? new Date(e.hireDate).toLocaleDateString("tr-TR") : "—"}</span>,
     },
     {
       key: "status",
       header: "Durum",
+      width: "12%",
       filterOptions: [
         { label: "Aktif", value: "active" },
         { label: "Pasif", value: "passive" },
@@ -85,9 +95,10 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
     },
   ];
 
-  const handleExportCsv = () => {
-    exportToCsv(
-      "calisanlar.csv",
+  const handleExportExcel = () => {
+    exportToExcel(
+      "calisanlar.xlsx",
+      "Çalışanlar",
       [
         { header: "Ad Soyad", value: (e: Employee) => e.fullName },
         { header: "Meslek", value: (e: Employee) => e.profession },
@@ -95,7 +106,14 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
         { header: "Telefon", value: (e: Employee) => e.phone || "" },
         { header: "E-posta", value: (e: Employee) => e.email || "" },
         { header: "İşe Başlama", value: (e: Employee) => (e.hireDate ? new Date(e.hireDate).toLocaleDateString("tr-TR") : "") },
-        { header: "Durum", value: (e: Employee) => (e.status === "active" ? "Aktif" : "Pasif") },
+        {
+          header: "Durum",
+          value: (e: Employee) => (e.status === "active" ? "Aktif" : "Pasif"),
+          fill: (e: Employee) =>
+            e.status === "active"
+              ? { bg: "FFE9F5ED", text: "FF4E9E72" }
+              : { bg: "FFFBECEA", text: "FFC25A4D" },
+        },
       ],
       filteredByQuery
     );
@@ -103,6 +121,7 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
 
   return (
     <Card
+      hover={false}
       title="Tüm Çalışanlar"
       subtitle={`${filteredByQuery.length} / ${employees.length} çalışan`}
       action={
@@ -118,8 +137,8 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
             />
           </div>
           <button
-            onClick={handleExportCsv}
-            title="CSV Olarak İndir"
+            onClick={handleExportExcel}
+            title="Excel Olarak İndir"
             className="flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] p-2 text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
           >
             <FileSpreadsheet size={14} />

@@ -81,4 +81,68 @@ class AuditLogTest extends TestCase
 
         $this->getJson('/api/audit-logs')->assertStatus(200);
     }
+
+    public function test_personel_with_only_view_sees_only_own_department_logs(): void
+    {
+        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => true]);
+
+        $accountingRole = Role::create(['name' => 'Test Muhasebe Müdürü', 'slug' => 'test-muhasebe-muduru', 'department' => 'muhasebe']);
+        $accountingRole->permissions()->sync([$viewPermission->id]);
+        $receptionRole = Role::create(['name' => 'Test Resepsiyon Amiri', 'slug' => 'test-resepsiyon-amiri', 'department' => 'resepsiyon']);
+        $receptionRole->permissions()->sync([$viewPermission->id]);
+
+        $accountingUser = User::factory()->create(['role_id' => $accountingRole->id]);
+        $receptionUser = User::factory()->create(['role_id' => $receptionRole->id]);
+
+        AuditLog::create(['user_id' => $accountingUser->id, 'action' => 'payment.create']);
+        AuditLog::create(['user_id' => $receptionUser->id, 'action' => 'reservation.create']);
+
+        $this->actingAs($accountingUser, 'sanctum');
+        $response = $this->getJson('/api/audit-logs');
+
+        $response->assertStatus(200);
+        $items = $response->json('data.items');
+        $this->assertCount(1, $items);
+        $this->assertSame($accountingUser->id, $items[0]['userId']);
+    }
+
+    public function test_personel_with_view_all_sees_every_department_logs(): void
+    {
+        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => true]);
+        $viewAllPermission = Permission::create(['key' => 'audit_logs.view_all', 'label' => 'Tüm Departmanları Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => false]);
+
+        $accountingRole = Role::create(['name' => 'Test Muhasebe Müdürü 2', 'slug' => 'test-muhasebe-muduru-2', 'department' => 'muhasebe']);
+        $accountingRole->permissions()->sync([$viewPermission->id, $viewAllPermission->id]);
+        $receptionRole = Role::create(['name' => 'Test Resepsiyon Amiri 2', 'slug' => 'test-resepsiyon-amiri-2', 'department' => 'resepsiyon']);
+        $receptionRole->permissions()->sync([$viewPermission->id]);
+
+        $accountingUser = User::factory()->create(['role_id' => $accountingRole->id]);
+        $receptionUser = User::factory()->create(['role_id' => $receptionRole->id]);
+
+        AuditLog::create(['user_id' => $accountingUser->id, 'action' => 'payment.create']);
+        AuditLog::create(['user_id' => $receptionUser->id, 'action' => 'reservation.create']);
+
+        $this->actingAs($accountingUser, 'sanctum');
+        $response = $this->getJson('/api/audit-logs');
+
+        $response->assertStatus(200);
+        $this->assertCount(2, $response->json('data.items'));
+    }
+
+    public function test_admin_sees_logs_from_every_department_regardless_of_scope(): void
+    {
+        $admin = $this->actingAdmin();
+
+        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => true]);
+        $role = Role::create(['name' => 'Test Departmanlı Rol', 'slug' => 'test-departmanli-rol', 'department' => 'servis']);
+        $role->permissions()->sync([$viewPermission->id]);
+        $otherUser = User::factory()->create(['role_id' => $role->id]);
+
+        AuditLog::create(['user_id' => $admin->id, 'action' => 'room.create']);
+        AuditLog::create(['user_id' => $otherUser->id, 'action' => 'room_service.create']);
+
+        $response = $this->getJson('/api/audit-logs');
+        $response->assertStatus(200);
+        $this->assertCount(2, $response->json('data.items'));
+    }
 }

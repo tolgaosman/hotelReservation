@@ -43,7 +43,7 @@ export function getAvailableRooms(
 ): Room[] {
   return rooms.filter(
     (room) =>
-      room.active &&
+      room.status !== "passive" &&
       room.status !== "maintenance" &&
       !hasConflict(room.id, checkIn, checkOut, reservations, ignoreReservationId)
   );

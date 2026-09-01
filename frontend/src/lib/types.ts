@@ -1,6 +1,6 @@
 export type RoomType = "Standart" | "Deluxe" | "Aile Odası" | "Suite" | "King Suite";
 
-export type RoomStatus = "available" | "occupied" | "maintenance";
+export type RoomStatus = "available" | "occupied" | "maintenance" | "passive";
 
 // "checked_in" is the "Konaklamada" state the project brief calls for between
 // check-in and check-out — distinct from "confirmed" (booked, not arrived yet).
@@ -26,7 +26,6 @@ export interface Room {
   maintenanceNote: string | null;
   assignedStaff: string | null;
   isPriorityCleaning: boolean;
-  active: boolean;
 }
 
 export interface Guest {
@@ -163,6 +162,16 @@ export type FormResult =
   | { ok: true }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
+export interface HotelSettings {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  taxRate: number;
+  checkInTime: string;
+  checkOutTime: string;
+}
+
 export interface Permission {
   id: number;
   key: string;
@@ -179,6 +188,8 @@ export interface Role {
   slug: string;
   description: string | null;
   isSystem: boolean;
+  department: string | null;
+  departmentLabel?: string | null;
   employeeCount?: number;
   permissionIds: number[];
 }
@@ -208,4 +219,6 @@ export interface AuditLog {
   changes: Record<string, unknown> | null;
   ipAddress: string | null;
   createdAt: string;
+  department?: string | null;
+  departmentLabel?: string | null;
 }

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { LogIn } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,30 +14,36 @@ interface Props {
 }
 
 export function TodayCheckInsCard({ rows, onConfirm, onCheckIn }: Props) {
-  const columns: Column<ReservationView>[] = [
-    { key: "guest", header: "Misafir", render: (r) => <span className="font-medium">{r.guest.fullName}</span> },
-    { key: "room", header: "Oda", render: (r) => r.room.number },
-    { key: "type", header: "Tip", render: (r) => <span className="text-[var(--muted)]">{r.room.type}</span> },
-    { key: "status", header: "Durum", render: (r) => <StatusBadge status={r.status} /> },
-  ];
-  if (onConfirm || onCheckIn) {
-    columns.push({
-      key: "action",
-      header: "",
-      render: (r) =>
-        r.status === "pending" && onConfirm ? (
-          <Button size="sm" variant="secondary" onClick={() => onConfirm(r.id)}>
-            Onayla
-          </Button>
-        ) : r.status === "confirmed" && onCheckIn ? (
-          <Button size="sm" onClick={() => onCheckIn(r.id)}>
-            <LogIn size={13} /> Check-in
-          </Button>
-        ) : (
-          <span className="text-xs text-[var(--muted)]">İçeride</span>
-        ),
-    });
-  }
+  // Memoized so DataTable's own useMemo (keyed on `columns`) isn't
+  // invalidated by a fresh array identity on every render — a rebuilt
+  // `columns` array every render made that inner memo dead weight.
+  const columns: Column<ReservationView>[] = useMemo(() => {
+    const base: Column<ReservationView>[] = [
+      { key: "guest", header: "Misafir", render: (r) => <span className="font-medium">{r.guest.fullName}</span> },
+      { key: "room", header: "Oda", render: (r) => r.room.number },
+      { key: "type", header: "Tip", render: (r) => <span className="text-[var(--muted)]">{r.room.type}</span> },
+      { key: "status", header: "Durum", render: (r) => <StatusBadge status={r.status} /> },
+    ];
+    if (onConfirm || onCheckIn) {
+      base.push({
+        key: "action",
+        header: "",
+        render: (r) =>
+          r.status === "pending" && onConfirm ? (
+            <Button size="sm" variant="secondary" onClick={() => onConfirm(r.id)}>
+              Onayla
+            </Button>
+          ) : r.status === "confirmed" && onCheckIn ? (
+            <Button size="sm" onClick={() => onCheckIn(r.id)}>
+              <LogIn size={13} /> Check-in
+            </Button>
+          ) : (
+            <span className="text-xs text-[var(--muted)]">İçeride</span>
+          ),
+      });
+    }
+    return base;
+  }, [onConfirm, onCheckIn]);
 
   return (
     <Card title="Bugünkü Girişler" subtitle={`${rows.length} misafir bekleniyor`} className="flex h-full flex-col">

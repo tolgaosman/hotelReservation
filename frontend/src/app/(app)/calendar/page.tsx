@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
-import { toView } from "@/lib/selectors";
+import { toView, getStayPhase, type StayPhase } from "@/lib/selectors";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { ReservationDrawer } from "@/components/reservations/ReservationDrawer";
-import type { ReservationView } from "@/lib/types";
+import type { Reservation, ReservationView } from "@/lib/types";
 
 const ROW_HEIGHT = 68; // px
 const LABEL_WIDTH = 200; // px
@@ -93,18 +93,21 @@ function formatPeriodLabel(start: string, end: string): string {
   return `${startDate.getDate()} – ${endDate.getDate()} ${month}`;
 }
 
-const STATUS_ACCENT: Record<string, string> = {
-  pending: "bg-[var(--warn)]",
-  confirmed: "bg-[var(--info)]",
-  checked_in: "bg-[var(--accent)]",
-  completed: "bg-[var(--muted)]",
+// Calendar bar color follows the calendar date (via the shared
+// getStayPhase, also used by the room drawer's active-stay card) rather
+// than the reservation's workflow status — a bar flips from "upcoming" to
+// "in stay" the moment today crosses its check-in date, with no dependency
+// on the front desk actually pressing check-in that morning.
+const PHASE_ACCENT: Record<StayPhase, string> = {
+  upcoming: "bg-[var(--accent)]",
+  inStay: "bg-[var(--ok)]",
+  past: "bg-[var(--muted)]",
 };
 
-const STATUS_SURFACE: Record<string, string> = {
-  pending: "bg-[var(--warn-soft)] text-[var(--warn)]",
-  confirmed: "bg-[var(--info-soft)] text-[var(--info-ink)]",
-  checked_in: "bg-[var(--accent-soft)] text-[var(--accent-ink)]",
-  completed: "bg-[var(--surface-alt)] text-[var(--muted)]",
+const PHASE_SURFACE: Record<StayPhase, string> = {
+  upcoming: "bg-[var(--accent-soft)] text-[var(--accent-ink)]",
+  inStay: "bg-[var(--ok-soft)] text-[var(--ok)]",
+  past: "bg-[var(--surface-alt)] text-[var(--muted)]",
 };
 
 export default function CalendarPage() {
@@ -123,9 +126,35 @@ export default function CalendarPage() {
   }, [periodStart, daysToShow]);
 
   const rooms = useMemo(
-    () => state.rooms.filter((r) => r.active).sort((a, b) => a.number.localeCompare(b.number)),
+    () => state.rooms.filter((r) => r.status !== "passive").sort((a, b) => a.number.localeCompare(b.number)),
     [state.rooms]
   );
+
+  // Grouping once (O(reservations)) instead of the old per-room
+  // `state.reservations.filter(...)` inside the render loop (O(rooms ×
+  // reservations)) — with 60 rooms and ~1800 reservations that loop alone
+  // was ~110k comparisons on every render.
+  const activeReservationsByRoom = useMemo(() => {
+    const map = new Map<number, Reservation[]>();
+    for (const r of state.reservations) {
+      if (r.status === "cancelled") continue;
+      const list = map.get(r.roomId);
+      if (list) list.push(r);
+      else map.set(r.roomId, [r]);
+    }
+    return map;
+  }, [state.reservations]);
+
+  // Guest names for the visible bars, looked up from a flat Map instead of
+  // `toView(res, state)` per bar — toView rebuilds all 4 store indices
+  // (guests/rooms/payments/roomServices) from scratch for a single row, so
+  // calling it once per rendered reservation bar was the page's single
+  // biggest cost.
+  const guestNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const g of state.guests) map.set(g.id, g.fullName);
+    return map;
+  }, [state.guests]);
 
   const goPrev = () => setPeriodAnchor(shiftPeriod(periodAnchor, -1));
   const goNext = () => setPeriodAnchor(shiftPeriod(periodAnchor, 1));
@@ -180,7 +209,10 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {store.hydrating ? (
+      {/* The grid only reads rooms/reservations/guests — narrowed off the
+          store-wide `hydrating` flag, which also waited on payments/
+          roomServices/permissions/roles/employees. */}
+      {store.loading.rooms || store.loading.reservations || store.loading.guests ? (
         <PageSkeleton />
       ) : rooms.length === 0 ? (
         <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border border-dashed border-[var(--line)] bg-[var(--surface)] text-center">
@@ -234,10 +266,13 @@ export default function CalendarPage() {
               // Active bookings for this room, independent of the visible
               // window — needed to detect same-day turnovers even when the
               // departing reservation's checkout falls right at the edge of
-              // the current period.
-              const roomAllReservations = state.reservations.filter(
-                (r) => r.roomId === room.id && r.status !== "cancelled"
-              );
+              // the current period. Read from the pre-grouped map instead of
+              // filtering all reservations per room.
+              const roomAllReservations = activeReservationsByRoom.get(room.id) ?? [];
+              // Same-day-turnover lookup for this room's bars, built once
+              // per room instead of an O(bars × roomAllReservations) `.some()`
+              // scan below.
+              const checkOutDatesInRoom = new Set(roomAllReservations.map((r) => r.checkOut));
               const roomReservations = roomAllReservations.filter(
                 (r) => r.checkOut > periodStart && r.checkIn < periodEndExclusive
               );
@@ -287,18 +322,22 @@ export default function CalendarPage() {
                       // checkout day (the guest leaves that morning); if it
                       // arrived on someone else's checkout day, it in turn
                       // only takes the second half of its own arrival day.
-                      const turnoverIn = roomAllReservations.some(
-                        (other) => other.id !== res.id && other.checkOut === res.checkIn
-                      );
+                      // (A reservation's own checkOut can never equal its own
+                      // checkIn, so no self-match exclusion is needed here.)
+                      const turnoverIn = checkOutDatesInRoom.has(res.checkIn);
                       const inOffset = daysBetween(periodStart, res.checkIn);
                       const outOffset = daysBetween(periodStart, res.checkOut);
                       const left = Math.max(inOffset + (turnoverIn ? 0.5 : 0), 0);
                       const right = Math.min(outOffset + 0.5, daysToShow);
                       if (right <= left) return null;
 
-                      const view = toView(res, state);
-                      const guestName = view?.guest.fullName ?? "Bilinmiyor";
+                      // toView(res, state) rebuilds all 4 store indices per
+                      // call — with up to a few dozen bars per room this was
+                      // the page's hottest cost; a flat name lookup is enough
+                      // for the bar label.
+                      const guestName = guestNameById.get(res.guestId) ?? "Bilinmiyor";
                       const lane = laneOf.get(res) ?? 0;
+                      const phase = getStayPhase(res.checkIn, res.checkOut, todayIso);
 
                       return (
                         <button
@@ -306,7 +345,7 @@ export default function CalendarPage() {
                           onClick={() => setSelectedReservationId(res.id)}
                           className={cn(
                             "absolute z-10 flex items-center gap-2 overflow-hidden rounded-[10px] px-2.5 text-left text-xs font-semibold shadow-sm transition-all duration-150 [transition-timing-function:var(--ease-organic)] hover:z-20 hover:-translate-y-px hover:shadow-md",
-                            STATUS_SURFACE[res.status] ?? STATUS_SURFACE.confirmed
+                            PHASE_SURFACE[phase]
                           )}
                           style={{
                             left: `${(left / daysToShow) * 100}%`,
@@ -316,7 +355,7 @@ export default function CalendarPage() {
                           }}
                           title={`${guestName} · ${res.checkIn} – ${res.checkOut}`}
                         >
-                          <span className={cn("h-[60%] w-[3px] shrink-0 rounded-full", STATUS_ACCENT[res.status] ?? STATUS_ACCENT.confirmed)} />
+                          <span className={cn("h-[60%] w-[3px] shrink-0 rounded-full", PHASE_ACCENT[phase])} />
                           <span className="truncate">{guestName}</span>
                         </button>
                       );

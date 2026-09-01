@@ -130,6 +130,7 @@ interface StoreApi {
     input: { number: string; type: RoomType; capacity: number; nightlyRate: number; amenities: string[]; status: RoomStatus }
   ): Promise<FormResult>;
   deactivateRoom(id: number): Promise<FormResult>;
+  activateRoom(id: number): Promise<FormResult>;
   updateHousekeeping(id: number, status: Room["housekeepingStatus"]): Promise<FormResult>;
   updateHousekeepingAdvanced(id: number, payload: Partial<Room>): Promise<FormResult>;
   createGuest(input: Omit<Guest, "id">): Promise<FormResult>;
@@ -137,8 +138,8 @@ interface StoreApi {
   addRoomService(reservationId: number, input: { description: string; amount: number }): Promise<FormResult>;
   getRoomServices(reservationId: number): Promise<{ ok: true, data: import('./types').RoomService[] } | { ok: false, error: string }>;
   deleteRoomService(roomServiceId: number): Promise<FormResult>;
-  createRole(input: { name: string; description: string; permissionIds: number[] }): Promise<FormResult>;
-  updateRole(id: number, input: { name: string; description: string; permissionIds: number[] }): Promise<FormResult>;
+  createRole(input: { name: string; description: string; department: string | null; permissionIds: number[] }): Promise<FormResult>;
+  updateRole(id: number, input: { name: string; description: string; department: string | null; permissionIds: number[] }): Promise<FormResult>;
   deleteRole(id: number): Promise<FormResult>;
   createEmployee(input: {
     fullName: string;
@@ -263,7 +264,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [reloadToken]);
 
   useEffect(() => {
-    const id = setInterval(() => setTodayIso(todayIsoNow()), 60_000);
+    // Functional form + an explicit equality check so a tick that lands
+    // within the same calendar day (the common case) is a genuine no-op —
+    // React already bails out of re-rendering on an unchanged primitive
+    // state value, but being explicit here keeps this from silently
+    // regressing if todayIsoNow() ever stops returning a stable primitive.
+    const id = setInterval(() => setTodayIso((prev) => {
+      const next = todayIsoNow();
+      return prev === next ? prev : next;
+    }), 60_000);
     return () => clearInterval(id);
   }, []);
 
@@ -271,13 +280,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET", payload: updater(stateRef.current) });
   }, []);
 
-  const storeApi = useMemo<StoreApi>(() => {
+  // Every mutation method here only ever touches `set`/`stateRef` (never
+  // `state` directly), so none of them actually need to change identity when
+  // `state` changes — but they used to live inside a memo keyed on `state`,
+  // so every SET_COLLECTION/SET dispatch rebuilt all 30+ closures and hence
+  // the whole context value, re-rendering every `useStore()` consumer in the
+  // app. Splitting them into their own memo (stable for the app's lifetime,
+  // since `set` never changes) means only `state`/`todayIso`/`loading`
+  // actually changing produces a new context value.
+  type StoreActions = Omit<StoreApi, "state" | "todayIso" | "hydrating" | "loading" | "loadError">;
+  const actions = useMemo<StoreActions>(() => {
     return {
-      state,
-      todayIso,
-      hydrating,
-      loading,
-      loadError,
       reload: () => setReloadToken((t) => t + 1),
 
       async createReservation(input) {
@@ -395,6 +408,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       async deactivateRoom(id) {
         try {
           const res = await api.patch(`/api/rooms/${id}/deactivate`);
+          set((prev) => ({
+            ...prev,
+            rooms: prev.rooms.map((r) => (r.id === id ? res.data.data : r)),
+          }));
+          return { ok: true };
+        } catch (err: any) {
+          return extractFormError(err, "Hata oluştu.");
+        }
+      },
+
+      async activateRoom(id) {
+        try {
+          const res = await api.patch(`/api/rooms/${id}/activate`);
           set((prev) => ({
             ...prev,
             rooms: prev.rooms.map((r) => (r.id === id ? res.data.data : r)),
@@ -547,7 +573,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [state, set, hydrating, loading, loadError, todayIso]);
+  }, [set]);
+
+  const storeApi = useMemo<StoreApi>(
+    () => ({ ...actions, state, todayIso, hydrating, loading, loadError }),
+    [actions, state, todayIso, hydrating, loading, loadError]
+  );
 
   return <StoreContext.Provider value={storeApi}>{children}</StoreContext.Provider>;
 }

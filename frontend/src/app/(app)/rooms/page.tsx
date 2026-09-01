@@ -18,7 +18,10 @@ import type { Room } from "@/lib/types";
 export default function RoomsPage() {
   const store = useStore();
   const { hasPermission } = useAuth();
-  const activeRooms = useMemo(() => store.state.rooms.filter((r) => r.active), [store.state.rooms]);
+  // Stats / hero banner reflect operational rooms only; the status grid and
+  // table below list everything (including passive) so a deactivated room
+  // stays visible — in its own red tile — and reactivatable, not hidden.
+  const activeRooms = useMemo(() => store.state.rooms.filter((r) => r.status !== "passive"), [store.state.rooms]);
   const stats = useMemo(() => getRoomStats(store.state), [store.state]);
   // Only rooms + reservations feed this page (getRoomStats, RoomsHeroBanner);
   // don't wait on guests/payments/roomServices/roles/permissions/employees.
@@ -28,7 +31,7 @@ export default function RoomsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const selectedRoom = selectedId ? activeRooms.find((r) => r.id === selectedId) : undefined;
+  const selectedRoom = selectedId ? store.state.rooms.find((r) => r.id === selectedId) : undefined;
 
   function openRoom(room: Room) {
     setSelectedId(room.id);
@@ -58,13 +61,13 @@ export default function RoomsPage() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                <RoomStatusGrid rooms={activeRooms} onSelect={openRoom} />
+                <RoomStatusGrid rooms={store.state.rooms} reservations={store.state.reservations} onSelect={openRoom} />
               </div>
               <div className="lg:col-span-1">
                 <RoomsStatsGrid stats={stats} />
               </div>
             </div>
-            <RoomsTable rooms={activeRooms} onRowClick={openRoom} />
+            <RoomsTable rooms={store.state.rooms} reservations={store.state.reservations} onRowClick={openRoom} />
           </>
         )}
       </main>

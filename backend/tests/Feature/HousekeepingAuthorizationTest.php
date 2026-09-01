@@ -72,4 +72,27 @@ class HousekeepingAuthorizationTest extends TestCase
         $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['housekeeping_status' => 'dirty'])
             ->assertStatus(403);
     }
+
+    public function test_status_only_role_cannot_mark_priority(): void
+    {
+        $personel = $this->personelWith(['housekeeping.update_status']);
+        $this->actingAs($personel, 'sanctum');
+        $room = Room::factory()->create();
+
+        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['is_priority_cleaning' => true])
+            ->assertStatus(403);
+    }
+
+    public function test_mark_priority_role_can_mark_priority_but_not_status(): void
+    {
+        $personel = $this->personelWith(['housekeeping.mark_priority']);
+        $this->actingAs($personel, 'sanctum');
+        $room = Room::factory()->create();
+
+        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['is_priority_cleaning' => true])
+            ->assertStatus(200);
+
+        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['housekeeping_status' => 'dirty'])
+            ->assertStatus(403);
+    }
 }

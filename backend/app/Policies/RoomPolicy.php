@@ -45,4 +45,9 @@ class RoomPolicy
     {
         return $user->isAdmin() || $user->hasPermission('housekeeping.maintenance');
     }
+
+    public function markPriorityCleaning(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('housekeeping.mark_priority');
+    }
 }

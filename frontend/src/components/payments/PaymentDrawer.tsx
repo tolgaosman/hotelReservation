@@ -107,13 +107,18 @@ export function PaymentDrawer({
               <div className="flex items-center justify-between">
                 <span>Tutar (₺)</span>
                 {selected && selected.balance > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setAmount(String(selected.balance))}
-                    className="text-[10px] font-bold text-[var(--accent)] hover:underline"
-                  >
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-[var(--ink)]">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-[var(--line)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                      checked={Number(amount) === selected.balance}
+                      onChange={(e) => {
+                        if (e.target.checked) setAmount(selected.balance.toString());
+                        else setAmount("");
+                      }}
+                    />
                     Kalanın Tamamı
-                  </button>
+                  </label>
                 )}
               </div>
             }

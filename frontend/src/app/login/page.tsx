@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { FormField } from "@/components/ui/FormField";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+
+const FIELD_CLASS =
+  "h-[52px] rounded-full border-[var(--line)] bg-[var(--surface-alt)]/80 py-0 text-[15px] " +
+  "transition-[border-color,background-color,box-shadow] duration-200 " +
+  "focus:ring-4 focus:ring-[var(--accent-soft)]/60";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,7 +18,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,14 +27,8 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      // Sanctum SPA authentication uses CSRF cookie if domains match, 
-      // but we are using Token-based authentication based on our api.ts setup.
       const res = await api.post("/api/login", { email, password });
-      
-      const token = res.data.data.token;
-      const user = res.data.data.user;
-      
-      login(token, user);
+      login(res.data.data.token, res.data.data.user);
     } catch (err: any) {
       setError(err.response?.data?.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
     } finally {
@@ -40,63 +37,116 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--canvas)] p-4">
-      <div className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-8 shadow-[var(--shadow-card)]">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--canvas)] p-4">
+      {/* Referanstaki mavi bloom'un açık zemin karşılığı: blur'lanmış lacivert auralar. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        {/* Centered via left/margin, not translate-x, so the drift keyframe's own transform doesn't fight the centering. */}
+        <div className="absolute -bottom-40 left-1/2 h-[560px] w-[820px] -ml-[410px]">
+          <div className="ambient-drift h-full w-full rounded-full bg-[var(--accent)]/14 blur-[130px]" />
+        </div>
+        <div className="ambient-drift absolute -left-32 bottom-0 h-[420px] w-[420px] rounded-full bg-[var(--info)]/18 blur-[120px] [animation-delay:-6s]" />
+        <div className="absolute -top-32 right-0 h-[380px] w-[520px] rounded-full bg-[var(--accent-soft)]/50 blur-[120px]" />
+      </div>
+
+      <div
+        className="animate-in fade-in slide-in-from-bottom-4 relative w-full max-w-[400px] rounded-[28px] border border-white/80 bg-gradient-to-b from-white/90 to-white/65 p-8 shadow-[var(--shadow-pop)] ring-1 ring-[var(--accent)]/[0.06] backdrop-blur-xl duration-500 [animation-timing-function:var(--ease-organic)]"
+      >
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink)]">
-            Otel Yönetim Paneli
+          <h1 className="text-[34px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">
+            Giriş Yap
           </h1>
-          <p className="mt-2 text-sm font-medium text-[var(--muted)]">
-            Sisteme giriş yapmak için bilgilerinizi girin.
+          <p className="mx-auto mt-3 max-w-[300px] text-balance text-sm leading-relaxed text-[var(--muted)]">
+            Otel yönetim paneline giriş yapın ve rezervasyonları kaldığınız yerden yönetmeye devam edin.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <FormField label="E-posta">
-            <Input 
-              type="email" 
-              required 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ornek@hotel.test"
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="animate-in fade-in slide-in-from-bottom-2 relative duration-500 [animation-delay:80ms] [animation-fill-mode:backwards] [animation-timing-function:var(--ease-organic)]">
+            <label htmlFor="login-email" className="sr-only">
+              E-posta adresi
+            </label>
+            <Mail
+              size={17}
+              aria-hidden
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]"
             />
-          </FormField>
+            <Input
+              id="login-email"
+              type="email"
+              required
+              autoComplete="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="E-posta adresinizi girin"
+              className={`${FIELD_CLASS} pl-11 pr-4`}
+            />
+          </div>
 
-          <FormField label="Şifre">
-            <div className="relative">
-              <Input 
-                type={showPassword ? "text" : "password"} 
-                required 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
-                aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </FormField>
+          <div className="animate-in fade-in slide-in-from-bottom-2 relative duration-500 [animation-delay:140ms] [animation-fill-mode:backwards] [animation-timing-function:var(--ease-organic)]">
+            <label htmlFor="login-password" className="sr-only">
+              Şifre
+            </label>
+            <Lock
+              size={17}
+              aria-hidden
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+            />
+            <Input
+              id="login-password"
+              type={showPassword ? "text" : "password"}
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Şifrenizi girin"
+              className={`${FIELD_CLASS} pl-11 pr-12`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--muted)] transition-colors duration-200 [transition-timing-function:var(--ease-organic)] hover:text-[var(--accent)]"
+              aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+            >
+              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
 
           {error && (
-            <div className="rounded-[var(--radius-control)] bg-[var(--crit-soft)] p-3 text-sm font-medium text-[var(--crit)]">
+            <div
+              role="alert"
+              className="animate-in fade-in slide-in-from-top-1 rounded-2xl bg-[var(--crit-soft)] px-4 py-3 text-sm font-medium text-[var(--crit)] duration-300 [animation-timing-function:var(--ease-organic)]"
+            >
               {error}
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Giriş yapılıyor..." : "Giriş Yap"}
-          </Button>
+          <div className="animate-in fade-in slide-in-from-bottom-2 pt-2 duration-500 [animation-delay:200ms] [animation-fill-mode:backwards] [animation-timing-function:var(--ease-organic)]">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="h-[52px] w-full rounded-full py-0 text-[15px] shadow-[0_8px_24px_-10px_var(--accent)] hover:shadow-[0_14px_32px_-12px_var(--accent)]"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={17} className="animate-spin" />
+                  Giriş yapılıyor…
+                </>
+              ) : (
+                "Giriş Yap"
+              )}
+            </Button>
+          </div>
         </form>
-        
+
         {process.env.NODE_ENV !== "production" && (
-          <div className="mt-6 text-center text-xs text-[var(--muted)]">
-            <p>Admin: admin@hotel.test / password</p>
-            <p>Personel: personel@hotel.test / password</p>
+          <div className="mt-7 border-t border-[var(--line)] pt-5 text-center text-xs leading-relaxed text-[var(--muted)]">
+            <p>
+              Admin — <span className="text-[var(--ink-soft)]">admin@hotel.test</span> / password
+            </p>
+            <p>
+              Personel — <span className="text-[var(--ink-soft)]">personel@hotel.test</span> / password
+            </p>
           </div>
         )}
       </div>

@@ -7,7 +7,7 @@ import { StatusBadge, statusLabel } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
-import { exportToCsv } from "@/lib/exportCsv";
+import { exportToExcel } from "@/lib/exportExcel";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
 import type { PaymentStatus, ReservationView } from "@/lib/types";
@@ -17,6 +17,13 @@ function paymentStatusOf(r: ReservationView): PaymentStatus {
   if (r.paidAmount > 0) return "partial";
   return "unpaid";
 }
+
+// Kısmi renders amber here, not the badge's indigo — requested explicitly for the Excel export.
+const PAYMENT_STATUS_EXCEL_COLORS: Record<PaymentStatus, { bg: string; text: string }> = {
+  paid: { bg: "FFE9F5ED", text: "FF4E9E72" },
+  partial: { bg: "FFF6ECDA", text: "FFC68A2E" },
+  unpaid: { bg: "FFFBECEA", text: "FFC25A4D" },
+};
 
 const STATUS_FILTERS: { value: PaymentStatus | "all"; label: string }[] = [
   { value: "all", label: "Tümü" },
@@ -71,9 +78,10 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
     },
   ];
 
-  const handleExportCsv = () => {
-    exportToCsv(
-      "odemeler.csv",
+  const handleExportExcel = () => {
+    exportToExcel(
+      "odemeler.xlsx",
+      "Ödemeler",
       [
         { header: "Misafir", value: (r: ReservationView) => r.guest.fullName },
         { header: "Oda", value: (r: ReservationView) => r.room.number },
@@ -81,7 +89,11 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
         { header: "Ödenen", value: (r: ReservationView) => String(r.paidAmount) },
         { header: "Bakiye", value: (r: ReservationView) => String(r.balance) },
         { header: "Son Ödeme", value: (r: ReservationView) => (r.lastPaymentAt ? formatDate(r.lastPaymentAt) : "") },
-        { header: "Durum", value: (r: ReservationView) => statusLabel(paymentStatusOf(r)) },
+        {
+          header: "Durum",
+          value: (r: ReservationView) => statusLabel(paymentStatusOf(r)),
+          fill: (r: ReservationView) => PAYMENT_STATUS_EXCEL_COLORS[paymentStatusOf(r)],
+        },
       ],
       filteredByQuery
     );
@@ -89,6 +101,7 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
 
   return (
     <Card
+      hover={false}
       title="Ödeme Geçmişi"
       subtitle={`${filteredByQuery.length} / ${reservations.length} rezervasyon`}
       action={
@@ -104,8 +117,8 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
             />
           </div>
           <button
-            onClick={handleExportCsv}
-            title="CSV Olarak İndir"
+            onClick={handleExportExcel}
+            title="Excel Olarak İndir"
             className="flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] p-2 text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
           >
             <FileSpreadsheet size={14} />

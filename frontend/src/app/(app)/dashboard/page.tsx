@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Topbar } from "@/components/layout/Topbar";
@@ -16,6 +16,7 @@ import {
   clampDaysToData,
   getDashboardStats,
   getReservationCountryStats,
+  getReservationViews,
   getPaymentStats,
   getReservationStatusDistribution,
   getRoomStats,
@@ -95,16 +96,37 @@ export default function DashboardPage() {
     "1_year": "Son 1 Yıl",
   };
   const days = daysMap[timeFilter] ?? 7;
-  const effectiveDays = useMemo(() => clampDaysToData(state, days), [state, days]);
+  // Narrowed to the actual arrays each selector reads instead of the whole
+  // `state` object — SET_COLLECTION replaces state wholesale per endpoint,
+  // so during hydration the 4 unrelated collections (permissions/roles/
+  // employees/roomServices) no longer force these 8 selectors + the
+  // recharts widgets they feed to recompute and re-animate. Each selector is
+  // passed the whole `state` object (its own signature), so exhaustive-deps
+  // can't see that it only reads the specific fields listed below.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const effectiveDays = useMemo(() => clampDaysToData(state, days), [state.reservations, state.payments, days]);
 
-  const stats = useMemo(() => getDashboardStats(state), [state]);
-  const roomStats = useMemo(() => getRoomStats(state), [state]);
-  const statusRows = useMemo(() => getReservationStatusDistribution(state), [state]);
-  const arrivals = useMemo(() => getTodayArrivals(state), [state]);
-  const departures = useMemo(() => getTodayDepartures(state), [state]);
-  const upcoming = useMemo(() => getUpcomingReservations(state), [state]);
-  const paymentStats = useMemo(() => getPaymentStats(state), [state]);
-  const countryStats = useMemo(() => getReservationCountryStats(state), [state]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const roomStats = useMemo(() => getRoomStats(state), [state.rooms, state.reservations]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stats = useMemo(() => getDashboardStats(state, roomStats), [state.reservations, state.payments, roomStats]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const statusRows = useMemo(() => getReservationStatusDistribution(state), [state.reservations]);
+  // Built once and handed to all three "today" selectors instead of each
+  // one independently rebuilding the full guest/room/payment/room-service
+  // index just to filter a handful of rows out of it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const reservationViews = useMemo(() => getReservationViews(state), [state.reservations, state.guests, state.rooms, state.payments, state.roomServices]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const arrivals = useMemo(() => getTodayArrivals(state, reservationViews), [reservationViews]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const departures = useMemo(() => getTodayDepartures(state, reservationViews), [reservationViews]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const upcoming = useMemo(() => getUpcomingReservations(state, 6, reservationViews), [reservationViews]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const paymentStats = useMemo(() => getPaymentStats(state), [state.reservations, state.payments]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const countryStats = useMemo(() => getReservationCountryStats(state), [state.reservations, state.guests]);
 
   const recentPayments = useMemo(() => {
     // Built straight from reservations/guests/rooms rather than
@@ -128,20 +150,26 @@ export default function DashboardPage() {
           roomNumber: room?.number ?? "—",
         };
       });
-  }, [state]);
+  }, [state.payments, state.reservations, state.guests, state.rooms]);
 
-  async function handleConfirm(id: number) {
+  // Stable identities so the DataTable memos in TodayCheckInsCard/
+  // TodayCheckOutsCard (which key on their `columns` array, itself built
+  // from these) don't get invalidated by a fresh function on every render.
+  // Depends on the specific store method rather than `store` itself — the
+  // context value is rebuilt on every mutation, but the individual mutation
+  // methods it exposes keep a stable identity across those rebuilds.
+  const handleConfirm = useCallback(async (id: number) => {
     const result = await store.confirmReservation(id);
     showToast(result.ok ? "Rezervasyon onaylandı." : result.error, result.ok ? "success" : "error");
-  }
-  async function handleCheckIn(id: number) {
+  }, [store.confirmReservation, showToast]);
+  const handleCheckIn = useCallback(async (id: number) => {
     const result = await store.checkIn(id);
     showToast(result.ok ? "Check-in tamamlandı." : result.error, result.ok ? "success" : "error");
-  }
-  async function handleCheckOut(id: number) {
+  }, [store.checkIn, showToast]);
+  const handleCheckOut = useCallback(async (id: number) => {
     const result = await store.checkOut(id);
     showToast(result.ok ? "Check-out tamamlandı." : result.error, result.ok ? "success" : "error");
-  }
+  }, [store.checkOut, showToast]);
 
   return (
     <>
@@ -171,13 +199,27 @@ export default function DashboardPage() {
       />
 
       <main className="relative flex-1 overflow-hidden p-6 lg:p-8">
-        {/* Decorative background orbs for Hero Banner vibe */}
-        <div className="pointer-events-none absolute -left-40 -top-40 size-[600px] rounded-full bg-[var(--color-accent)]/[0.03] blur-3xl" />
-        <div className="pointer-events-none absolute -right-40 top-20 size-[500px] rounded-full bg-[var(--color-info)]/[0.03] blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/2 size-[800px] -translate-x-1/2 rounded-full bg-[var(--color-accent)]/[0.02] blur-3xl" />
+        {/* Decorative background wash for Hero Banner vibe. Three stacked
+            `blur-3xl` layers each force the compositor to re-rasterize a
+            500-800px region on every repaint underneath them (map hover,
+            card hover, etc.) — one radial-gradient layer reads the same but
+            costs a flat background paint instead of three blur filters. */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(500px circle at 0% 0%, color-mix(in srgb, var(--color-accent) 3%, transparent), transparent 70%)," +
+              "radial-gradient(450px circle at 100% 15%, color-mix(in srgb, var(--color-info) 3%, transparent), transparent 70%)," +
+              "radial-gradient(600px circle at 50% 100%, color-mix(in srgb, var(--color-accent) 2%, transparent), transparent 70%)",
+          }}
+        />
 
         <div className="relative z-10 space-y-6">
-          {store.hydrating || redirectTarget ? (
+          {/* Only the 4 collections this page actually reads gate its
+              skeleton — permissions/roles/employees/roomServices used to be
+              awaited too via the store-wide `hydrating` flag even though the
+              dashboard never renders anything from them. */}
+          {store.loading.rooms || store.loading.guests || store.loading.reservations || store.loading.payments || redirectTarget ? (
             <PageSkeleton />
           ) : !anyWidgetVisible ? (
             // Only reachable when no other page exists to redirect to either.
@@ -218,7 +260,7 @@ export default function DashboardPage() {
               )}
 
               {(showActivityColumn || showTotalRevenue) && (
-                <div className="flex flex-wrap items-start gap-6 [&>*]:min-w-[320px] [&>*]:flex-1">
+                <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
                   {showActivityColumn && (
                     <div className="flex flex-col gap-6 [&>*]:max-h-[380px]">
                       {hasPermission("dashboard.widget_today_checkins") && (

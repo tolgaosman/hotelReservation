@@ -100,7 +100,6 @@ const UNKNOWN_ROOM: Room = {
   maintenanceNote: null,
   assignedStaff: null,
   isPriorityCleaning: false,
-  active: false,
 };
 
 function toViewWithIndices(reservation: Reservation, indices: ReservationIndices): ReservationView {
@@ -135,7 +134,7 @@ export function getReservationViews(store: Store): ReservationView[] {
 export { getAvailableRooms };
 
 export function getRoomStats(store: Store): RoomStats {
-  const active = store.rooms.filter((r) => r.active);
+  const active = store.rooms.filter((r) => r.status !== "passive");
   // Build the set of rooms with a future pending/confirmed stay once instead
   // of calling isRoomReserved() (a full reservations scan) per active room.
   const todayIso = getTodayIso();
@@ -153,8 +152,7 @@ export function getRoomStats(store: Store): RoomStats {
   };
 }
 
-export function getDashboardStats(store: Store): DashboardStats {
-  const roomStats = getRoomStats(store);
+export function getDashboardStats(store: Store, roomStats: RoomStats = getRoomStats(store)): DashboardStats {
   const todayIso = getTodayIso();
   const todayArrivals = store.reservations.filter(
     (r) => r.checkIn === todayIso && r.status !== "cancelled"
@@ -184,15 +182,46 @@ export function getDashboardStats(store: Store): DashboardStats {
   };
 }
 
-function isoDate(offset: number): string {
-  const d = new Date(getTodayIso());
-  d.setDate(d.getDate() + offset);
+// getRevenueSeries/getReservationsSeries call isoDate() once per day in the
+// requested range (up to ~390 times for the 1-year view) — the old
+// implementation re-parsed `getTodayIso()` into a Date via the string
+// constructor on every single call. Caching that parse per distinct
+// "today" value (it only changes once a day) turns each call into pure
+// integer arithmetic plus one Date construction for formatting.
+let cachedTodayIso: string | null = null;
+let cachedTodayUtcMs = 0;
+
+function todayAnchorMs(): number {
+  const todayIso = getTodayIso();
+  if (todayIso !== cachedTodayIso) {
+    const [y, m, d] = todayIso.split("-").map(Number);
+    cachedTodayUtcMs = Date.UTC(y, m - 1, d);
+    cachedTodayIso = todayIso;
+  }
+  return cachedTodayUtcMs;
+}
+
+function offsetDate(offset: number): Date {
+  return new Date(todayAnchorMs() + offset * 86_400_000);
+}
+
+function toIso(d: Date): string {
   return [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, "0"),
-    String(d.getDate()).padStart(2, "0")
+    d.getUTCFullYear(),
+    String(d.getUTCMonth() + 1).padStart(2, "0"),
+    String(d.getUTCDate()).padStart(2, "0")
   ].join("-");
 }
+
+function isoDate(offset: number): string {
+  return toIso(offsetDate(offset));
+}
+
+// Reused instead of `new Date(iso).toLocaleDateString("tr-TR", {...})` per
+// point — constructing an Intl.DateTimeFormat is the expensive part of that
+// call, and the old code paid it on every single day/week/month bucket.
+const DAY_MONTH_FORMATTER = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
+const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat("tr-TR", { month: "short", year: "2-digit" });
 
 function daysSince(iso: string): number {
   const diff = new Date(getTodayIso()).getTime() - new Date(iso).getTime();
@@ -228,10 +257,11 @@ export function getRevenueSeries(store: Store, days = 30): RevenuePoint[] {
 
   if (days <= 31) {
     for (let i = days - 1; i >= 0; i--) {
-      const iso = isoDate(-i);
+      const d = offsetDate(-i);
+      const iso = toIso(d);
       points.push({
         date: iso,
-        label: new Date(iso).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+        label: DAY_MONTH_FORMATTER.format(d),
         amount: byDay.get(iso) ?? 0,
       });
     }
@@ -242,9 +272,10 @@ export function getRevenueSeries(store: Store, days = 30): RevenuePoint[] {
       const end = -(w * 7);
       let amount = 0;
       for (let i = start; i <= end; i++) amount += byDay.get(isoDate(i)) ?? 0;
+      const endDate = offsetDate(end);
       points.push({
-        date: isoDate(end),
-        label: new Date(isoDate(end)).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+        date: toIso(endDate),
+        label: DAY_MONTH_FORMATTER.format(endDate),
         amount,
       });
     }
@@ -255,9 +286,10 @@ export function getRevenueSeries(store: Store, days = 30): RevenuePoint[] {
       const end = -(m * 30);
       let amount = 0;
       for (let i = start; i <= end; i++) amount += byDay.get(isoDate(i)) ?? 0;
+      const endDate = offsetDate(end);
       points.push({
-        date: isoDate(end),
-        label: new Date(isoDate(end)).toLocaleDateString("tr-TR", { month: "short", year: "2-digit" }),
+        date: toIso(endDate),
+        label: MONTH_YEAR_FORMATTER.format(endDate),
         amount,
       });
     }
@@ -279,11 +311,12 @@ export function getReservationsSeries(store: Store, days = 7): ReservationsPoint
 
   if (days <= 31) {
     for (let i = days - 1; i >= 0; i--) {
-      const iso = isoDate(-i);
+      const d = offsetDate(-i);
+      const iso = toIso(d);
       const stat = byDay.get(iso) || { confirmed: 0, cancelled: 0 };
       points.push({
         date: iso,
-        label: new Date(iso).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+        label: DAY_MONTH_FORMATTER.format(d),
         confirmed: stat.confirmed,
         cancelled: stat.cancelled,
       });
@@ -300,9 +333,10 @@ export function getReservationsSeries(store: Store, days = 7): ReservationsPoint
         confirmed += stat.confirmed;
         cancelled += stat.cancelled;
       }
+      const endDate = offsetDate(end);
       points.push({
-        date: isoDate(end),
-        label: new Date(isoDate(end)).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+        date: toIso(endDate),
+        label: DAY_MONTH_FORMATTER.format(endDate),
         confirmed,
         cancelled,
       });
@@ -319,9 +353,10 @@ export function getReservationsSeries(store: Store, days = 7): ReservationsPoint
         confirmed += stat.confirmed;
         cancelled += stat.cancelled;
       }
+      const endDate = offsetDate(end);
       points.push({
-        date: isoDate(end),
-        label: new Date(isoDate(end)).toLocaleDateString("tr-TR", { month: "short", year: "2-digit" }),
+        date: toIso(endDate),
+        label: MONTH_YEAR_FORMATTER.format(endDate),
         confirmed,
         cancelled,
       });
@@ -348,21 +383,26 @@ export function getReservationStatusDistribution(
   });
 }
 
-export function getTodayArrivals(store: Store): ReservationView[] {
+// getTodayArrivals/getTodayDepartures/getUpcomingReservations each used to
+// call getReservationViews(store) independently, which rebuilds 4 full-store
+// index Maps and materializes a ReservationView for every reservation —
+// wasteful when a caller (the dashboard) needs all three lists at once.
+// Passing an already-built `views` array lets it build the index once.
+export function getTodayArrivals(store: Store, views: ReservationView[] = getReservationViews(store)): ReservationView[] {
   const todayIso = getTodayIso();
-  return getReservationViews(store).filter((r) => r.checkIn === todayIso && r.status !== "cancelled");
+  return views.filter((r) => r.checkIn === todayIso && r.status !== "cancelled");
 }
 
-export function getTodayDepartures(store: Store): ReservationView[] {
+export function getTodayDepartures(store: Store, views: ReservationView[] = getReservationViews(store)): ReservationView[] {
   const todayIso = getTodayIso();
-  return getReservationViews(store).filter(
+  return views.filter(
     (r) => r.checkOut === todayIso && (r.status === "checked_in" || r.status === "completed")
   );
 }
 
-export function getUpcomingReservations(store: Store, limit = 6): ReservationView[] {
+export function getUpcomingReservations(store: Store, limit = 6, views: ReservationView[] = getReservationViews(store)): ReservationView[] {
   const todayIso = getTodayIso();
-  return getReservationViews(store)
+  return views
     .filter((r) => r.checkIn > todayIso && (r.status === "confirmed" || r.status === "pending"))
     .sort((a, b) => (a.checkIn < b.checkIn ? -1 : 1))
     .slice(0, limit);
@@ -397,6 +437,49 @@ export function getRoomReservations(store: Store, roomId: number): ReservationVi
   return getReservationViews(store)
     .filter((r) => r.roomId === roomId)
     .sort((a, b) => (a.checkIn < b.checkIn ? 1 : -1));
+}
+
+/**
+ * A reservation's calendar phase, derived purely from its dates vs. today —
+ * deliberately independent of its workflow `status`. A `confirmed`
+ * reservation whose check-in has already arrived is "inStay" even if the
+ * front desk hasn't pressed check-in yet, and a room card built on this
+ * matches what the calendar page (its own copy of this logic) shows.
+ */
+export type StayPhase = "upcoming" | "inStay" | "past";
+
+export function getStayPhase(checkIn: string, checkOut: string, todayIso: string): StayPhase {
+  if (todayIso < checkIn) return "upcoming";
+  if (todayIso < checkOut) return "inStay";
+  return "past";
+}
+
+export interface RoomStayBuckets {
+  /** The one non-cancelled reservation currently spanning today, if any — the conflict rule guarantees there's never more than one. */
+  active?: ReservationView;
+  /** Non-cancelled reservations whose check-in hasn't arrived yet, soonest first. */
+  upcoming: ReservationView[];
+  /** Reservations whose stay has already ended, plus any cancelled ones, most recent first. */
+  past: ReservationView[];
+}
+
+export function getRoomStayBuckets(store: Store, roomId: number, todayIso: string): RoomStayBuckets {
+  const all = getRoomReservations(store, roomId); // checkIn descending
+  let active: ReservationView | undefined;
+  const upcoming: ReservationView[] = [];
+  const past: ReservationView[] = [];
+  for (const r of all) {
+    if (r.status === "cancelled") {
+      past.push(r);
+      continue;
+    }
+    const phase = getStayPhase(r.checkIn, r.checkOut, todayIso);
+    if (phase === "inStay") active = r;
+    else if (phase === "upcoming") upcoming.push(r);
+    else past.push(r);
+  }
+  upcoming.reverse(); // soonest check-in first
+  return { active, upcoming, past };
 }
 
 export function getPaymentStats(store: Store) {

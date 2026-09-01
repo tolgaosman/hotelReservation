@@ -17,7 +17,8 @@ export const PROFESSIONS = [
   "Resepsiyonist",
   "Resepsiyon Amiri",
   "Temizlikçi",
-  "Temizlik Sorumlusu",
+  "Tamirci",
+  "Temizlik & Tamir Sorumlusu",
   "Garson",
   "Garson Şefi",
 ];

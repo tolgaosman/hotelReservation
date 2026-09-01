@@ -73,6 +73,7 @@ class PermissionSeeder extends Seeder
                     'housekeeping.update_status' => ['Temizlik Durumu Güncelleme', false],
                     'housekeeping.assign_staff' => ['Temizlik Personeli Atama', false],
                     'housekeeping.maintenance' => ['Arıza Bildirme / Giderme', false],
+                    'housekeeping.mark_priority' => ['Öncelikli Temizlik İşaretleme', false],
                 ],
             ],
             'room_service' => [
@@ -116,7 +117,8 @@ class PermissionSeeder extends Seeder
             'audit_logs' => [
                 'label' => 'Aktivite Kayıtları',
                 'permissions' => [
-                    'audit_logs.view' => ['Sayfayı Görüntüleme', true],
+                    'audit_logs.view' => ['Sayfayı Görüntüleme (Kendi Departmanı)', true],
+                    'audit_logs.view_all' => ['Tüm Departmanları Görüntüleme', false],
                 ],
             ],
         ];

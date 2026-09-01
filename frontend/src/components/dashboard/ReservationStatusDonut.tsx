@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Card } from "@/components/ui/Card";
 import type { ReservationStatus } from "@/lib/types";
@@ -12,6 +13,10 @@ const COLOR: Record<ReservationStatus, string> = {
   cancelled: "var(--color-crit)",
 };
 
+const TERMINAL_STATUSES = ["completed", "cancelled"];
+const TOOLTIP_CONTENT_STYLE = { borderRadius: '12px', border: '1px solid var(--color-line)', boxShadow: 'var(--shadow-pop)', padding: '4px 8px' };
+const TOOLTIP_ITEM_STYLE = { color: 'var(--color-ink)', fontWeight: 600, fontSize: '12px' };
+
 interface Row {
   status: ReservationStatus;
   label: string;
@@ -20,17 +25,21 @@ interface Row {
 }
 
 export function ReservationStatusDonut({ rows }: { rows: Row[] }) {
-  const terminalStatuses = ["completed", "cancelled"];
-  const terminalRows = rows.filter((r) => terminalStatuses.includes(r.status));
-  const activeRows = rows.filter((r) => !terminalStatuses.includes(r.status));
-  
-  const total = rows.reduce((sum, r) => sum + r.count, 0);
-  const activeTotal = activeRows.reduce((sum, r) => sum + r.count, 0);
-
-  const activeRowsWithPct = activeRows.map((r) => ({
-    ...r,
-    pct: activeTotal > 0 ? Math.round((r.count / activeTotal) * 100) : 0,
-  }));
+  // rows is a fresh array from the dashboard's own useMemo, but filtering it
+  // into terminal/active groups (and re-sorting for the legend) was still
+  // happening unmemoized here — a new `activeRowsWithPct` identity on every
+  // render made recharts' Pie replay its mount/sector animation on every
+  // parent re-render, not just when the status distribution actually changed.
+  const { terminalRows, activeRowsWithPct, total, activeTotal } = useMemo(() => {
+    const terminalRows = rows.filter((r) => TERMINAL_STATUSES.includes(r.status));
+    const activeRows = rows.filter((r) => !TERMINAL_STATUSES.includes(r.status));
+    const total = rows.reduce((sum, r) => sum + r.count, 0);
+    const activeTotal = activeRows.reduce((sum, r) => sum + r.count, 0);
+    const activeRowsWithPct = activeRows
+      .map((r) => ({ ...r, pct: activeTotal > 0 ? Math.round((r.count / activeTotal) * 100) : 0 }))
+      .sort((a, b) => b.count - a.count);
+    return { terminalRows, activeRowsWithPct, total, activeTotal };
+  }, [rows]);
 
   return (
     <Card title="Rezervasyon Durumu" subtitle={`${total} toplam işlem`} padded className="flex flex-col h-full">
@@ -56,9 +65,9 @@ export function ReservationStatusDonut({ rows }: { rows: Row[] }) {
                   <Cell key={r.status} fill={COLOR[r.status]} />
                 ))}
               </Pie>
-              <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-line)', boxShadow: 'var(--shadow-pop)', padding: '4px 8px' }}
-                itemStyle={{ color: 'var(--color-ink)', fontWeight: 600, fontSize: '12px' }}
+              <Tooltip
+                contentStyle={TOOLTIP_CONTENT_STYLE}
+                itemStyle={TOOLTIP_ITEM_STYLE}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -71,7 +80,6 @@ export function ReservationStatusDonut({ rows }: { rows: Row[] }) {
         <div className="flex flex-1 flex-col justify-center gap-1.5 w-full">
           {activeRowsWithPct
             .filter((r) => r.count > 0)
-            .sort((a, b) => b.count - a.count)
             .map((r) => (
               <div
                 key={r.status}

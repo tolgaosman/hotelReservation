@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import { Maximize, ZoomIn, ZoomOut } from "lucide-react";
@@ -16,17 +16,36 @@ const BUTTON_ZOOM_FACTOR = 1.5;
 /** --geo-1..--geo-5 tokens — index 0 is unused (bin 0 = no data = --geo-0). */
 const GEO_RAMP = ["", "var(--geo-1)", "var(--geo-2)", "var(--geo-3)", "var(--geo-4)", "var(--geo-5)"];
 
+const INACTIVE_STROKE = "var(--surface)";
+const INACTIVE_STROKE_WIDTH = "0.6";
+const ACTIVE_STROKE = "var(--ink-soft)";
+const ACTIVE_STROKE_WIDTH = "1.2";
+
 export interface CountryHover {
   name: string;
   stat: CountryStat | null;
   x: number;
   y: number;
+  /** Optional: set by consumers that want to decide tooltip-flip once, at
+   *  hover time, instead of re-reading `window` dimensions on every render. */
+  flipX?: boolean;
+  flipY?: boolean;
 }
 
 interface CountryFeature {
   type: "Feature";
   properties: { name: string };
   geometry: unknown;
+}
+
+interface CountryShape {
+  name: string;
+  d: string | undefined;
+}
+
+interface CountryInfo {
+  fill: string;
+  title: string;
 }
 
 interface View {
@@ -57,13 +76,30 @@ function clampView(view: View): View {
  * dataset. Linear count/max binning collapses everything into the lightest
  * tier once one country (Türkiye) dominates — quantiles keep the mid/long
  * tail visually separated instead.
+ *
+ * Binning is precomputed as 5 upper-bound thresholds once per dataset
+ * (`buildQuantileThresholds`) so looking up a single country's bin is an O(1)
+ * threshold scan instead of re-filtering the whole sorted array per country —
+ * this used to run once per rendered path, making it O(countries²) per render.
  */
-function quantileBin(count: number, sortedNonZero: number[]): number {
-  if (count <= 0 || sortedNonZero.length === 0) return 0;
-  if (sortedNonZero.length === 1) return 5;
-  const rank = sortedNonZero.filter((v) => v <= count).length;
-  const percentile = rank / sortedNonZero.length;
-  return Math.max(1, Math.min(5, Math.ceil(percentile * 5)));
+function buildQuantileThresholds(sortedNonZero: number[]): number[] {
+  if (sortedNonZero.length === 0) return [];
+  if (sortedNonZero.length === 1) return [sortedNonZero[0]];
+  const thresholds: number[] = [];
+  for (let bin = 1; bin <= 5; bin++) {
+    const idx = Math.ceil((bin / 5) * sortedNonZero.length) - 1;
+    thresholds.push(sortedNonZero[Math.min(idx, sortedNonZero.length - 1)]);
+  }
+  return thresholds;
+}
+
+function quantileBin(count: number, thresholds: number[]): number {
+  if (count <= 0 || thresholds.length === 0) return 0;
+  if (thresholds.length === 1) return 5;
+  for (let bin = 0; bin < thresholds.length; bin++) {
+    if (count <= thresholds[bin]) return bin + 1;
+  }
+  return 5;
 }
 
 export function useCountryBins(countryStats: CountryStat[]) {
@@ -74,10 +110,61 @@ export function useCountryBins(countryStats: CountryStat[]) {
       .map((s) => s.count)
       .filter((c) => c > 0)
       .sort((a, b) => a - b);
-    const binFor = (count: number) => quantileBin(count, sortedNonZero);
+    const thresholds = buildQuantileThresholds(sortedNonZero);
+    const binFor = (count: number) => quantileBin(count, thresholds);
     return { statByEn, binFor };
   }, [countryStats]);
 }
+
+function svgPointFromClient(svg: SVGSVGElement, clientX: number, clientY: number, inverse: DOMMatrix) {
+  const point = svg.createSVGPoint();
+  point.x = clientX;
+  point.y = clientY;
+  return point.matrixTransform(inverse);
+}
+
+/**
+ * All ~176 country paths, isolated behind React.memo so that hovering the
+ * map (which re-renders the parent card via its `onHover` state) never
+ * re-serializes or re-diffs this subtree — only a real data change (new
+ * `shapes`/`info` identity) or a genuinely new callback does. Active-country
+ * highlighting is applied straight to the DOM by WorldMap's effect below
+ * instead of as a prop here, for the same reason.
+ */
+const CountryPaths = memo(function CountryPaths({
+  shapes,
+  info,
+  onMove,
+  onLeave,
+}: {
+  shapes: CountryShape[];
+  info: Map<string, CountryInfo>;
+  onMove: (name: string, e: React.MouseEvent<SVGPathElement>) => void;
+  onLeave: () => void;
+}) {
+  return (
+    <>
+      {shapes.map((s) => {
+        const entry = info.get(s.name);
+        return (
+          <path
+            key={s.name}
+            data-country={s.name}
+            d={s.d}
+            fill={entry?.fill ?? "var(--geo-0)"}
+            stroke={INACTIVE_STROKE}
+            strokeWidth={INACTIVE_STROKE_WIDTH}
+            vectorEffect="non-scaling-stroke"
+            onMouseMove={(e) => onMove(s.name, e)}
+            onMouseLeave={onLeave}
+          >
+            <title>{entry?.title ?? s.name}</title>
+          </path>
+        );
+      })}
+    </>
+  );
+});
 
 export function WorldMap({
   countryStats,
@@ -91,7 +178,9 @@ export function WorldMap({
   const { statByEn, binFor } = useCountryBins(countryStats);
   const svgRef = useRef<SVGSVGElement>(null);
   const [view, setView] = useState<View>(IDENTITY_VIEW);
-  const dragRef = useRef<{ startClientX: number; startClientY: number; viewX: number; viewY: number } | null>(null);
+  const dragRef = useRef<{ inverse: DOMMatrix; startX: number; startY: number; viewX: number; viewY: number } | null>(null);
+  const pendingViewRef = useRef<{ x: number; y: number } | null>(null);
+  const dragRafRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const { features, path } = useMemo(() => {
@@ -115,6 +204,31 @@ export function WorldMap({
     return { features: inhabited.features, path: geoPath(projection) };
   }, []);
 
+  // Path geometry never depends on the live data, only on the fixed
+  // projection above — serializing all ~176 `d` strings once here (instead
+  // of inline in the render loop) means a hover-driven parent re-render
+  // never re-runs `geoPath` at all.
+  const shapes = useMemo<CountryShape[]>(
+    () => features.map((f) => ({ name: f.properties.name, d: path(f as never) ?? undefined })),
+    [features, path]
+  );
+
+  const countryInfo = useMemo(() => {
+    const map = new Map<string, CountryInfo>();
+    for (const f of features) {
+      const name = f.properties.name;
+      const stat = statByEn.get(name);
+      const bin = stat ? binFor(stat.count) : 0;
+      const fill = bin === 0 ? "var(--geo-0)" : GEO_RAMP[bin];
+      const title =
+        stat && stat.count > 0
+          ? `${stat.country}: ${stat.count} rezervasyon (%${stat.percent})`
+          : `${name}: rezervasyon yok`;
+      map.set(name, { fill, title });
+    }
+    return map;
+  }, [features, statByEn, binFor]);
+
   // Wheel-to-zoom needs preventDefault to stop the page from scrolling while
   // the cursor is over the map — React's onWheel is attached passively, so a
   // native, non-passive listener is required for the preventDefault to work.
@@ -124,8 +238,9 @@ export function WorldMap({
 
     function handleWheel(e: WheelEvent) {
       e.preventDefault();
-      const point = toSvgPoint(svg!, e.clientX, e.clientY);
-      if (!point) return;
+      const ctm = svg!.getScreenCTM();
+      if (!ctm) return;
+      const point = svgPointFromClient(svg!, e.clientX, e.clientY, ctm.inverse());
       setView((prev) => {
         const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
         const nextScale = clamp(prev.scale * factor, MIN_SCALE, MAX_SCALE);
@@ -138,14 +253,36 @@ export function WorldMap({
     return () => svg.removeEventListener("wheel", handleWheel);
   }, []);
 
-  function toSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return null;
-    const point = svg.createSVGPoint();
-    point.x = clientX;
-    point.y = clientY;
-    return point.matrixTransform(ctm.inverse());
-  }
+  // Applies the hovered country's highlight straight to its <path> element
+  // instead of threading `activeCountryEn` through CountryPaths as a prop —
+  // that would force a full re-render (and re-diff) of all ~176 paths on
+  // every hover change, exactly what CountryPaths' memo is meant to avoid.
+  const lastActiveRef = useRef<string | null>(null);
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const next = activeCountryEn ?? null;
+    const prev = lastActiveRef.current;
+    if (prev === next) return;
+
+    if (prev) {
+      const prevPath = svg.querySelector<SVGPathElement>(`path[data-country="${CSS.escape(prev)}"]`);
+      prevPath?.setAttribute("stroke", INACTIVE_STROKE);
+      prevPath?.setAttribute("stroke-width", INACTIVE_STROKE_WIDTH);
+    }
+    if (next) {
+      const nextPath = svg.querySelector<SVGPathElement>(`path[data-country="${CSS.escape(next)}"]`);
+      nextPath?.setAttribute("stroke", ACTIVE_STROKE);
+      nextPath?.setAttribute("stroke-width", ACTIVE_STROKE_WIDTH);
+    }
+    lastActiveRef.current = next;
+  }, [activeCountryEn, shapes]);
+
+  useEffect(() => {
+    return () => {
+      if (dragRafRef.current !== null) cancelAnimationFrame(dragRafRef.current);
+    };
+  }, []);
 
   function zoomBy(factor: number) {
     setView((prev) => {
@@ -164,39 +301,57 @@ export function WorldMap({
 
   function handlePointerDown(e: React.PointerEvent<SVGSVGElement>) {
     if (view.scale <= MIN_SCALE) return;
-    dragRef.current = { startClientX: e.clientX, startClientY: e.clientY, viewX: view.x, viewY: view.y };
+    const svg = svgRef.current;
+    if (!svg) return;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const inverse = ctm.inverse();
+    const start = svgPointFromClient(svg, e.clientX, e.clientY, inverse);
+    dragRef.current = { inverse, startX: start.x, startY: start.y, viewX: view.x, viewY: view.y };
     setIsDragging(true);
     (e.target as Element).setPointerCapture(e.pointerId);
   }
 
+  // Reuses the CTM captured on pointerdown instead of calling
+  // `getScreenCTM()` again on every move — that call forces a synchronous
+  // layout read, so doing it per pointermove (previously twice) turned
+  // dragging into a layout-thrashing loop. The `<svg>` itself never moves
+  // during a pan (only the inner `<g>` transform does), so the cached CTM
+  // stays valid for the whole gesture.
   function handlePointerMove(e: React.PointerEvent<SVGSVGElement>) {
-    if (!dragRef.current || !svgRef.current) return;
-    const start = toSvgPoint(svgRef.current, dragRef.current.startClientX, dragRef.current.startClientY);
-    const current = toSvgPoint(svgRef.current, e.clientX, e.clientY);
-    if (!start || !current) return;
-    setView(
-      clampView({
-        scale: view.scale,
-        x: dragRef.current.viewX + (current.x - start.x),
-        y: dragRef.current.viewY + (current.y - start.y),
-      })
-    );
+    const drag = dragRef.current;
+    const svg = svgRef.current;
+    if (!drag || !svg) return;
+    const current = svgPointFromClient(svg, e.clientX, e.clientY, drag.inverse);
+    pendingViewRef.current = {
+      x: drag.viewX + (current.x - drag.startX),
+      y: drag.viewY + (current.y - drag.startY),
+    };
+    if (dragRafRef.current !== null) return;
+    dragRafRef.current = requestAnimationFrame(() => {
+      dragRafRef.current = null;
+      const pending = pendingViewRef.current;
+      if (!pending) return;
+      setView((prev) => clampView({ scale: prev.scale, x: pending.x, y: pending.y }));
+    });
   }
 
   function endDrag() {
     dragRef.current = null;
     setIsDragging(false);
+    if (dragRafRef.current !== null) {
+      cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+    }
   }
 
-  function colorFor(name: string) {
-    const stat = statByEn.get(name);
-    const bin = stat ? binFor(stat.count) : 0;
-    return bin === 0 ? "var(--geo-0)" : GEO_RAMP[bin];
-  }
-
-  function handleMove(name: string, e: React.MouseEvent<SVGPathElement>) {
-    onHover({ name, stat: statByEn.get(name) ?? null, x: e.clientX, y: e.clientY });
-  }
+  const handleMove = useCallback(
+    (name: string, e: React.MouseEvent<SVGPathElement>) => {
+      onHover({ name, stat: statByEn.get(name) ?? null, x: e.clientX, y: e.clientY });
+    },
+    [onHover, statByEn]
+  );
+  const handleLeave = useCallback(() => onHover(null), [onHover]);
 
   const canPan = view.scale > MIN_SCALE;
 
@@ -214,30 +369,7 @@ export function WorldMap({
         onPointerLeave={endDrag}
       >
         <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
-          {features.map((f, i) => {
-            const name = f.properties.name;
-            const stat = statByEn.get(name);
-            const isActive = activeCountryEn === name;
-            return (
-              <path
-                key={i}
-                d={path(f as never) ?? undefined}
-                fill={colorFor(name)}
-                stroke={isActive ? "var(--ink-soft)" : "var(--surface)"}
-                strokeWidth={isActive ? 1.2 : 0.6}
-                vectorEffect="non-scaling-stroke"
-                onMouseMove={(e) => handleMove(name, e)}
-                onMouseLeave={() => onHover(null)}
-                className="transition-colors duration-150 [transition-timing-function:var(--ease-organic)]"
-              >
-                <title>
-                  {stat && stat.count > 0
-                    ? `${stat.country}: ${stat.count} rezervasyon (%${stat.percent})`
-                    : `${name}: rezervasyon yok`}
-                </title>
-              </path>
-            );
-          })}
+          <CountryPaths shapes={shapes} info={countryInfo} onMove={handleMove} onLeave={handleLeave} />
         </g>
       </svg>
 

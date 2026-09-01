@@ -3,23 +3,37 @@
 import { useMemo, useState } from "react";
 import { FileSpreadsheet, Search } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { StatusBadge, statusLabel } from "@/components/ui/status-badge";
+import { StatusBadge, statusLabel, STATUS_EXCEL_COLORS } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { exportToCsv } from "@/lib/exportCsv";
+import { exportToExcel } from "@/lib/exportExcel";
 import { formatCurrency } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
-import type { Room, RoomStatus } from "@/lib/types";
+import { isRoomReserved } from "@/lib/availability";
+import type { Room, RoomStatus, Reservation } from "@/lib/types";
 
-const STATUS_FILTERS: { value: RoomStatus | "all"; label: string }[] = [
+// "occupied" only ever means a guest is currently checked in — a room with a
+// future pending/confirmed booking still has status "available", so "reserved"
+// is derived per-room (below) rather than being its own stored RoomStatus.
+type DisplayStatus = RoomStatus | "reserved";
+
+const STATUS_FILTERS: { value: DisplayStatus | "all"; label: string }[] = [
   { value: "all", label: "Tümü" },
   { value: "available", label: "Müsait" },
-  { value: "occupied", label: "Dolu" },
+  { value: "reserved", label: "Rezerve" },
+  { value: "occupied", label: "Konaklamada" },
   { value: "maintenance", label: "Bakımda" },
+  { value: "passive", label: "Pasif" },
 ];
 
-export function RoomsTable({ rooms, onRowClick }: { rooms: Room[]; onRowClick: (room: Room) => void }) {
+export function RoomsTable({ rooms, reservations, onRowClick }: { rooms: Room[]; reservations: Reservation[]; onRowClick: (room: Room) => void }) {
   const [query, setQuery] = useState("");
+  const today = new Date().toISOString().slice(0, 10);
+
+  function displayStatus(room: Room): DisplayStatus {
+    if (room.status === "available" && isRoomReserved(room.id, today, reservations)) return "reserved";
+    return room.status;
+  }
 
   const filteredByQuery = useMemo(() => {
     const q = query.trim();
@@ -61,25 +75,30 @@ export function RoomsTable({ rooms, onRowClick }: { rooms: Room[]; onRowClick: (
           </div>
         ),
     },
-    { 
-      key: "status", 
-      header: "Durum", 
-      render: (r) => <StatusBadge status={r.status} />,
+    {
+      key: "status",
+      header: "Durum",
+      render: (r) => <StatusBadge status={displayStatus(r)} />,
       filterOptions: STATUS_FILTERS.filter(f => f.value !== "all"),
-      filterFn: (r, val) => r.status === val
+      filterFn: (r, val) => displayStatus(r) === val
     },
   ];
 
-  const handleExportCsv = () => {
-    exportToCsv(
-      "odalar.csv",
+  const handleExportExcel = () => {
+    exportToExcel(
+      "odalar.xlsx",
+      "Odalar",
       [
         { header: "Oda No", value: (r: Room) => r.number },
         { header: "Tip", value: (r: Room) => r.type },
         { header: "Kapasite", value: (r: Room) => String(r.capacity) },
         { header: "Gecelik Ücret", value: (r: Room) => String(r.nightlyRate) },
-        { header: "Özellikler", value: (r: Room) => r.amenities.join("; ") },
-        { header: "Durum", value: (r: Room) => statusLabel(r.status) },
+        { header: "Özellikler", value: (r: Room) => r.amenities.join(", ") },
+        {
+          header: "Durum",
+          value: (r: Room) => statusLabel(displayStatus(r)),
+          fill: (r: Room) => STATUS_EXCEL_COLORS[displayStatus(r)],
+        },
       ],
       filteredByQuery
     );
@@ -87,6 +106,7 @@ export function RoomsTable({ rooms, onRowClick }: { rooms: Room[]; onRowClick: (
 
   return (
     <Card
+      hover={false}
       title="Tüm Odalar"
       subtitle={`${filteredByQuery.length} / ${rooms.length} oda`}
       action={
@@ -102,8 +122,8 @@ export function RoomsTable({ rooms, onRowClick }: { rooms: Room[]; onRowClick: (
             />
           </div>
           <button
-            onClick={handleExportCsv}
-            title="CSV Olarak İndir"
+            onClick={handleExportExcel}
+            title="Excel Olarak İndir"
             className="flex items-center justify-center rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] p-2 text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
           >
             <FileSpreadsheet size={14} />

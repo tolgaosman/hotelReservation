@@ -38,7 +38,10 @@ export default function GuestsPage() {
       />
 
       <main className="flex-1 space-y-6 p-6 lg:p-8">
-        {store.hydrating ? (
+        {/* getGuestSummaries only reads guests/reservations/payments — the
+            store-wide `hydrating` flag also waited on rooms/roomServices/
+            permissions/roles/employees, which this page never touches. */}
+        {store.loading.guests || store.loading.reservations || store.loading.payments ? (
           <PageSkeleton />
         ) : (
           <>

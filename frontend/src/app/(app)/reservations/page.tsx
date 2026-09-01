@@ -42,7 +42,10 @@ export default function ReservationsPage() {
       />
 
       <main className="flex-1 space-y-6 p-6 lg:p-8">
-        {store.hydrating ? (
+        {/* getReservationViews reads reservations/guests/rooms/payments/
+            roomServices — narrowed off the store-wide `hydrating` flag,
+            which also waited on permissions/roles/employees. */}
+        {store.loading.reservations || store.loading.guests || store.loading.rooms || store.loading.payments || store.loading.roomServices ? (
           <PageSkeleton />
         ) : (
           <>

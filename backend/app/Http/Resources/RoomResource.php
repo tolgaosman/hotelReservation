@@ -22,7 +22,6 @@ class RoomResource extends JsonResource
             'maintenance_note' => $this->maintenance_note,
             'assigned_staff' => $this->assigned_staff,
             'is_priority_cleaning' => $this->is_priority_cleaning,
-            'active' => $this->active,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

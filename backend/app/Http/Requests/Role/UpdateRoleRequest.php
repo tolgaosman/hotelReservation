@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Role;
 
+use App\Enums\Department;
 use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -20,6 +21,7 @@ class UpdateRoleRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:100', Rule::unique('roles', 'name')->ignore($this->route('role'))],
             'description' => ['nullable', 'string', 'max:2000'],
+            'department' => ['nullable', Rule::enum(Department::class)],
             'permission_ids' => ['sometimes', 'array'],
             'permission_ids.*' => ['integer', 'exists:permissions,id'],
         ];

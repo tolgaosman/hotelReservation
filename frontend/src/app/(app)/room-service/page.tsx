@@ -4,9 +4,12 @@ import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { useState, useMemo, useEffect } from "react";
-import { UtensilsCrossed, Plus, Search, Trash2, List, X, Download } from "lucide-react";
+import { UtensilsCrossed, Plus, Search, Trash2, List, X, Download, Receipt } from "lucide-react";
 import { PageSkeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { ReservationView, RoomService } from "@/lib/types";
+import { getReservationViews } from "@/lib/selectors";
 
 const MENU_DATA = [
   {
@@ -39,7 +42,7 @@ const MENU_DATA = [
 ];
 
 export default function RoomServicePage() {
-  const { state, hydrating, addRoomService, getRoomServices, deleteRoomService } = useStore();
+  const { state, loading, addRoomService, getRoomServices, deleteRoomService } = useStore();
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("room_service.create");
   const canDelete = hasPermission("room_service.delete");
@@ -54,6 +57,8 @@ export default function RoomServicePage() {
 
   const [statement, setStatement] = useState<RoomService[]>([]);
   const [loadingStatement, setLoadingStatement] = useState(false);
+  const statementTotal = useMemo(() => statement.reduce((sum, item) => sum + Number(item.amount), 0), [statement]);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
   // Menu Modal State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -80,28 +85,15 @@ export default function RoomServicePage() {
 
   // Sadece konaklayan (checked_in) odaları listele
   const activeReservations = useMemo(() => {
-    return state.reservations
+    return getReservationViews(state)
       .filter((r) => r.status === "checked_in")
-      .map((r) => {
-        const guest = state.guests.find((g) => g.id === r.guestId)!;
-        const room = state.rooms.find((rm) => rm.id === r.roomId)!;
-        const paidAmount = state.payments.filter(p => p.reservationId === r.id).reduce((sum, p) => sum + p.amount, 0);
-        
-        return {
-          ...r,
-          guest,
-          room,
-          paidAmount,
-          balance: r.totalAmount - paidAmount,
-        } as ReservationView;
-      })
       .filter((r) => {
         if (!search) return true;
         const q = search.toLowerCase();
         return r.room.number.toLowerCase().includes(q) || r.guest.fullName.toLowerCase().includes(q);
       })
       .sort((a, b) => a.room.number.localeCompare(b.room.number));
-  }, [state.reservations, state.guests, state.rooms, state.payments, search]);
+  }, [state, search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +122,6 @@ export default function RoomServicePage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Bu siparişi silmek istediğinize emin misiniz? Tutar hesaptan düşülecektir.")) return;
     const result = await deleteRoomService(id);
     if (result.ok) {
       addToast("Sipariş iptal edildi ve hesaptan düşüldü.", "success");
@@ -209,40 +200,143 @@ export default function RoomServicePage() {
     ]);
 
     const doc = new jsPDF();
-    
-    // Font settings (using standard fonts to avoid loading custom ttf for simplicity, tr-TR chars might not render perfectly in base fonts, but it's okay for numbers/ascii)
-    // English mapping for common TR chars just in case:
+
     const safeStr = (str: string) => str.replace(/ç/g, 'c').replace(/Ç/g, 'C').replace(/ğ/g, 'g').replace(/Ğ/g, 'G').replace(/ı/g, 'i').replace(/İ/g, 'I').replace(/ö/g, 'o').replace(/Ö/g, 'O').replace(/ş/g, 's').replace(/Ş/g, 'S').replace(/ü/g, 'u').replace(/Ü/g, 'U');
 
-    doc.setFontSize(18);
-    doc.text(`Oda ${selectedReservation.room.number} - Adisyon`, 14, 22);
-    
-    doc.setFontSize(11);
-    doc.text(`Misafir: ${safeStr(selectedReservation.guest.fullName)}`, 14, 30);
-    doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR')}`, 14, 36);
+    // Muted slate palette with a real accent (white-on-slate bands) instead of the
+    // previous dark-text-on-pale-band combo, which read as flat and low-contrast.
+    const cardBg = [247, 248, 250] as [number, number, number];
+    const rowAlt = [239, 241, 245] as [number, number, number];
+    const textColor = [30, 41, 59] as [number, number, number];
+    const mutedColor = [110, 118, 138] as [number, number, number];
+    const accent = [71, 85, 105] as [number, number, number];
+    const hairline = [221, 224, 230] as [number, number, number];
 
+    const roomNumber = safeStr(String(selectedReservation.room.number));
+
+    // 1) Card background + a crisp hairline border stands in for elevation/shadow
+    doc.setFillColor(...cardBg);
+    doc.roundedRect(10, 10, 190, 277, 8, 8, 'F');
+    doc.setDrawColor(...hairline);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(10, 10, 190, 277, 8, 8, 'S');
+
+    // 2) Title — room-centric: "ODA SERVISI" eyebrow, room number as the headline, "ADISYONU" subtitle
+    doc.setTextColor(...mutedColor);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("O D A   S E R V I S I", 20, 27);
+
+    doc.setTextColor(...textColor);
+    doc.setFontSize(30);
+    doc.setFont("helvetica", "bold");
+    doc.text(`ODA ${roomNumber}`, 20, 42);
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...mutedColor);
+    doc.text("A D I S Y O N U", 20, 50);
+
+    // 3) Meta info (Top Right) — muted label / bold value pairs
+    const receiptNo = Math.floor(Math.random() * 90000) + 10000;
+    const metaRow = (label: string, value: string, y: number) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...mutedColor);
+      doc.text(label, 190, y, { align: "right" });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...textColor);
+      doc.text(value, 190, y + 5, { align: "right" });
+    };
+    metaRow("ADISYON NO", String(receiptNo), 24);
+    metaRow("TARIH", new Date().toLocaleDateString('tr-TR'), 36);
+    metaRow("MISAFIR", safeStr(selectedReservation.guest.fullName), 48);
+
+    // Hairline separating the header from the table
+    doc.setDrawColor(...hairline);
+    doc.setLineWidth(0.3);
+    doc.line(20, 58, 190, 58);
+
+    // 4) Table
     const tableData = statement.map(item => [
       safeStr(item.description),
-      new Date(item.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-      `TL ${Number(item.amount).toLocaleString('tr-TR')}`
+      "1", // Adet (default 1)
+      `${Number(item.amount).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`
     ]);
 
     const totalAmount = statement.reduce((sum, item) => sum + Number(item.amount), 0);
-
-    tableData.push([
-      "TOPLAM",
-      "",
-      `TL ${totalAmount.toLocaleString('tr-TR')}`
-    ]);
+    const tax = totalAmount * 0.18;
+    const subtotal = totalAmount - tax;
 
     autoTable(doc, {
-      startY: 45,
-      head: [['Urun/Hizmet', 'Saat', 'Tutar']],
+      startY: 66,
+      head: [['URUN ACIKLAMASI', 'ADET', 'FIYAT']],
       body: tableData,
-      theme: 'striped',
-      headStyles: { fillColor: [30, 58, 138] }, // Navy blue
-      styles: { font: 'helvetica' }
+      theme: 'plain',
+      headStyles: {
+        fillColor: accent,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9,
+        valign: 'middle',
+        cellPadding: 6
+      },
+      bodyStyles: {
+        fillColor: cardBg,
+        textColor: textColor,
+        fontSize: 10,
+        cellPadding: 6
+      },
+      alternateRowStyles: {
+        fillColor: rowAlt
+      },
+      columnStyles: {
+        0: { cellWidth: 100 },
+        1: { cellWidth: 30, halign: 'center' },
+        2: { cellWidth: 50, halign: 'right' }
+      },
+      margin: { left: 10, right: 10 }
     });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 66;
+
+    // 5) Totals band — rounded to match the card's language, white-on-slate for contrast
+    const totalsY = finalY + 6;
+    doc.setFillColor(...accent);
+    doc.roundedRect(10, totalsY, 190, 32, 4, 4, 'F');
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(255, 255, 255);
+    doc.text("ARA TOPLAM", 120, totalsY + 10, { align: "right" });
+    doc.text("VERGI (%18)", 120, totalsY + 18, { align: "right" });
+    doc.setFont("helvetica", "bold");
+    doc.text("GENEL TOPLAM", 120, totalsY + 27, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`${subtotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 190, totalsY + 10, { align: "right" });
+    doc.text(`${tax.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 190, totalsY + 18, { align: "right" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text(`${totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 190, totalsY + 27, { align: "right" });
+
+    // 6) Footer — hairline separator, muted contact block, small closing note
+    const footerY = totalsY + 44;
+    doc.setDrawColor(...hairline);
+    doc.setLineWidth(0.3);
+    doc.line(20, footerY, 190, footerY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...mutedColor);
+    doc.text("+90 212 123 24 25", 20, footerY + 8);
+    doc.text("merhaba@hotelreservation.com", 20, footerY + 13);
+    doc.text("Ataturk Mah. Gazi Bulvari No: 12", 20, footerY + 18);
+    doc.text("34000 Istanbul / Turkiye", 20, footerY + 23);
+
+    doc.setFont("helvetica", "italic");
+    doc.text("Tesekkur ederiz", 190, footerY + 8, { align: "right" });
 
     doc.save(`Adisyon_Oda_${selectedReservation.room.number}.pdf`);
   };
@@ -261,7 +355,10 @@ export default function RoomServicePage() {
         </div>
       </div>
 
-      {hydrating ? (
+      {/* getReservationViews reads reservations/guests/rooms/payments/
+          roomServices — narrowed off the store-wide `hydrating` flag, which
+          also waited on permissions/roles/employees. */}
+      {loading.reservations || loading.guests || loading.rooms || loading.payments || loading.roomServices ? (
         <PageSkeleton />
       ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:block">
@@ -295,8 +392,8 @@ export default function RoomServicePage() {
                     <p className="text-sm font-semibold text-[var(--muted)] mt-0.5">{res.guest.fullName}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-[var(--muted)] font-medium">Güncel Hesap</p>
-                    <p className="text-lg font-bold text-[var(--ok)]">₺{res.balance.toLocaleString('tr-TR')}</p>
+                    <p className="text-xs text-[var(--muted)] font-medium">Oda Servisi Hesabı</p>
+                    <p className="text-lg font-bold text-[var(--ok)]">₺{res.roomServiceAmount.toLocaleString('tr-TR')}</p>
                   </div>
                 </div>
               </div>
@@ -370,58 +467,83 @@ export default function RoomServicePage() {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="mt-4 w-full bg-[var(--ink)] text-[var(--surface)] hover:bg-[var(--ink)]/90 font-bold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                      className="mt-4 w-full bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 font-bold py-2.5 rounded-lg transition-colors disabled:opacity-50"
                     >
                       {submitting ? "Ekleniyor..." : "Hesaba Ekle"}
                     </button>
                   </form>
                 )}
 
-                {/* Ekstre Listesi */}
-                <div id="print-receipt" className="mt-8 border-t border-[var(--line)] pt-6 print:mt-0 print:border-none print:pt-0">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-bold text-[var(--ink)] flex items-center gap-2">
-                      <span>Oda Ekstresi (Oda Servisi)</span>
-                      <span className="text-xs text-[var(--muted)] font-normal">{statement.length} sipariş</span>
-                    </h4>
-                    <button 
-                      onClick={handleDownloadPDF}
-                      className="text-[var(--muted)] hover:text-[var(--ink)]"
-                      title="PDF Olarak İndir"
-                    >
-                      <Download size={16} />
-                    </button>
-                  </div>
-                  
-                  {loadingStatement ? (
-                    <p className="text-xs text-[var(--muted)] print:hidden">Yükleniyor...</p>
-                  ) : statement.length === 0 ? (
-                    <p className="text-xs text-[var(--muted)] print:hidden">Henüz bir sipariş bulunmuyor.</p>
-                  ) : (
-                    <div className="flex flex-col rounded-xl border border-[var(--line)] overflow-hidden">
-                      <div className="bg-[var(--canvas)]">
+                {/* Ekstre / Adisyon */}
+                <div id="print-receipt" className="mt-8 print:mt-0">
+                  <div className="rounded-2xl border border-[var(--line)] overflow-hidden shadow-sm print:shadow-none print:border-none">
+                    <div className="flex items-center justify-between gap-3 bg-[var(--accent)] px-5 py-4 print:border-b print:border-[var(--line)]">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
+                          <Receipt size={16} />
+                        </span>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/70">Oda Servisi</p>
+                          <h4 className="text-base font-black tracking-tight text-white">Adisyon</h4>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleDownloadPDF}
+                        className="flex size-8 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white print:hidden"
+                        title="PDF Olarak İndir"
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-b border-[var(--line)] bg-[var(--surface-alt)] px-5 py-4 text-xs">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">Oda</p>
+                        <p className="font-bold text-[var(--ink)]">{selectedReservation.room.number}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">Misafir</p>
+                        <p className="font-bold text-[var(--ink)]">{selectedReservation.guest.fullName}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">Tarih</p>
+                        <p className="font-medium text-[var(--ink)]">{new Date().toLocaleDateString('tr-TR')}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">Sipariş Sayısı</p>
+                        <p className="font-medium text-[var(--ink)]">{statement.length}</p>
+                      </div>
+                    </div>
+
+                    {loadingStatement ? (
+                      <p className="px-5 py-8 text-center text-xs text-[var(--muted)] print:hidden">Yükleniyor...</p>
+                    ) : statement.length === 0 ? (
+                      <div className="print:hidden">
+                        <EmptyState icon={Receipt} title="Henüz bir sipariş yok" description="Bu odaya eklenen oda servisi siparişleri burada listelenecek." />
+                      </div>
+                    ) : (
+                      <>
                         <table className="w-full text-left text-sm whitespace-nowrap">
                           <thead className="bg-[var(--surface-alt)] text-[var(--muted)] border-b border-[var(--line)]">
                             <tr>
-                              <th className="px-3 py-2 font-semibold">Açıklama</th>
-                              <th className="px-3 py-2 font-semibold text-right">Tutar</th>
+                              <th className="px-5 py-2 font-semibold">Açıklama</th>
+                              <th className="px-3 py-2 font-semibold">Saat</th>
+                              <th className="px-5 py-2 font-semibold text-right">Tutar</th>
                               {canDelete && <th className="px-2 py-2 w-8 print:hidden"></th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[var(--line)]">
                             {statement.map(item => (
                               <tr key={item.id} className="hover:bg-[var(--surface-alt)]/50 transition-colors">
-                                <td className="px-3 py-2 text-[var(--ink)]">
-                                  <p className="font-medium">{item.description}</p>
-                                  <p className="text-[10px] text-[var(--muted)]">{new Date(item.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</p>
-                                </td>
-                                <td className="px-3 py-2 font-bold text-[var(--ok)] text-right">
+                                <td className="px-5 py-2.5 font-medium text-[var(--ink)]">{item.description}</td>
+                                <td className="px-3 py-2.5 text-[var(--muted)] tabular-nums">{new Date(item.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                <td className="px-5 py-2.5 font-bold text-[var(--ok)] text-right tabular-nums">
                                   ₺{Number(item.amount).toLocaleString('tr-TR')}
                                 </td>
                                 {canDelete && (
-                                  <td className="px-2 py-2 text-right print:hidden">
+                                  <td className="px-2 py-2.5 text-right print:hidden">
                                     <button
-                                      onClick={() => handleDelete(item.id)}
+                                      onClick={() => setPendingDeleteId(item.id)}
                                       className="text-[var(--muted)] hover:text-[var(--crit)] transition-colors p-1"
                                       title="İptal Et / Sil"
                                     >
@@ -433,9 +555,13 @@ export default function RoomServicePage() {
                             ))}
                           </tbody>
                         </table>
-                      </div>
-                    </div>
-                  )}
+                        <div className="flex items-center justify-between border-t border-[var(--line)] bg-[var(--surface-alt)] px-5 py-4">
+                          <span className="text-xs font-bold uppercase tracking-wide text-[var(--ink)]">Toplam</span>
+                          <span className="text-xl font-black tabular-nums text-[var(--accent)]">₺{statementTotal.toLocaleString('tr-TR')}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -544,6 +670,19 @@ export default function RoomServicePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Siparişi sil"
+        description="Bu siparişi silmek istediğinize emin misiniz? Tutar hesaptan düşülecektir."
+        confirmLabel="Sil"
+        cancelLabel="Vazgeç"
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={() => {
+          if (pendingDeleteId !== null) handleDelete(pendingDeleteId);
+          setPendingDeleteId(null);
+        }}
+      />
     </div>
   );
 }

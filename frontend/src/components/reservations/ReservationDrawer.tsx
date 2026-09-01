@@ -214,6 +214,8 @@ interface Props {
   reservation?: ReservationView;
 }
 
+import { useExchangeRates } from "@/lib/useExchangeRates";
+
 export function ReservationDrawer({ open, onClose, reservation }: Props) {
   const store = useStore();
   const showToast = useToast();
@@ -221,9 +223,11 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
   const isCreate = !reservation;
   const [editing, setEditing] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentCurrency, setPaymentCurrency] = useState<"TRY" | "USD" | "EUR" | "GBP">("TRY");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [paymentDate, setPaymentDate] = useState(store.todayIso);
   const formRef = useRef<FormHandle>(null);
+  const { rates } = useExchangeRates();
 
   const canEdit = hasPermission("reservations.edit");
   const canConfirm = hasPermission("reservations.confirm");
@@ -236,7 +240,7 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
   const canShowInvoice = reservation && (reservation.status === "completed" || reservation.status === "checked_in");
   const anyDetailAction = canConfirm || canCheckIn || canCheckOut || canCancel || canEdit || canShowInvoice;
   const payments = reservation ? getPaymentsForReservation(store.state, reservation.id) : [];
-  
+
   const [roomServices, setRoomServices] = useState<RoomService[]>([]);
   const roomServicesTotal = useMemo(() => roomServices.reduce((sum, rs) => sum + rs.amount, 0), [roomServices]);
 
@@ -262,12 +266,17 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
   }
 
   async function submitPayment() {
-    const amount = Number(paymentAmount);
+    let amount = Number(paymentAmount);
     if (!reservation) return;
     if (!amount || amount <= 0) {
       showToast("Geçerli bir tutar girin.", "error");
       return;
     }
+
+    if (paymentCurrency !== "TRY" && rates && rates[paymentCurrency]) {
+      amount = amount * rates[paymentCurrency];
+    }
+
     const result = await store.addPayment({ reservationId: reservation.id, amount, method: paymentMethod, createdAt: paymentDate });
     showToast(result.ok ? "Ödeme eklendi." : result.error, result.ok ? "success" : "error");
     if (result.ok) {
@@ -424,8 +433,22 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
             </div>
 
             {canPay && reservation.balance > 0 && reservation.status !== "cancelled" && (
-              <div className="space-y-2 rounded-[var(--radius-control)] bg-[var(--surface-alt)] p-4">
-                <p className="text-xs font-semibold text-[var(--ink-soft)]">Ödeme Ekle</p>
+              <div className="space-y-3 rounded-[var(--radius-control)] bg-[var(--surface-alt)] p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-[var(--ink-soft)]">Ödeme Ekle</p>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-[var(--ink)]">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-[var(--line)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                      checked={Number(paymentAmount) === reservation.balance}
+                      onChange={(e) => {
+                        if (e.target.checked) setPaymentAmount(reservation.balance.toString());
+                        else setPaymentAmount("");
+                      }}
+                    />
+                    Kalan Tutarı Kapat
+                  </label>
+                </div>
                 <div className="flex gap-2">
                   <Input
                     type="number"
@@ -434,14 +457,16 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     className="flex-1"
                   />
-                  <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)} className="w-24">
+                  <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)} className="w-[120px]">
                     {(Object.keys(METHOD_LABEL) as PaymentMethod[]).map((m) => (
                       <option key={m} value={m}>
                         {METHOD_LABEL[m]}
                       </option>
                     ))}
                   </Select>
-                  <Input type="date" value={paymentDate} max={store.todayIso} onChange={(e) => setPaymentDate(e.target.value)} className="w-40" />
+                </div>
+                <div className="flex gap-2">
+                  <Input type="date" value={paymentDate} max={store.todayIso} onChange={(e) => setPaymentDate(e.target.value)} className="flex-1" />
                   <Button size="sm" onClick={submitPayment}>
                     Ekle
                   </Button>
@@ -456,7 +481,7 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
                   {roomServices.map((rs) => (
                     <div key={rs.id} className="flex items-center justify-between text-sm border-b border-[var(--line)] last:border-b-0 pb-2 last:pb-0">
                       <span className="text-[var(--muted)]">
-                        {rs.description} <br/> <span className="text-[10px]">{formatDateTime(rs.createdAt)}</span>
+                        {rs.description} <br /> <span className="text-[10px]">{formatDateTime(rs.createdAt)}</span>
                       </span>
                       <span className="font-medium text-[var(--ink)]">{formatCurrency(rs.amount)}</span>
                     </div>

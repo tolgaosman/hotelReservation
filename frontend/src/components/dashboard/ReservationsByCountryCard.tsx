@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Globe2 } from "lucide-react";
@@ -29,8 +29,23 @@ export function ReservationsByCountryCard({ total, countries }: { total: number;
     return bin === 0 ? "var(--geo-0)" : GEO_RAMP[bin - 1];
   }
 
-  const flipX = typeof window !== "undefined" && hover ? hover.x > window.innerWidth - TOOLTIP_EDGE_MARGIN : false;
-  const flipY = typeof window !== "undefined" && hover ? hover.y > window.innerHeight - TOOLTIP_EDGE_MARGIN : false;
+  // `window.innerWidth/innerHeight` used to be read straight in the render
+  // body — a layout-adjacent global lookup on every render, and a hydration
+  // mismatch risk since SSR has no `window`. WorldMap only calls `onHover`
+  // from a mousemove handler (already client-only), so computing the flip
+  // there and storing it alongside `hover` moves the read off the render path
+  // entirely.
+  const handleHover = useCallback((info: CountryHover | null) => {
+    if (!info) {
+      setHover(null);
+      return;
+    }
+    setHover({
+      ...info,
+      flipX: info.x > window.innerWidth - TOOLTIP_EDGE_MARGIN,
+      flipY: info.y > window.innerHeight - TOOLTIP_EDGE_MARGIN,
+    });
+  }, []);
 
   return (
     <Card padded={false}>
@@ -50,7 +65,7 @@ export function ReservationsByCountryCard({ total, countries }: { total: number;
               <WorldMap
                 countryStats={countries}
                 activeCountryEn={hover?.name ?? listHoverEn}
-                onHover={setHover}
+                onHover={handleHover}
               />
               {hover &&
                 typeof document !== "undefined" &&
@@ -63,10 +78,10 @@ export function ReservationsByCountryCard({ total, countries }: { total: number;
                   <div
                     className="pointer-events-none fixed z-50 rounded-[var(--radius-control)] border border-[var(--color-line)] bg-[var(--color-surface)]/95 px-4 py-3 text-xs shadow-[var(--shadow-pop)] backdrop-blur-md"
                     style={{
-                      left: flipX ? undefined : hover.x + 14,
-                      right: flipX ? window.innerWidth - hover.x + 14 : undefined,
-                      top: flipY ? undefined : hover.y + 14,
-                      bottom: flipY ? window.innerHeight - hover.y + 14 : undefined,
+                      left: hover.flipX ? undefined : hover.x + 14,
+                      right: hover.flipX ? window.innerWidth - hover.x + 14 : undefined,
+                      top: hover.flipY ? undefined : hover.y + 14,
+                      bottom: hover.flipY ? window.innerHeight - hover.y + 14 : undefined,
                     }}
                   >
                     <p className="font-semibold text-[var(--ink)]">{hover.stat?.country ?? hover.name}</p>

@@ -6,11 +6,13 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { Input, Textarea } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { fieldError } from "@/lib/errors";
+import { DEPARTMENTS } from "@/lib/departments";
 import type { Permission, Role } from "@/lib/types";
 
 interface FormHandle {
@@ -76,6 +78,7 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; readOn
 
     const [name, setName] = useState(role?.name ?? "");
     const [description, setDescription] = useState(role?.description ?? "");
+    const [department, setDepartment] = useState(role?.department ?? "");
     const [selected, setSelected] = useState<Set<number>>(new Set(role?.permissionIds ?? []));
     const [error, setError] = useState<string | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
@@ -110,7 +113,12 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; readOn
         setFieldErrors(undefined);
         if (!name.trim()) return setError("Rol adı gereklidir.");
 
-        const input = { name: name.trim(), description: description.trim(), permissionIds: Array.from(selected) };
+        const input = {
+          name: name.trim(),
+          description: description.trim(),
+          department: department || null,
+          permissionIds: Array.from(selected),
+        };
         const result = isCreate ? await store.createRole(input) : await store.updateRole(role!.id, input);
 
         if (!result.ok) {
@@ -136,6 +144,17 @@ const RoleForm = forwardRef<FormHandle, { role?: Role; isCreate: boolean; readOn
             placeholder="Bu rolün sorumluluklarını kısaca açıklayın"
             disabled={readOnly}
           />
+        </FormField>
+
+        <FormField label="Departman">
+          <Select value={department} onChange={(e) => setDepartment(e.target.value)} disabled={readOnly}>
+            <option value="">Departmansız</option>
+            {DEPARTMENTS.map((d) => (
+              <option key={d.key} value={d.key}>
+                {d.label}
+              </option>
+            ))}
+          </Select>
         </FormField>
 
         <div>

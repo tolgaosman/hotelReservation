@@ -9,13 +9,14 @@ import { Select } from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
+import { Tabs } from "@/components/ui/Tabs";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
-import { getRoomReservations } from "@/lib/selectors";
+import { getRoomStayBuckets } from "@/lib/selectors";
 import { fieldError } from "@/lib/errors";
 import { formatDate, formatCurrency, formatDateRange } from "@/lib/format";
-import type { Room, RoomType, RoomStatus } from "@/lib/types";
+import type { Room, RoomType, RoomStatus, ReservationView } from "@/lib/types";
 
 const ROOM_TYPES: RoomType[] = ["Standart", "Deluxe", "Aile Odası", "Suite", "King Suite"];
 const AMENITY_OPTIONS = ["Deniz Manzarası", "Balkon", "Klima", "Mini Bar", "Jakuzi", "Wi-Fi", "Kasa"];
@@ -23,6 +24,38 @@ const AMENITY_OPTIONS = ["Deniz Manzarası", "Balkon", "Klima", "Mini Bar", "Jak
 interface FormHandle {
   submit(): void;
   deactivate(): void;
+  activate(): void;
+}
+
+// Shared row layout for both the "Gelecek Rezervasyonlar" and "Geçmiş
+// Konaklamalar" tabs — they differ only in which bucket of reservations
+// and which empty-state copy they're given.
+function ReservationList({ reservations, emptyTitle }: { reservations: ReservationView[]; emptyTitle: string }) {
+  if (reservations.length === 0) {
+    return <EmptyState title={emptyTitle} />;
+  }
+  return (
+    <div className="space-y-2.5">
+      {reservations.map((r) => (
+        <div
+          key={r.id}
+          className="flex items-center justify-between gap-2 rounded-[var(--radius-control)] border border-[var(--line)] px-3.5 py-2.5"
+        >
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-[var(--ink)]">{r.guest.fullName}</p>
+            <p className="text-xs text-[var(--muted)]">{formatDateRange(r.checkIn, r.checkOut)}</p>
+            {r.companions && r.companions.length > 0 && (
+              <p className="truncate text-xs text-[var(--muted)]">+ {r.companions.map((c) => c.fullName).join(", ")}</p>
+            )}
+          </div>
+          <div className="text-right">
+            <MoneyBreakdown roomAmount={r.roomAmount} roomServiceAmount={r.roomServiceAmount} className="text-sm font-semibold text-[var(--ink)]" />
+            <StatusBadge status={r.status} className="mt-1" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // Form state is initialized straight from props (useState initializer, no
@@ -41,12 +74,14 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
     const [status, setStatus] = useState<RoomStatus>(room?.status ?? "available");
     const [error, setError] = useState<string | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
+    const [tab, setTab] = useState<"details" | "upcoming" | "past">("details");
 
-    const allReservations = room ? getRoomReservations(store.state, room.id) : [];
-    const activeRes = room?.status === "occupied" 
-      ? allReservations.find(r => r.status === "checked_in")
-      : null;
-    const pastReservations = allReservations.filter(r => r.status !== "checked_in" && r.status !== "pending");
+    // Date-driven, matching the calendar page: a stay is "active" the
+    // moment today falls inside its check-in/check-out range, regardless of
+    // whether the front desk has actually pressed check-in yet.
+    const { active: activeRes, upcoming: upcomingReservations, past: pastReservations } = room
+      ? getRoomStayBuckets(store.state, room.id, store.todayIso)
+      : { active: undefined, upcoming: [], past: [] };
 
     useImperativeHandle(ref, () => ({
       async submit() {
@@ -69,6 +104,12 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
         if (!room) return;
         const result = await store.deactivateRoom(room.id);
         showToast(result.ok ? "Oda pasife alındı." : result.error, result.ok ? "success" : "error");
+        if (result.ok) onClose();
+      },
+      async activate() {
+        if (!room) return;
+        const result = await store.activateRoom(room.id);
+        showToast(result.ok ? "Oda aktifleştirildi." : result.error, result.ok ? "success" : "error");
         if (result.ok) onClose();
       },
     }));
@@ -131,95 +172,88 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
           </div>
         )}
 
-        <FormField label="Oda Numarası" error={fieldError(fieldErrors, "number")}>
-          <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Örn. 101" disabled={readOnly} />
-        </FormField>
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField label="Oda Tipi" error={fieldError(fieldErrors, "type")}>
-            <Select value={type} onChange={(e) => setType(e.target.value as RoomType)} disabled={readOnly}>
-              {ROOM_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField label="Kapasite" error={fieldError(fieldErrors, "capacity")}>
-            <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} disabled={readOnly} />
-          </FormField>
-        </div>
-
         {!isCreate && (
-          <FormField label="Oda Durumu">
-            <Select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as RoomStatus)}
-              disabled={readOnly || room?.status === "occupied"}
-            >
-              <option value="available">Müsait</option>
-              <option value="maintenance">Bakımda</option>
-              {room?.status === "occupied" && <option value="occupied">Dolu</option>}
-            </Select>
-          </FormField>
+          <Tabs
+            value={tab}
+            onChange={(id) => setTab(id as typeof tab)}
+            tabs={[
+              { id: "details", label: "Detaylar" },
+              { id: "upcoming", label: "Gelecek Rezervasyonlar", badge: upcomingReservations.length },
+              { id: "past", label: "Geçmiş Konaklamalar", badge: pastReservations.length },
+            ]}
+          />
         )}
 
-        <FormField label="Gecelik Ücret (₺)" error={fieldError(fieldErrors, "nightlyRate")}>
-          <Input type="number" min={0} value={nightlyRate} onChange={(e) => setNightlyRate(Number(e.target.value))} disabled={readOnly} />
-        </FormField>
+        {(isCreate || tab === "details") && (
+          <div className="space-y-4">
+            <FormField label="Oda Numarası" error={fieldError(fieldErrors, "number")}>
+              <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Örn. 101" disabled={readOnly} />
+            </FormField>
 
-        <FormField label="Özellikler">
-          <div className="flex flex-wrap gap-2">
-            {AMENITY_OPTIONS.map((a) => (
-              <button
-                key={a}
-                type="button"
-                disabled={readOnly}
-                onClick={() => toggleAmenity(a)}
-                className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  amenities.includes(a)
-                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-ink)]"
-                    : "border-[var(--line)] bg-[var(--surface-alt)] text-[var(--ink-soft)]"
-                } ${readOnly ? "opacity-60 cursor-default" : ""}`}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
-        </FormField>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Oda Tipi" error={fieldError(fieldErrors, "type")}>
+                <Select value={type} onChange={(e) => setType(e.target.value as RoomType)} disabled={readOnly}>
+                  {ROOM_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+              <FormField label="Kapasite" error={fieldError(fieldErrors, "capacity")}>
+                <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} disabled={readOnly} />
+              </FormField>
+            </div>
 
-        {error && <p className="text-sm font-medium text-[var(--crit)]">{error}</p>}
+            {!isCreate && (
+              <FormField label="Oda Durumu">
+                <Select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as RoomStatus)}
+                  disabled={readOnly || room?.status === "occupied"}
+                >
+                  <option value="available">Müsait</option>
+                  <option value="maintenance">Bakımda</option>
+                  <option value="passive">Pasif</option>
+                  {room?.status === "occupied" && <option value="occupied">Dolu</option>}
+                </Select>
+              </FormField>
+            )}
 
-        {!isCreate && (
-          <div className="mt-8 border-t border-[var(--color-line)] pt-5">
-            <p className="mb-3 text-[11px] font-semibold tracking-[0.04em] text-[var(--color-muted)] uppercase">Geçmiş Konaklamalar</p>
-            {pastReservations.length === 0 ? (
-              <EmptyState title="Konaklama geçmişi yok" />
-            ) : (
-              <div className="space-y-2.5">
-                {pastReservations.map((r) => (
-                  <div
-                    key={r.id}
-                    className="flex items-center justify-between gap-2 rounded-[var(--radius-control)] border border-[var(--line)] px-3.5 py-2.5"
+            <FormField label="Gecelik Ücret (₺)" error={fieldError(fieldErrors, "nightlyRate")}>
+              <Input type="number" min={0} value={nightlyRate} onChange={(e) => setNightlyRate(Number(e.target.value))} disabled={readOnly} />
+            </FormField>
+
+            <FormField label="Özellikler">
+              <div className="flex flex-wrap gap-2">
+                {AMENITY_OPTIONS.map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => toggleAmenity(a)}
+                    className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      amenities.includes(a)
+                        ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+                        : "border-[var(--line)] bg-[var(--surface-alt)] text-[var(--ink-soft)]"
+                    } ${readOnly ? "opacity-60 cursor-default" : ""}`}
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[var(--ink)]">{r.guest.fullName}</p>
-                      <p className="text-xs text-[var(--muted)]">{formatDateRange(r.checkIn, r.checkOut)}</p>
-                      {r.companions && r.companions.length > 0 && (
-                        <p className="truncate text-xs text-[var(--muted)]">
-                          + {r.companions.map((c) => c.fullName).join(", ")}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <MoneyBreakdown roomAmount={r.roomAmount} roomServiceAmount={r.roomServiceAmount} className="text-sm font-semibold text-[var(--ink)]" />
-                      <StatusBadge status={r.status} className="mt-1" />
-                    </div>
-                  </div>
+                    {a}
+                  </button>
                 ))}
               </div>
-            )}
+            </FormField>
+
+            {error && <p className="text-sm font-medium text-[var(--crit)]">{error}</p>}
           </div>
+        )}
+
+        {!isCreate && tab === "upcoming" && (
+          <ReservationList reservations={upcomingReservations} emptyTitle="Gelecek rezervasyon yok" />
+        )}
+
+        {!isCreate && tab === "past" && (
+          <ReservationList reservations={pastReservations} emptyTitle="Konaklama geçmişi yok" />
         )}
       </div>
     );
@@ -243,9 +277,15 @@ export function RoomDrawer({ open, onClose, room }: { open: boolean; onClose: ()
       footer={
         <>
           {!isCreate && room!.status !== "occupied" && canDeactivate && (
-            <Button variant="danger" onClick={() => formRef.current?.deactivate()} className="mr-auto">
-              Pasife Al
-            </Button>
+            room!.status === "passive" ? (
+              <Button variant="outline" onClick={() => formRef.current?.activate()} className="mr-auto">
+                Aktif Et
+              </Button>
+            ) : (
+              <Button variant="danger" onClick={() => formRef.current?.deactivate()} className="mr-auto">
+                Pasife Al
+              </Button>
+            )
           )}
           <Button variant="secondary" onClick={onClose}>
             {canSave ? "Vazgeç" : "Kapat"}

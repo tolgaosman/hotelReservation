@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import type { TooltipContentProps } from "recharts/types/component/Tooltip";
 import { Card } from "@/components/ui/Card";
@@ -30,8 +30,15 @@ export function RevenueCard({
   subtitle?: string;
   className?: string;
 }) {
-  const data = getRevenueSeries(store, days);
-  const total = data.reduce((sum, p) => sum + p.amount, 0);
+  // getRevenueSeries scans every payment (and, for the 6-month/1-year
+  // ranges, formats a date per bucket) — memoized on `store.payments` alone
+  // so a rooms/guests store update elsewhere doesn't recompute it, and so
+  // `data` keeps a stable identity across re-renders that don't actually
+  // change the series (recharts replays its mount animation whenever the
+  // data array identity changes).
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getRevenueSeries(store, ...) only reads store.payments
+  const data = useMemo(() => getRevenueSeries(store, days), [store.payments, days]);
+  const total = useMemo(() => data.reduce((sum, p) => sum + p.amount, 0), [data]);
 
   return (
     <Card
@@ -57,7 +64,7 @@ export function RevenueCard({
               </linearGradient>
             </defs>
             <XAxis dataKey="label" tickLine={false} axisLine={false} tick={false} height={0} />
-            <Tooltip content={(props) => <ChartTooltip {...props} />} cursor={{ stroke: "var(--line-strong)", strokeDasharray: "3 3" }} />
+            <Tooltip content={ChartTooltip} cursor={{ stroke: "var(--line-strong)", strokeDasharray: "3 3" }} />
             <Area
               type="monotone"
               dataKey="amount"

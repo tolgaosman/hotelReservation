@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Department;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
@@ -39,6 +40,7 @@ class RoleSeeder extends Seeder
                     'guests.view',
                     'settings.view',
                 ],
+                'department' => Department::Muhasebe,
             ],
             [
                 'name' => 'Muhasebe Müdürü',
@@ -53,6 +55,8 @@ class RoleSeeder extends Seeder
                     'roles.view',
                     'settings.view',
                 ],
+                'visible_professions' => ['Muhasebeci'],
+                'department' => Department::Muhasebe,
             ],
             [
                 'name' => 'Resepsiyonist',
@@ -68,6 +72,7 @@ class RoleSeeder extends Seeder
                     'payments.view', 'payments.create',
                     'settings.view',
                 ],
+                'department' => Department::Resepsiyon,
             ],
             [
                 'name' => 'Resepsiyon Amiri',
@@ -83,6 +88,8 @@ class RoleSeeder extends Seeder
                     'employees.view',
                     'settings.view',
                 ],
+                'visible_professions' => ['Resepsiyonist'],
+                'department' => Department::Resepsiyon,
             ],
             [
                 'name' => 'Temizlikçi',
@@ -93,17 +100,31 @@ class RoleSeeder extends Seeder
                     'rooms.view',
                     'settings.view',
                 ],
+                'department' => Department::TemizlikTamir,
             ],
             [
-                'name' => 'Temizlik Sorumlusu',
-                'description' => 'Temizlik ekibinin planlamasını yapar, oda hazırlık standartlarını denetler.',
+                'name' => 'Tamirci',
+                'description' => 'Odalardaki arıza ve bakım taleplerini karşılar, tesisatı onarır.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_room_availability',
-                    'housekeeping.view', 'housekeeping.update_status', 'housekeeping.assign_staff', 'housekeeping.maintenance',
+                    'housekeeping.view', 'housekeeping.update_status', 'housekeeping.maintenance',
+                    'rooms.view',
+                    'settings.view',
+                ],
+                'department' => Department::TemizlikTamir,
+            ],
+            [
+                'name' => 'Temizlik & Tamir Sorumlusu',
+                'description' => 'Temizlik ve tamir ekibinin planlamasını yapar, oda hazırlık ve bakım standartlarını denetler.',
+                'permissions' => [
+                    ...$dashboardCore, 'dashboard.widget_room_availability',
+                    'housekeeping.view', 'housekeeping.update_status', 'housekeeping.assign_staff', 'housekeeping.maintenance', 'housekeeping.mark_priority',
                     'rooms.view', 'rooms.edit',
                     'employees.view',
                     'settings.view',
                 ],
+                'visible_professions' => ['Temizlikçi', 'Tamirci'],
+                'department' => Department::TemizlikTamir,
             ],
             [
                 'name' => 'Garson',
@@ -114,6 +135,7 @@ class RoleSeeder extends Seeder
                     'room_service.view', 'room_service.create',
                     'settings.view',
                 ],
+                'department' => Department::Servis,
             ],
             [
                 'name' => 'Garson Şefi',
@@ -125,12 +147,27 @@ class RoleSeeder extends Seeder
                     'employees.view',
                     'settings.view',
                 ],
+                'visible_professions' => ['Garson'],
+                'department' => Department::Servis,
             ],
         ];
     }
 
+    /**
+     * Renamed roles keyed by their old name — applied before the definitions
+     * loop so an in-place rename doesn't leave the old row behind as an
+     * orphan alongside a freshly-created one under the new name.
+     */
+    private const RENAMES = [
+        'Temizlik Sorumlusu' => 'Temizlik & Tamir Sorumlusu',
+    ];
+
     public function run(): void
     {
+        foreach (self::RENAMES as $oldName => $newName) {
+            Role::where('name', $oldName)->update(['name' => $newName]);
+        }
+
         $permissionIdsByKey = Permission::query()->pluck('id', 'key');
 
         foreach (self::definitions() as $def) {
@@ -140,6 +177,8 @@ class RoleSeeder extends Seeder
                     'slug' => Str::slug($def['name']),
                     'description' => $def['description'],
                     'is_system' => true,
+                    'visible_professions' => $def['visible_professions'] ?? null,
+                    'department' => $def['department'] ?? null,
                 ]
             );
 

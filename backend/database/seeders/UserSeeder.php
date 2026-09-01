@@ -71,8 +71,8 @@ class UserSeeder extends Seeder
             'role_id' => $accountingManagerRole?->id,
         ]);
 
-        // Temizlik Sorumlusu
-        $housekeepingManagerRole = Role::where('name', 'Temizlik Sorumlusu')->first();
+        // Temizlik & Tamir Sorumlusu
+        $housekeepingManagerRole = Role::where('name', 'Temizlik & Tamir Sorumlusu')->first();
         User::factory()->create([
             'name' => 'Mehmet Kaya',
             'email' => 'mehmet.kaya@hotel.test',

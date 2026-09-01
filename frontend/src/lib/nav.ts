@@ -62,13 +62,13 @@ export const NAV_CATEGORIES: NavCategory[] = [
     items: [
       { href: "/employees", label: "Çalışanlar", icon: IdCard, permission: "employees.view" },
       { href: "/roles", label: "Roller", icon: ShieldCheck, permission: "roles.view" },
+      { href: "/audit-logs", label: "Aktivite Kayıtları", icon: ScrollText, permission: "audit_logs.view" },
     ],
   },
   {
     title: "Sistem",
     items: [
       { href: "/settings", label: "Ayarlar", icon: Settings, permission: "settings.view" },
-      { href: "/audit-logs", label: "Aktivite Kayıtları", icon: ScrollText, permission: "audit_logs.view" },
     ],
   },
 ];

@@ -25,11 +25,12 @@ export interface HeroBannerMetric {
 interface HeroBannerProps {
   title: string;
   subtitle: string;
-  metrics: HeroBannerMetric[];
+  metrics?: HeroBannerMetric[];
+  rightContent?: React.ReactNode;
   className?: string;
 }
 
-export function HeroBanner({ title, subtitle, metrics, className }: HeroBannerProps) {
+export function HeroBanner({ title, subtitle, metrics, rightContent, className }: HeroBannerProps) {
   return (
     <div
       className={cn(
@@ -37,8 +38,6 @@ export function HeroBanner({ title, subtitle, metrics, className }: HeroBannerPr
         className
       )}
     >
-      {/* Background is now clean without decorative gradients as requested */}
-      
       <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between relative z-10">
         <div className="max-w-md shrink-0">
           <h2 className="text-3xl font-extrabold tracking-tight text-[var(--color-ink)]">{title}</h2>
@@ -46,7 +45,7 @@ export function HeroBanner({ title, subtitle, metrics, className }: HeroBannerPr
         </div>
         
         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-          {metrics.map((metric, i) => {
+          {rightContent ? rightContent : metrics?.map((metric, i) => {
             const tone = TONE_CLASSES[metric.tone ?? "accent"];
             return (
               <div

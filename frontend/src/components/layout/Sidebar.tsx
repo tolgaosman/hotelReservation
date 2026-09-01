@@ -25,10 +25,10 @@ export function Sidebar() {
         <img src="/site%20logo.png" alt="Logo" className="h-full w-auto object-contain" />
       </div>
 
-      <nav className="mt-8 flex flex-1 flex-col gap-6 overflow-y-auto pr-2">
+      <nav className="mt-5 flex flex-1 flex-col gap-3">
         {visibleCategories.map((category) => (
-          <div key={category.title} className="flex flex-col gap-1">
-            <h4 className="px-3 mb-1 text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
+          <div key={category.title} className="flex flex-col gap-0.5">
+            <h4 className="px-3 mb-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
               {category.title}
             </h4>
             {category.items.map(({ href, label, icon: Icon }) => {
@@ -38,14 +38,14 @@ export function Sidebar() {
                   key={href}
                   href={href}
                   className={cn(
-                    "group flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-medium",
+                    "group flex items-center gap-2.5 rounded-[var(--radius-control)] px-3 py-2 text-[13px] font-medium",
                     "transition-all duration-200 [transition-timing-function:var(--ease-organic)]",
                     active
                       ? "bg-[var(--color-accent-soft)] text-[var(--color-accent-ink)]"
                       : "text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)]"
                   )}
                 >
-                  <Icon size={17} strokeWidth={2} />
+                  <Icon size={16} strokeWidth={2} />
                   {label}
                 </Link>
               );

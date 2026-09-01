@@ -28,7 +28,6 @@ class RoomController extends Controller
                 $q->where(fn ($q2) => $q2->where('number', 'like', $search)->orWhere('type', 'like', $search));
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
-            ->when($request->has('active'), fn ($q) => $q->where('active', $request->boolean('active')))
             ->orderBy('number')
             ->paginate($this->perPage($request));
 
@@ -66,7 +65,7 @@ class RoomController extends Controller
             return $this->error('Dolu bir oda pasife alınamaz.', null, 422);
         }
 
-        $room->update(['active' => false]);
+        $room->update(['status' => \App\Enums\RoomStatus::Passive]);
         $this->auditLog->record('room.deactivate', $room);
 
         return $this->success(new RoomResource($room), 'Oda pasife alındı.');
@@ -76,7 +75,7 @@ class RoomController extends Controller
     {
         $this->authorize('deactivate', $room);
 
-        $room->update(['active' => true]);
+        $room->update(['status' => \App\Enums\RoomStatus::Available]);
         $this->auditLog->record('room.activate', $room);
 
         return $this->success(new RoomResource($room), 'Oda aktifleştirildi.');
@@ -101,8 +100,11 @@ class RoomController extends Controller
         if ($request->hasAny(['is_maintenance', 'maintenance_note'])) {
             $this->authorize('manageMaintenance', $room);
         }
-        if ($request->hasAny(['housekeeping_status', 'is_priority_cleaning'])) {
+        if ($request->has('housekeeping_status')) {
             $this->authorize('updateHousekeeping', $room);
+        }
+        if ($request->has('is_priority_cleaning')) {
+            $this->authorize('markPriorityCleaning', $room);
         }
 
         if (isset($validated['housekeeping_status']) && $validated['housekeeping_status'] === \App\Enums\HousekeepingStatus::Clean->value) {

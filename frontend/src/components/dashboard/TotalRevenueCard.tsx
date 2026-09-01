@@ -23,7 +23,11 @@ export function TotalRevenueCard({
   recentPayments: RecentPayment[];
 }) {
   const [page, setPage] = useState(1);
-  const pageSize = 16;
+  // Sized to roughly fill the card now that it stretches to match the
+  // activity column's height (dashboard grid uses items-stretch) — not
+  // pixel-exact for every role/dataset, but close enough that the footer
+  // no longer floats over a half-empty list on the common case.
+  const pageSize = 13;
   const pageCount = Math.max(1, Math.ceil(recentPayments.length / pageSize));
   const clampedPage = Math.min(page, pageCount);
   const pageItems = recentPayments.slice((clampedPage - 1) * pageSize, clampedPage * pageSize);
