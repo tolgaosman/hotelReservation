@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   // another machine's IP loads the initial HTML shell but the JS bundle never
   // finishes, which looks like an infinite loading spinner.
   allowedDevOrigins: ["192.168.128.217"],
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://127.0.0.1:8000/api/:path*',
+      },
+    ]
+  },
 };
 
 export default nextConfig;
