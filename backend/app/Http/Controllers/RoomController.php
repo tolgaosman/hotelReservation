@@ -2,21 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\HousekeepingStatus;
+use App\Enums\RoomStatus;
 use App\Http\Requests\Room\StoreRoomRequest;
 use App\Http\Requests\Room\UpdateRoomRequest;
 use App\Http\Resources\RoomResource;
 use App\Models\Room;
+use App\Models\RoomType;
 use App\Services\AuditLogService;
 use App\Services\ReservationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 class RoomController extends Controller
 {
-    public function __construct(private readonly AuditLogService $auditLog)
-    {
-    }
+    public function __construct(private readonly AuditLogService $auditLog) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -28,6 +30,7 @@ class RoomController extends Controller
                 $q->where(fn ($q2) => $q2->where('number', 'like', $search)->orWhere('type', 'like', $search));
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+            ->when($request->filled('room_type_id'), fn ($q) => $q->where('room_type_id', $request->integer('room_type_id')))
             ->orderBy('number')
             ->paginate($this->perPage($request));
 
@@ -36,7 +39,10 @@ class RoomController extends Controller
 
     public function store(StoreRoomRequest $request): JsonResponse
     {
-        $room = Room::create($request->validated())->refresh();
+        $data = $request->validated();
+        $data += RoomType::findOrFail($data['room_type_id'])->roomAttributes();
+
+        $room = Room::create($data)->refresh();
         $this->auditLog->record('room.create', $room);
 
         return $this->success(new RoomResource($room), 'Oda oluşturuldu.', 201);
@@ -51,7 +57,12 @@ class RoomController extends Controller
 
     public function update(UpdateRoomRequest $request, Room $room): JsonResponse
     {
-        $room->update($request->validated());
+        $data = $request->validated();
+        if (isset($data['room_type_id'])) {
+            $data += RoomType::findOrFail($data['room_type_id'])->roomAttributes();
+        }
+
+        $room->update($data);
         $this->auditLog->record('room.update', $room);
 
         return $this->success(new RoomResource($room), 'Oda güncellendi.');
@@ -61,11 +72,11 @@ class RoomController extends Controller
     {
         $this->authorize('deactivate', $room);
 
-        if ($room->status === \App\Enums\RoomStatus::Occupied) {
+        if ($room->status === RoomStatus::Occupied) {
             return $this->error('Dolu bir oda pasife alınamaz.', null, 422);
         }
 
-        $room->update(['status' => \App\Enums\RoomStatus::Passive]);
+        $room->update(['status' => RoomStatus::Passive]);
         $this->auditLog->record('room.deactivate', $room);
 
         return $this->success(new RoomResource($room), 'Oda pasife alındı.');
@@ -75,7 +86,7 @@ class RoomController extends Controller
     {
         $this->authorize('deactivate', $room);
 
-        $room->update(['status' => \App\Enums\RoomStatus::Available]);
+        $room->update(['status' => RoomStatus::Available]);
         $this->auditLog->record('room.activate', $room);
 
         return $this->success(new RoomResource($room), 'Oda aktifleştirildi.');
@@ -84,7 +95,7 @@ class RoomController extends Controller
     public function updateHousekeeping(Request $request, Room $room): JsonResponse
     {
         $validated = $request->validate([
-            'housekeeping_status' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\HousekeepingStatus::class)],
+            'housekeeping_status' => ['nullable', Rule::enum(HousekeepingStatus::class)],
             'is_maintenance' => ['nullable', 'boolean'],
             'maintenance_note' => ['nullable', 'string', 'max:255'],
             'assigned_staff' => ['nullable', 'string', 'max:255'],
@@ -107,12 +118,14 @@ class RoomController extends Controller
             $this->authorize('markPriorityCleaning', $room);
         }
 
-        if (isset($validated['housekeeping_status']) && $validated['housekeeping_status'] === \App\Enums\HousekeepingStatus::Clean->value) {
+        if (isset($validated['housekeeping_status']) && $validated['housekeeping_status'] === HousekeepingStatus::Clean->value) {
             $validated['is_priority_cleaning'] = false;
         }
 
-        $room->update(array_filter($validated, function ($val) { return $val !== null; }));
-        
+        $room->update(array_filter($validated, function ($val) {
+            return $val !== null;
+        }));
+
         // Handle explicit nulls if sent (like clearing note or staff)
         if ($request->has('maintenance_note') && $request->input('maintenance_note') === null) {
             $room->maintenance_note = null;

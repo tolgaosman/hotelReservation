@@ -41,6 +41,7 @@ class PermissionSeeder extends Seeder
                     'reservations.cancel' => ['Rezervasyon İptal Etme', false],
                     'reservations.checkin' => ['Check-in Yapma', false],
                     'reservations.checkout' => ['Check-out Yapma', false],
+                    'reservations.delete' => ['Rezervasyon Silme', false],
                 ],
             ],
             'calendar' => [
@@ -66,6 +67,15 @@ class PermissionSeeder extends Seeder
                     'rooms.deactivate' => ['Oda Pasife Alma', false],
                 ],
             ],
+            'room_types' => [
+                'label' => 'Oda Tipleri',
+                'permissions' => [
+                    'room_types.view' => ['Sayfayı Görüntüleme', true],
+                    'room_types.create' => ['Yeni Oda Tipi Ekleme', false],
+                    'room_types.edit' => ['Oda Tipi Düzenleme', false],
+                    'room_types.delete' => ['Oda Tipi Silme', false],
+                ],
+            ],
             'housekeeping' => [
                 'label' => 'Temizlik',
                 'permissions' => [
@@ -82,6 +92,22 @@ class PermissionSeeder extends Seeder
                     'room_service.view' => ['Sayfayı Görüntüleme', true],
                     'room_service.create' => ['Sipariş Ekleme', false],
                     'room_service.delete' => ['Sipariş Silme', false],
+                ],
+            ],
+            'addons' => [
+                'label' => 'Ekstra Hizmetler',
+                'permissions' => [
+                    'addons.view' => ['Sayfayı Görüntüleme', true],
+                    'addons.create' => ['Yeni Hizmet Ekleme', false],
+                    'addons.edit' => ['Hizmet Düzenleme', false],
+                    'addons.delete' => ['Hizmet Silme', false],
+                ],
+            ],
+            'reviews' => [
+                'label' => 'Yorum Yönetimi',
+                'permissions' => [
+                    'reviews.view' => ['Sayfayı Görüntüleme', true],
+                    'reviews.approve' => ['Yorum Onaylama/Reddetme', false],
                 ],
             ],
             'payments' => [

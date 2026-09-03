@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Room;
 
 use App\Enums\RoomStatus;
+use App\Models\Room;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,18 +11,18 @@ class StoreRoomRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Models\Room::class);
+        return $this->user()->can('create', Room::class);
     }
 
     public function rules(): array
     {
         return [
             'number' => ['required', 'string', 'max:20', 'unique:rooms,number'],
-            'type' => ['required', 'string', 'max:50'],
-            'capacity' => ['required', 'integer', 'min:1'],
-            'nightly_rate' => ['required', 'numeric', 'min:0'],
-            'amenities' => ['sometimes', 'array'],
-            'amenities.*' => ['string'],
+            // Capacity/nightly_rate/amenities are no longer accepted here —
+            // they're a server-written snapshot of the selected room type
+            // (RoomType::roomAttributes(), applied in RoomController::store)
+            // so a room can never drift from its type's current definition.
+            'room_type_id' => ['required', Rule::exists('room_types', 'id')->where('active', true)],
             'status' => ['sometimes', Rule::enum(RoomStatus::class)],
         ];
     }

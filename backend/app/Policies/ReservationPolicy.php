@@ -45,4 +45,9 @@ class ReservationPolicy
     {
         return $user->isAdmin() || $user->hasPermission('reservations.checkout');
     }
+
+    public function delete(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('reservations.delete');
+    }
 }

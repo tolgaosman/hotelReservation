@@ -7,7 +7,7 @@ import { StoreProvider, useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { getStoredToken } from "@/lib/api";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { NAV_CATEGORIES, getFirstAccessibleRoute } from "@/lib/nav";
+import { resolveNavItem, getFirstAccessibleRoute } from "@/lib/nav";
 
 // Rooms/guests/reservations failing to load means the backend itself is
 // unreachable, not just a permission gate on one widget — show a real error
@@ -41,10 +41,7 @@ function RouteGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const category = NAV_CATEGORIES.find((c) =>
-    c.items.some((i) => pathname === i.href || pathname?.startsWith(`${i.href}/`))
-  );
-  const item = category?.items.find((i) => pathname === i.href || pathname?.startsWith(`${i.href}/`));
+  const item = resolveNavItem(pathname);
   const allowed = !item || hasPermission(item.permission);
 
   // On a hard refresh, StoreProvider (and this component with it) mounts as

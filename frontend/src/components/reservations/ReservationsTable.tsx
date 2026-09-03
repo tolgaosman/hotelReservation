@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileSpreadsheet, Search } from "lucide-react";
+import { Check, X as XIcon, FileSpreadsheet, Search } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge, statusLabel, STATUS_EXCEL_COLORS } from "@/components/ui/status-badge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -10,6 +10,9 @@ import { MoneyBreakdown } from "@/components/ui/MoneyBreakdown";
 import { exportToExcel } from "@/lib/exportExcel";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
+import { useStore } from "@/lib/store";
+import { useToast } from "@/components/ui/Toast";
 import type { ReservationStatus, ReservationView } from "@/lib/types";
 
 const STATUS_FILTERS: { value: ReservationStatus | "all"; label: string }[] = [
@@ -29,6 +32,12 @@ export function ReservationsTable({
   onRowClick: (r: ReservationView) => void;
 }) {
   const [query, setQuery] = useState("");
+  const store = useStore();
+  const { hasPermission } = useAuth();
+  const showToast = useToast();
+
+  const canConfirm = hasPermission("reservations.confirm");
+  const canCancel = hasPermission("reservations.cancel");
 
   const filteredByQuery = useMemo(() => {
     const q = query.trim();
@@ -36,11 +45,9 @@ export function ReservationsTable({
     return reservations.filter((r) => matchesQuery(r.guest.fullName, q) || matchesQuery(r.room.number, q));
   }, [reservations, query]);
 
-  // No dependencies: rebuilding this array every render was invalidating
-  // DataTable's filteredRows/sortedRows memos on every keystroke in the
-  // search box above, since those memoize on columns identity too.
-  const columns: Column<ReservationView>[] = useMemo(() => [
-    { key: "guest", header: "Misafir", sortValue: (r) => r.guest.fullName.toLocaleLowerCase("tr-TR"), render: (r) => <span className="text-[var(--ink)] font-medium">{r.guest.fullName}</span> },
+  const columns: Column<ReservationView>[] = useMemo(() => {
+    const cols: Column<ReservationView>[] = [
+      { key: "guest", header: "Misafir", sortValue: (r) => r.guest.fullName.toLocaleLowerCase("tr-TR"), render: (r) => <span className="text-[var(--ink)] font-medium">{r.guest.fullName}</span> },
     { key: "room", header: "Oda", sortValue: (r) => r.room.number, render: (r) => <span className="text-[var(--accent)] font-bold">{r.room.number}</span> },
     { key: "guests", header: "Kişi", sortValue: (r) => r.guestCount, render: (r) => <span className="text-[var(--info)] font-bold">{r.guestCount}</span> },
     { key: "checkIn", header: "Giriş", sortValue: (r) => r.checkIn, render: (r) => <span className="text-[var(--muted)] tabular-nums">{formatDate(r.checkIn)}</span> },
@@ -68,7 +75,49 @@ export function ReservationsTable({
       filterOptions: STATUS_FILTERS.filter(f => f.value !== "all"),
       filterFn: (r, val) => r.status === val,
     },
-  ], []);
+    {
+      key: "actions",
+      header: "",
+      className: "w-0 pl-0 pr-4", // minimal width, padding tweak
+      render: (r) => {
+        if (r.status !== "pending") return null;
+        return (
+          <div className="flex items-center gap-1 justify-start">
+            {canConfirm && (
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const result = await store.confirmReservation(r.id);
+                  showToast(result.ok ? "Onaylandı." : result.error, result.ok ? "success" : "error");
+                }}
+                className="rounded p-1.5 text-[var(--ok)] hover:bg-[var(--ok)] hover:text-white transition-colors"
+                title="Onayla"
+              >
+                <Check size={16} />
+              </button>
+            )}
+            {canCancel && (
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const result = await store.cancelReservation(r.id);
+                  showToast(result.ok ? "Rezervasyon reddedildi." : result.error, result.ok ? "success" : "error");
+                }}
+                className="rounded p-1.5 text-[var(--crit)] hover:bg-[var(--crit)] hover:text-white transition-colors"
+                title="Reddet"
+              >
+                <XIcon size={16} />
+              </button>
+            )}
+          </div>
+        );
+      },
+    }
+  ];
+  return cols;
+  }, [canConfirm, canCancel, store, showToast]);
 
   const handleExportExcel = () => {
     exportToExcel(

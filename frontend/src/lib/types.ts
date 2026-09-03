@@ -1,6 +1,22 @@
-export type RoomType = "Standart" | "Deluxe" | "Aile Odası" | "Suite" | "King Suite";
-
 export type RoomStatus = "available" | "occupied" | "maintenance" | "passive";
+
+// Room types are a user-managed catalog (see /rooms/types), so — unlike the
+// old hardcoded 5-value union this replaced — the set of names is open and
+// can't be expressed as a compile-time union.
+export interface RoomTypeDefinition {
+  id: number;
+  name: string;
+  description: string | null;
+  capacity: number;
+  nightlyRate: number;
+  amenities: string[];
+  bedType: string | null;
+  sizeM2: number | null;
+  view: string | null;
+  images: string[] | null;
+  active: boolean;
+  roomCount?: number;
+}
 
 // "checked_in" is the "Konaklamada" state the project brief calls for between
 // check-in and check-out — distinct from "confirmed" (booked, not arrived yet).
@@ -16,7 +32,12 @@ export type PaymentMethod = "cash" | "card" | "transfer";
 export interface Room {
   id: number;
   number: string;
-  type: RoomType;
+  // Server-written snapshot of the room's RoomType at assignment time — the
+  // source of truth is `roomTypeId`; `type`/capacity/nightlyRate/amenities
+  // below are read-only copies that only change when the room's type is
+  // reassigned or that type is edited (see RoomTypeDefinition).
+  type: string;
+  roomTypeId: number | null;
   capacity: number;
   nightlyRate: number;
   amenities: string[];

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Reservation;
 
+use App\Enums\RoomStatus;
+use App\Models\Reservation;
 use App\Models\Room;
 use App\Rules\RoomAvailableForDates;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,7 +13,7 @@ class StoreReservationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Models\Reservation::class);
+        return $this->user()->can('create', Reservation::class);
     }
 
     public function rules(): array
@@ -40,7 +42,11 @@ class StoreReservationRequest extends FormRequest
                 return;
             }
 
-            if (! $room->active || $room->status === \App\Enums\RoomStatus::Maintenance) {
+            // `active` was replaced by status=passive when the room status
+            // enum gained a Passive case (see
+            // 2026_09_01_090301_modify_rooms_status_add_passive) — the
+            // column no longer exists, so this must check status instead.
+            if ($room->status === RoomStatus::Passive || $room->status === RoomStatus::Maintenance) {
                 $validator->errors()->add('room_id', 'Bu oda pasif veya bakımda, rezervasyon oluşturulamaz.');
 
                 return;

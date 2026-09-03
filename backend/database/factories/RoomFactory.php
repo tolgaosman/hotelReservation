@@ -3,10 +3,12 @@
 namespace Database\Factories;
 
 use App\Enums\RoomStatus;
+use App\Models\Room;
+use App\Models\RoomType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Room>
+ * @extends Factory<Room>
  */
 class RoomFactory extends Factory
 {
@@ -30,8 +32,23 @@ class RoomFactory extends Factory
             'capacity' => $spec['capacity'],
             'nightly_rate' => $spec['rate'],
             'amenities' => fake()->randomElements(self::AMENITY_POOL, fake()->numberBetween(1, 4)),
+            // `active` was dropped from the rooms table in favor of
+            // status=passive (see 2026_09_01_090301_modify_rooms_status_add_passive) —
+            // don't resurrect it here.
             'status' => RoomStatus::Available,
-            'active' => true,
         ];
+    }
+
+    /**
+     * Links the room to a real RoomType and matches its denormalized
+     * snapshot, for tests that exercise the room_type_id relationship
+     * (propagation, deletion guards) instead of the legacy free-string type.
+     */
+    public function forType(RoomType $type): static
+    {
+        return $this->state(fn () => [
+            'room_type_id' => $type->id,
+            ...$type->roomAttributes(),
+        ]);
     }
 }

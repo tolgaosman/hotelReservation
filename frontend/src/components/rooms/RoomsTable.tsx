@@ -10,7 +10,7 @@ import { exportToExcel } from "@/lib/exportExcel";
 import { formatCurrency } from "@/lib/format";
 import { matchesQuery } from "@/lib/utils";
 import { isRoomReserved } from "@/lib/availability";
-import type { Room, RoomStatus, Reservation } from "@/lib/types";
+import type { Room, RoomStatus, Reservation, RoomTypeDefinition } from "@/lib/types";
 
 // "occupied" only ever means a guest is currently checked in — a room with a
 // future pending/confirmed booking still has status "available", so "reserved"
@@ -26,7 +26,17 @@ const STATUS_FILTERS: { value: DisplayStatus | "all"; label: string }[] = [
   { value: "passive", label: "Pasif" },
 ];
 
-export function RoomsTable({ rooms, reservations, onRowClick }: { rooms: Room[]; reservations: Reservation[]; onRowClick: (room: Room) => void }) {
+export function RoomsTable({
+  rooms,
+  reservations,
+  roomTypes,
+  onRowClick,
+}: {
+  rooms: Room[];
+  reservations: Reservation[];
+  roomTypes: RoomTypeDefinition[];
+  onRowClick: (room: Room) => void;
+}) {
   const [query, setQuery] = useState("");
   const today = new Date().toISOString().slice(0, 10);
 
@@ -41,11 +51,16 @@ export function RoomsTable({ rooms, reservations, onRowClick }: { rooms: Room[];
     return rooms.filter((r) => matchesQuery(r.number, q) || matchesQuery(r.type, q));
   }, [rooms, query]);
 
-  // Extract unique room types for the filter dropdown
+  // Filter options come from the room-type catalog (so a type with zero
+  // rooms assigned yet is still selectable), unioned with any legacy room's
+  // `type` string whose room_type_id link is null.
   const ROOM_TYPES = useMemo(() => {
-    const types = Array.from(new Set(rooms.map(r => r.type)));
-    return types.map(t => ({ label: t, value: t }));
-  }, [rooms]);
+    const names = new Set(roomTypes.map((t) => t.name));
+    rooms.forEach((r) => names.add(r.type));
+    return Array.from(names)
+      .sort((a, b) => a.localeCompare(b, "tr"))
+      .map((name) => ({ label: name, value: name }));
+  }, [roomTypes, rooms]);
 
   const columns: Column<Room>[] = [
     { key: "number", header: "Oda No", render: (r) => <span className="text-[var(--accent)] font-bold">{r.number}</span>, sortValue: (r) => r.number },

@@ -24,8 +24,8 @@ class HotelSetting extends Model
     public static function current(): self
     {
         return static::query()->firstOrCreate([], [
-            'name' => 'Ertaz Otel',
-            'email' => 'iletisim@ertazotel.com',
+            'name' => 'Oasis Resort',
+            'email' => 'info@oasisresort.com',
             'phone' => '+90 212 555 10 00',
             'tax_rate' => 18,
             'check_in_time' => '14:00',

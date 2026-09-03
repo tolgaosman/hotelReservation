@@ -1,6 +1,8 @@
 "use client";
 
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import Link from "next/link";
+import { Info } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
@@ -16,10 +18,7 @@ import { useToast } from "@/components/ui/Toast";
 import { getRoomStayBuckets } from "@/lib/selectors";
 import { fieldError } from "@/lib/errors";
 import { formatDate, formatCurrency, formatDateRange } from "@/lib/format";
-import type { Room, RoomType, RoomStatus, ReservationView } from "@/lib/types";
-
-const ROOM_TYPES: RoomType[] = ["Standart", "Deluxe", "Aile Odası", "Suite", "King Suite"];
-const AMENITY_OPTIONS = ["Deniz Manzarası", "Balkon", "Klima", "Mini Bar", "Jakuzi", "Wi-Fi", "Kasa"];
+import type { Room, RoomStatus, ReservationView } from "@/lib/types";
 
 interface FormHandle {
   submit(): void;
@@ -65,16 +64,24 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
   function RoomForm({ room, isCreate, readOnly, onClose }, ref) {
     const store = useStore();
     const showToast = useToast();
+    const { hasPermission } = useAuth();
+
+    // Only types still on offer for a *new* assignment — but if this room is
+    // already on a type that's since been deactivated, that type must stay
+    // selectable here so its current assignment doesn't just vanish from the
+    // list out from under the form.
+    const selectableTypes = store.state.roomTypes.filter((t) => t.active || t.id === room?.roomTypeId);
 
     const [number, setNumber] = useState(room?.number ?? "");
-    const [type, setType] = useState<RoomType>(room?.type ?? "Standart");
-    const [capacity, setCapacity] = useState(room?.capacity ?? 2);
-    const [nightlyRate, setNightlyRate] = useState(room?.nightlyRate ?? 1450);
-    const [amenities, setAmenities] = useState<string[]>(room?.amenities ?? []);
+    const [roomTypeId, setRoomTypeId] = useState<number | null>(
+      room?.roomTypeId ?? selectableTypes[0]?.id ?? null
+    );
     const [status, setStatus] = useState<RoomStatus>(room?.status ?? "available");
     const [error, setError] = useState<string | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | undefined>(undefined);
     const [tab, setTab] = useState<"details" | "upcoming" | "past">("details");
+
+    const selectedType = store.state.roomTypes.find((t) => t.id === roomTypeId);
 
     // Date-driven, matching the calendar page: a stay is "active" the
     // moment today falls inside its check-in/check-out range, regardless of
@@ -87,12 +94,10 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
       async submit() {
         setFieldErrors(undefined);
         if (!number.trim()) return setError("Oda numarası gereklidir.");
-        if (!Number.isInteger(capacity) || capacity < 1) return setError("Kapasite en az 1 kişi olmalıdır.");
-        if (!Number.isFinite(nightlyRate) || nightlyRate <= 0) return setError("Gecelik ücret sıfırdan büyük olmalıdır.");
-        const baseInput = { number: number.trim(), type, capacity, nightlyRate, amenities };
+        if (!roomTypeId) return setError("Oda tipi seçilmelidir.");
         const result = isCreate
-          ? await store.createRoom(baseInput)
-          : await store.updateRoom(room!.id, { ...baseInput, status });
+          ? await store.createRoom({ number: number.trim(), roomTypeId })
+          : await store.updateRoom(room!.id, { number: number.trim(), roomTypeId, status });
         if (!result.ok) {
           setFieldErrors(result.fieldErrors);
           return setError(result.error);
@@ -114,8 +119,24 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
       },
     }));
 
-    function toggleAmenity(a: string) {
-      setAmenities((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
+    // No room types exist yet — there's nothing to assign a room to, so show
+    // the empty state instead of a form that can never validly submit.
+    if (store.state.roomTypes.length === 0) {
+      return (
+        <div className="space-y-3">
+          <EmptyState
+            title="Henüz oda tipi yok"
+            description="Bir oda ekleyebilmek için önce en az bir oda tipi tanımlanmalı."
+          />
+          {hasPermission("room_types.view") && (
+            <div className="flex justify-center">
+              <Link href="/rooms/types" className="text-xs font-semibold text-[var(--accent-ink)] hover:underline">
+                Oda Tipleri sayfasına git
+              </Link>
+            </div>
+          )}
+        </div>
+      );
     }
 
     return (
@@ -148,7 +169,7 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--color-line)] bg-[var(--color-surface)] p-3 shadow-sm">
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-[var(--color-muted)]">Toplam Tutar</span>
@@ -190,20 +211,19 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
               <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Örn. 101" disabled={readOnly} />
             </FormField>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField label="Oda Tipi" error={fieldError(fieldErrors, "type")}>
-                <Select value={type} onChange={(e) => setType(e.target.value as RoomType)} disabled={readOnly}>
-                  {ROOM_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-              <FormField label="Kapasite" error={fieldError(fieldErrors, "capacity")}>
-                <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} disabled={readOnly} />
-              </FormField>
-            </div>
+            <FormField label="Oda Tipi" error={fieldError(fieldErrors, "roomTypeId") ?? fieldError(fieldErrors, "room_type_id")}>
+              <Select
+                value={roomTypeId ?? ""}
+                onChange={(e) => setRoomTypeId(Number(e.target.value))}
+                disabled={readOnly}
+              >
+                {selectableTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} — {formatCurrency(t.nightlyRate)}/gece
+                  </option>
+                ))}
+              </Select>
+            </FormField>
 
             {!isCreate && (
               <FormField label="Oda Durumu">
@@ -220,29 +240,75 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
               </FormField>
             )}
 
-            <FormField label="Gecelik Ücret (₺)" error={fieldError(fieldErrors, "nightlyRate")}>
-              <Input type="number" min={0} value={nightlyRate} onChange={(e) => setNightlyRate(Number(e.target.value))} disabled={readOnly} />
-            </FormField>
-
-            <FormField label="Özellikler">
-              <div className="flex flex-wrap gap-2">
-                {AMENITY_OPTIONS.map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => toggleAmenity(a)}
-                    className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      amenities.includes(a)
-                        ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-ink)]"
-                        : "border-[var(--line)] bg-[var(--surface-alt)] text-[var(--ink-soft)]"
-                    } ${readOnly ? "opacity-60 cursor-default" : ""}`}
-                  >
-                    {a}
-                  </button>
-                ))}
+            {/* Everything below is inherited from the selected room type —
+                read only here by design (the user's requested workflow: pick
+                a type in "Oda İşlemleri", edit its details in "Oda Tipleri"). */}
+            {selectedType && (
+              <div className="rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface-alt)] p-4">
+                <div className="mb-3 flex items-center gap-1.5 text-[11px] font-medium text-[var(--muted)]">
+                  <Info size={13} />
+                  <span>
+                    Bu bilgiler oda tipinden gelir.
+                    {hasPermission("room_types.view") && (
+                      <>
+                        {" "}
+                        Değiştirmek için{" "}
+                        <Link href="/rooms/types" className="font-semibold text-[var(--accent-ink)] hover:underline">
+                          Oda Tipleri
+                        </Link>{" "}
+                        sayfasını kullanın.
+                      </>
+                    )}
+                  </span>
+                </div>
+                {selectedType.images?.[0] && (
+                  <div className="mb-4 aspect-video overflow-hidden rounded-md border border-[var(--line)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selectedType.images[0]} alt={selectedType.name} className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs">
+                  <div>
+                    <p className="mb-0.5 text-[var(--muted)]">Kapasite</p>
+                    <p className="font-medium text-[var(--ink)]">{selectedType.capacity} Kişi</p>
+                  </div>
+                  <div>
+                    <p className="mb-0.5 text-[var(--muted)]">Gecelik Ücret</p>
+                    <p className="font-medium text-[var(--ink)]">{formatCurrency(selectedType.nightlyRate)}</p>
+                  </div>
+                  {selectedType.bedType && (
+                    <div>
+                      <p className="mb-0.5 text-[var(--muted)]">Yatak Tipi</p>
+                      <p className="font-medium text-[var(--ink)]">{selectedType.bedType}</p>
+                    </div>
+                  )}
+                  {selectedType.sizeM2 && (
+                    <div>
+                      <p className="mb-0.5 text-[var(--muted)]">Büyüklük</p>
+                      <p className="font-medium text-[var(--ink)]">{selectedType.sizeM2} m²</p>
+                    </div>
+                  )}
+                  {selectedType.view && (
+                    <div>
+                      <p className="mb-0.5 text-[var(--muted)]">Manzara</p>
+                      <p className="font-medium text-[var(--ink)]">{selectedType.view}</p>
+                    </div>
+                  )}
+                </div>
+                {selectedType.amenities.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {selectedType.amenities.map((a) => (
+                      <span
+                        key={a}
+                        className="rounded-[var(--radius-pill)] border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[11px] font-medium text-[var(--ink-soft)]"
+                      >
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            </FormField>
+            )}
 
             {error && <p className="text-sm font-medium text-[var(--crit)]">{error}</p>}
           </div>
@@ -262,9 +328,10 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
 
 export function RoomDrawer({ open, onClose, room }: { open: boolean; onClose: () => void; room?: Room }) {
   const { hasPermission } = useAuth();
+  const store = useStore();
   const formRef = useRef<FormHandle>(null);
   const isCreate = !room;
-  const canSave = isCreate ? hasPermission("rooms.create") : hasPermission("rooms.edit");
+  const canSave = (isCreate ? hasPermission("rooms.create") : hasPermission("rooms.edit")) && store.state.roomTypes.length > 0;
   const canDeactivate = hasPermission("rooms.deactivate");
   const readOnly = !canSave;
 

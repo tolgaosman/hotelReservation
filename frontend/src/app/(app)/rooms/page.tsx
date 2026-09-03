@@ -24,8 +24,9 @@ export default function RoomsPage() {
   const activeRooms = useMemo(() => store.state.rooms.filter((r) => r.status !== "passive"), [store.state.rooms]);
   const stats = useMemo(() => getRoomStats(store.state), [store.state]);
   // Only rooms + reservations feed this page (getRoomStats, RoomsHeroBanner);
-  // don't wait on guests/payments/roomServices/roles/permissions/employees.
-  const loading = store.loading.rooms || store.loading.reservations;
+  // roomTypes is added because RoomDrawer's type picker needs it — don't
+  // wait on guests/payments/roomServices/roles/permissions/employees.
+  const loading = store.loading.rooms || store.loading.reservations || store.loading.roomTypes;
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -67,7 +68,7 @@ export default function RoomsPage() {
                 <RoomsStatsGrid stats={stats} />
               </div>
             </div>
-            <RoomsTable rooms={store.state.rooms} reservations={store.state.reservations} onRowClick={openRoom} />
+            <RoomsTable rooms={store.state.rooms} reservations={store.state.reservations} roomTypes={store.state.roomTypes} onRowClick={openRoom} />
           </>
         )}
       </main>

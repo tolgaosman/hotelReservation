@@ -91,6 +91,7 @@ const UNKNOWN_ROOM: Room = {
   id: -1,
   number: "—",
   type: "Standart",
+  roomTypeId: null,
   capacity: 0,
   nightlyRate: 0,
   amenities: [],

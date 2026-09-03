@@ -13,6 +13,7 @@ class RoomResource extends JsonResource
             'id' => $this->id,
             'number' => $this->number,
             'type' => $this->type,
+            'room_type_id' => $this->room_type_id,
             'capacity' => $this->capacity,
             'nightly_rate' => (float) $this->nightly_rate,
             'amenities' => $this->amenities ?? [],

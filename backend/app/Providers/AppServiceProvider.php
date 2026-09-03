@@ -10,6 +10,7 @@ use App\Models\Reservation;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomService;
+use App\Models\RoomType;
 use App\Policies\AuditLogPolicy;
 use App\Policies\EmployeePolicy;
 use App\Policies\GuestPolicy;
@@ -18,6 +19,7 @@ use App\Policies\ReservationPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\RoomPolicy;
 use App\Policies\RoomServicePolicy;
+use App\Policies\RoomTypePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Room::class, RoomPolicy::class);
+        Gate::policy(RoomType::class, RoomTypePolicy::class);
         Gate::policy(Guest::class, GuestPolicy::class);
         Gate::policy(Reservation::class, ReservationPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);

@@ -11,6 +11,9 @@ import {
   ShieldCheck,
   Settings,
   ScrollText,
+  DoorOpen,
+  LayoutGrid,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -19,6 +22,10 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   permission: string;
+  /** A submenu — the parent itself is never a link target for matching purposes. */
+  children?: NavItem[];
+  /** True: this item owns only its exact path; a deeper path belongs to a sibling child instead. */
+  exact?: boolean;
 }
 
 interface NavCategory {
@@ -46,9 +53,25 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     title: "Operasyon",
     items: [
-      { href: "/rooms", label: "Odalar", icon: BedDouble, permission: "rooms.view" },
+      {
+        href: "/rooms",
+        label: "Odalar",
+        icon: BedDouble,
+        permission: "rooms.view",
+        children: [
+          { href: "/rooms", label: "Oda İşlemleri", icon: DoorOpen, permission: "rooms.view", exact: true },
+          { href: "/rooms/types", label: "Oda Tipleri", icon: LayoutGrid, permission: "room_types.view" },
+        ],
+      },
       { href: "/housekeeping", label: "Temizlik", icon: Sparkles, permission: "housekeeping.view" },
       { href: "/room-service", label: "Oda Servisi", icon: UtensilsCrossed, permission: "room_service.view" },
+      { href: "/addons", label: "Ekstra Hizmetler", icon: Sparkles, permission: "addons.view" },
+    ],
+  },
+  {
+    title: "Müşteri İlişkileri",
+    items: [
+      { href: "/reviews", label: "Yorum Yönetimi", icon: Star, permission: "reviews.view" },
     ],
   },
   {
@@ -73,6 +96,31 @@ export const NAV_CATEGORIES: NavCategory[] = [
   },
 ];
 
+// Whether `pathname` is "on" this item: an `exact` item (a submenu's default
+// child sharing the parent's own href) only owns its literal path, since a
+// deeper path under that href belongs to a sibling child instead.
+export function isNavItemActive(item: NavItem, pathname: string | null): boolean {
+  if (!pathname) return false;
+  return item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
+// Parents and children as one flat list, children first — so a longest-match
+// lookup (resolveNavItem) naturally prefers a child's more specific
+// permission over its parent's.
+export function flattenNav(): NavItem[] {
+  return NAV_CATEGORIES.flatMap((c) => c.items).flatMap((item) => (item.children ? [...item.children, item] : [item]));
+}
+
+// The single most specific nav item whose href matches `pathname` — e.g.
+// "/rooms/types" resolves to the "Oda Tipleri" child (room_types.view), not
+// the "Odalar" parent (rooms.view), even though both hrefs are a prefix.
+export function resolveNavItem(pathname: string | null): NavItem | undefined {
+  if (!pathname) return undefined;
+  return flattenNav()
+    .filter((item) => isNavItemActive(item, pathname))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+}
+
 // Walks NAV_CATEGORIES in display order and returns the first page a role
 // (unrestricted / hasPermission) is actually allowed to open — used to
 // bounce a role away from a page it can't see instead of rendering a blank
@@ -83,6 +131,11 @@ export function getFirstAccessibleRoute(
 ): string | null {
   for (const category of NAV_CATEGORIES) {
     for (const item of category.items) {
+      if (item.children) {
+        const child = item.children.find((c) => unrestricted || hasPermission(c.permission));
+        if (child) return child.href;
+        continue;
+      }
       if (unrestricted || hasPermission(item.permission)) return item.href;
     }
   }

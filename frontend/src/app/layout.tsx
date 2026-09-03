@@ -11,7 +11,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Otel Yönetim Paneli",
+  title: "Oasis Resort Yönetim Paneli",
   description: "Rezervasyon ve konaklama yönetim sistemi",
 };
 

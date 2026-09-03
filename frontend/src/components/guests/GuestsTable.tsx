@@ -24,7 +24,7 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
   }, [guests, query]);
 
   const COUNTRIES = useMemo(() => {
-    const countries = Array.from(new Set(guests.map(g => g.country)));
+    const countries = Array.from(new Set(guests.map(g => g.country).filter(Boolean)));
     return countries.map(c => ({ label: c, value: c })).sort((a, b) => a.label.localeCompare(b.label));
   }, [guests]);
 

@@ -109,4 +109,13 @@ class ReservationController extends Controller
         // But since it's an API, usually frontend downloads it. Let's just return the download response.
         return $pdf->download('fatura-'.$reservation->id.'.pdf');
     }
+
+    public function destroy(Reservation $reservation): JsonResponse
+    {
+        $this->authorize('delete', $reservation);
+        
+        $this->reservations->delete($reservation);
+
+        return response()->json(null, 204);
+    }
 }

@@ -331,7 +331,7 @@ export default function RoomServicePage() {
     doc.setFontSize(8);
     doc.setTextColor(...mutedColor);
     doc.text("+90 212 123 24 25", 20, footerY + 8);
-    doc.text("merhaba@hotelreservation.com", 20, footerY + 13);
+    doc.text("info@oasisresort.com", 20, footerY + 13);
     doc.text("Ataturk Mah. Gazi Bulvari No: 12", 20, footerY + 18);
     doc.text("34000 Istanbul / Turkiye", 20, footerY + 23);
 

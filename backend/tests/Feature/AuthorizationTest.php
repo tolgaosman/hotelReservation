@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Guest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Room;
+use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -28,9 +30,7 @@ class AuthorizationTest extends TestCase
 
         $response = $this->postJson('/api/rooms', [
             'number' => '999',
-            'type' => 'Standart',
-            'capacity' => 2,
-            'nightly_rate' => 1000,
+            'room_type_id' => RoomType::factory()->create()->id,
         ]);
 
         $response->assertStatus(403);
@@ -62,7 +62,7 @@ class AuthorizationTest extends TestCase
         $personel = User::factory()->create(['role_id' => $role->id]);
         $this->actingAs($personel, 'sanctum');
         $room = Room::factory()->create(['capacity' => 2]);
-        $guest = \App\Models\Guest::factory()->create();
+        $guest = Guest::factory()->create();
 
         $response = $this->postJson('/api/reservations', [
             'guest_id' => $guest->id,
@@ -82,9 +82,7 @@ class AuthorizationTest extends TestCase
 
         $response = $this->postJson('/api/rooms', [
             'number' => '999',
-            'type' => 'Standart',
-            'capacity' => 2,
-            'nightly_rate' => 1000,
+            'room_type_id' => RoomType::factory()->create()->id,
         ]);
 
         $response->assertStatus(201);

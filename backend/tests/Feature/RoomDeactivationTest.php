@@ -21,7 +21,7 @@ class RoomDeactivationTest extends TestCase
         $response = $this->patchJson("/api/rooms/{$room->id}/deactivate");
 
         $response->assertStatus(422);
-        $this->assertTrue($room->fresh()->active);
+        $this->assertEquals(RoomStatus::Occupied, $room->fresh()->status);
     }
 
     public function test_deactivating_an_available_room_succeeds(): void
@@ -33,6 +33,6 @@ class RoomDeactivationTest extends TestCase
         $response = $this->patchJson("/api/rooms/{$room->id}/deactivate");
 
         $response->assertStatus(200);
-        $this->assertFalse($room->fresh()->active);
+        $this->assertEquals(RoomStatus::Passive, $room->fresh()->status);
     }
 }

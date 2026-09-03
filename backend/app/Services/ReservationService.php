@@ -193,4 +193,16 @@ class ReservationService
             throw new DomainActionException("Rezervasyon '{$from->value}' durumunda değil, '{$to->value}' durumuna geçilemez.");
         }
     }
+
+    public function delete(Reservation $reservation): void
+    {
+        if ($reservation->status !== ReservationStatus::Cancelled) {
+            throw new DomainActionException('Sadece iptal edilmiş rezervasyonlar silinebilir.');
+        }
+
+        DB::transaction(function () use ($reservation) {
+            $this->auditLog->record('reservation.delete', $reservation);
+            $reservation->delete();
+        });
+    }
 }

@@ -234,11 +234,12 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
   const canCheckIn = hasPermission("reservations.checkin");
   const canCheckOut = hasPermission("reservations.checkout");
   const canCancel = hasPermission("reservations.cancel");
+  const canDelete = hasPermission("reservations.delete");
   const canPay = hasPermission("payments.create");
 
   const showForm = isCreate || (editing && canEdit);
   const canShowInvoice = reservation && (reservation.status === "completed" || reservation.status === "checked_in");
-  const anyDetailAction = canConfirm || canCheckIn || canCheckOut || canCancel || canEdit || canShowInvoice;
+  const anyDetailAction = canConfirm || canCheckIn || canCheckOut || canCancel || canDelete || canEdit || canShowInvoice;
   const payments = reservation ? getPaymentsForReservation(store.state, reservation.id) : [];
 
   const [roomServices, setRoomServices] = useState<RoomService[]>([]);
@@ -338,6 +339,14 @@ export function ReservationDrawer({ open, onClose, reservation }: Props) {
             {(reservation.status === "pending" || reservation.status === "confirmed") && canCancel && (
               <Button variant="danger" onClick={() => runAction(() => store.cancelReservation(reservation!.id), "Rezervasyon iptal edildi.")}>
                 İptal Et
+              </Button>
+            )}
+            {reservation.status === "cancelled" && canDelete && (
+              <Button variant="danger" onClick={() => {
+                runAction(() => store.deleteReservation(reservation!.id), "Rezervasyon silindi.");
+                handleClose();
+              }}>
+                Sil
               </Button>
             )}
             {(reservation.status === "pending" || reservation.status === "confirmed") && canEdit && (

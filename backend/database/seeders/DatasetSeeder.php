@@ -11,8 +11,9 @@ class DatasetSeeder extends Seeder
     public function run(): void
     {
         $jsonPath = database_path('seeders/dataset.json');
-        if (!File::exists($jsonPath)) {
-            $this->command->error("dataset.json not found! Please run the dump-dataset.ts script first.");
+        if (! File::exists($jsonPath)) {
+            $this->command->error('dataset.json not found! Please run the dump-dataset.ts script first.');
+
             return;
         }
 
@@ -25,15 +26,25 @@ class DatasetSeeder extends Seeder
         $reservationMap = [];
 
         $this->command->info('Inserting Rooms...');
+        // Room types are seeded before this runs (RoomTypeSeeder, in
+        // DatabaseSeeder) — resolve each room's type name to its id so the
+        // dataset's rooms come in already linked, instead of relying on the
+        // FK-backfill migration (which only runs once, on schema setup).
+        $roomTypeIdsByName = DB::table('room_types')->pluck('id', 'name');
+
         foreach ($data['rooms'] as $room) {
             $id = DB::table('rooms')->insertGetId([
                 'number' => $room['number'],
                 'type' => $room['type'],
+                'room_type_id' => $roomTypeIdsByName[$room['type']] ?? null,
                 'capacity' => $room['capacity'],
                 'nightly_rate' => $room['nightlyRate'],
                 'amenities' => json_encode($room['amenities']),
                 'status' => $room['status'],
-                'active' => $room['active'] ? 1 : 0,
+                // dataset.json still carries the dataset dump's `active`
+                // field, but the column itself was dropped in favor of
+                // status=passive — every row here is active:true anyway, so
+                // nothing is lost by not writing it.
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

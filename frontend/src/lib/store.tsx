@@ -28,7 +28,7 @@ import type {
   Room,
   RoomService,
   RoomStatus,
-  RoomType,
+  RoomTypeDefinition,
 } from "./types";
 
 function todayIsoNow(): string {
@@ -37,6 +37,7 @@ function todayIsoNow(): string {
 
 interface StoreState {
   rooms: Room[];
+  roomTypes: RoomTypeDefinition[];
   guests: Guest[];
   reservations: Reservation[];
   payments: Payment[];
@@ -48,6 +49,7 @@ interface StoreState {
 
 const INITIAL_STATE: StoreState = {
   rooms: [],
+  roomTypes: [],
   guests: [],
   reservations: [],
   payments: [],
@@ -83,6 +85,7 @@ type LoadingFlags = Record<keyof StoreState, boolean>;
 
 const ALL_LOADING: LoadingFlags = {
   rooms: true,
+  roomTypes: true,
   guests: true,
   reservations: true,
   payments: true,
@@ -115,22 +118,39 @@ interface StoreApi {
   ): Promise<FormResult>;
   confirmReservation(id: number): Promise<FormResult>;
   cancelReservation(id: number): Promise<FormResult>;
+  deleteReservation(id: number): Promise<FormResult>;
   checkIn(id: number): Promise<FormResult>;
   checkOut(id: number): Promise<FormResult>;
   addPayment(input: { reservationId: number; amount: number; method: PaymentMethod; note?: string; createdAt?: string }): Promise<FormResult>;
-  createRoom(input: {
-    number: string;
-    type: RoomType;
+  createRoom(input: { number: string; roomTypeId: number }): Promise<FormResult>;
+  updateRoom(id: number, input: { number: string; roomTypeId: number; status: RoomStatus }): Promise<FormResult>;
+  deactivateRoom(id: number): Promise<FormResult>;
+  activateRoom(id: number): Promise<FormResult>;
+  createRoomType(input: {
+    name: string;
+    description: string | null;
     capacity: number;
     nightlyRate: number;
     amenities: string[];
+    bedType: string | null;
+    sizeM2: number | null;
+    view: string | null;
   }): Promise<FormResult>;
-  updateRoom(
+  updateRoomType(
     id: number,
-    input: { number: string; type: RoomType; capacity: number; nightlyRate: number; amenities: string[]; status: RoomStatus }
+    input: {
+      name: string;
+      description: string | null;
+      capacity: number;
+      nightlyRate: number;
+      amenities: string[];
+      bedType: string | null;
+      sizeM2: number | null;
+      view: string | null;
+      active: boolean;
+    }
   ): Promise<FormResult>;
-  deactivateRoom(id: number): Promise<FormResult>;
-  activateRoom(id: number): Promise<FormResult>;
+  deleteRoomType(id: number): Promise<FormResult>;
   updateHousekeeping(id: number, status: Room["housekeepingStatus"]): Promise<FormResult>;
   updateHousekeepingAdvanced(id: number, payload: Partial<Room>): Promise<FormResult>;
   createGuest(input: Omit<Guest, "id">): Promise<FormResult>;
@@ -239,6 +259,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // corresponding view permission gets a 403 — ignorePermissionDenied
         // treats that as "nothing to show" instead of failing the whole load.
         load('rooms', () => ignorePermissionDenied(fetchAllPages<Room>('/api/rooms', signal), [])),
+        load('roomTypes', () => ignorePermissionDenied(fetchAllPages<RoomTypeDefinition>('/api/room-types', signal), [])),
         load('guests', () => ignorePermissionDenied(fetchAllPages<Guest>('/api/guests', signal), [])),
         load('reservations', () => ignorePermissionDenied(fetchAllPages<Reservation>('/api/reservations', signal), [])),
         load('payments', () => ignorePermissionDenied(fetchAllPages<Payment>('/api/payments', signal), [])),
@@ -342,6 +363,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       },
 
+      async deleteReservation(id) {
+        try {
+          await api.delete(`/api/reservations/${id}`);
+          set((prev) => ({
+            ...prev,
+            reservations: prev.reservations.filter((r) => r.id !== id),
+          }));
+          return { ok: true };
+        } catch (err: any) {
+          return extractFormError(err, "Silme işlemi başarısız oldu.");
+        }
+      },
+
       async checkIn(id) {
         try {
           const res = await api.post(`/api/reservations/${id}/check-in`);
@@ -428,6 +462,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return { ok: true };
         } catch (err: any) {
           return extractFormError(err, "Hata oluştu.");
+        }
+      },
+
+      async createRoomType(input) {
+        try {
+          const res = await api.post('/api/room-types', input);
+          set((prev) => ({ ...prev, roomTypes: [...prev.roomTypes, res.data.data] }));
+          return { ok: true };
+        } catch (err: any) {
+          return extractFormError(err, "Oda tipi eklenemedi.");
+        }
+      },
+
+      async updateRoomType(id, input) {
+        try {
+          const res = await api.put(`/api/room-types/${id}`, input);
+          // The backend propagates the new capacity/rate/amenities to every
+          // room on this type, so the in-memory `rooms` snapshot is stale —
+          // re-fetch it rather than duplicating that propagation rule here.
+          const rooms = await fetchAllPages<Room>('/api/rooms');
+          set((prev) => ({
+            ...prev,
+            roomTypes: prev.roomTypes.map((t) => (t.id === id ? res.data.data : t)),
+            rooms,
+          }));
+          return { ok: true };
+        } catch (err: any) {
+          return extractFormError(err, "Oda tipi güncellenemedi.");
+        }
+      },
+
+      async deleteRoomType(id) {
+        try {
+          await api.delete(`/api/room-types/${id}`);
+          set((prev) => ({ ...prev, roomTypes: prev.roomTypes.filter((t) => t.id !== id) }));
+          return { ok: true };
+        } catch (err: any) {
+          return extractFormError(err, "Oda tipi silinemedi.");
         }
       },
 

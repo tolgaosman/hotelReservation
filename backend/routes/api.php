@@ -4,14 +4,16 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\RoomServiceController;
+use App\Http\Controllers\RoomTypeController;
 use App\Http\Controllers\SettingController;
-use App\Http\Controllers\ExchangeRateController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
@@ -27,18 +29,20 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::patch('rooms/{room}/housekeeping', [RoomController::class, 'updateHousekeeping']);
     Route::get('rooms/{room}/availability', [RoomController::class, 'availability']);
 
+    Route::apiResource('room-types', RoomTypeController::class)->except(['show']);
+
     Route::apiResource('guests', GuestController::class)->except(['destroy']);
     Route::get('guests/{guest}/reservations', [GuestController::class, 'reservations']);
 
-    Route::apiResource('reservations', ReservationController::class)->except(['destroy']);
+    Route::apiResource('reservations', ReservationController::class);
     Route::post('reservations/{reservation}/confirm', [ReservationController::class, 'confirm']);
     Route::post('reservations/{reservation}/cancel', [ReservationController::class, 'cancel']);
     Route::post('reservations/{reservation}/check-in', [ReservationController::class, 'checkIn']);
     Route::post('reservations/{reservation}/check-out', [ReservationController::class, 'checkOut']);
-    Route::get('room-services', [\App\Http\Controllers\RoomServiceController::class, 'indexAll']);
-    Route::get('reservations/{reservation}/room-services', [\App\Http\Controllers\RoomServiceController::class, 'index']);
-    Route::post('reservations/{reservation}/room-services', [\App\Http\Controllers\RoomServiceController::class, 'store']);
-    Route::delete('room-services/{roomService}', [\App\Http\Controllers\RoomServiceController::class, 'destroy']);
+    Route::get('room-services', [RoomServiceController::class, 'indexAll']);
+    Route::get('reservations/{reservation}/room-services', [RoomServiceController::class, 'index']);
+    Route::post('reservations/{reservation}/room-services', [RoomServiceController::class, 'store']);
+    Route::delete('room-services/{roomService}', [RoomServiceController::class, 'destroy']);
     Route::get('reservations/{reservation}/payments', [ReservationController::class, 'payments']);
     Route::get('reservations/{reservation}/invoice', [ReservationController::class, 'invoice']);
 
@@ -54,6 +58,9 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::apiResource('employees', EmployeeController::class)->except(['destroy']);
 
     Route::get('audit-logs', [AuditLogController::class, 'index']);
+
+    Route::apiResource('addons', \App\Http\Controllers\AddonController::class);
+    Route::apiResource('reviews', \App\Http\Controllers\ReviewController::class);
 
     Route::get('settings', [SettingController::class, 'show']);
     Route::put('settings', [SettingController::class, 'update']);
