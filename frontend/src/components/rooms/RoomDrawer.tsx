@@ -278,7 +278,7 @@ export function RoomDrawer({ open, onClose, room }: { open: boolean; onClose: ()
         <>
           {!isCreate && room!.status !== "occupied" && canDeactivate && (
             room!.status === "passive" ? (
-              <Button variant="outline" onClick={() => formRef.current?.activate()} className="mr-auto">
+              <Button variant="secondary" onClick={() => formRef.current?.activate()} className="mr-auto">
                 Aktif Et
               </Button>
             ) : (
