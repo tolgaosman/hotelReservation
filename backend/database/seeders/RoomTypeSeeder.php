@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace Database\Seeders;
 
@@ -51,7 +51,7 @@ class RoomTypeSeeder extends Seeder
                 'description' => 'Ayrı oturma alanına sahip, üstün konfor sunan geniş süit oda.',
                 'capacity' => 4,
                 'nightly_rate' => 3600,
-                'amenities' => ['Deniz Manzarası', 'Balkon', 'Klima', 'Mini Bar', 'Jakuzi', 'Wi-Fi'],
+                'amenities' => ['Deniz Manzarası', 'Balkon', 'Klima', 'Mini Bar', 'Jakuzi', 'Wi-Fi', 'Oda Servisi'],
                 'bed_type' => 'King',
                 'size_m2' => 55,
                 'view' => 'Deniz',
@@ -61,7 +61,7 @@ class RoomTypeSeeder extends Seeder
                 'description' => 'Otelin en üst düzey konaklama seçeneği; geniş alan, tam donanım ve panoramik manzara.',
                 'capacity' => 5,
                 'nightly_rate' => 5500,
-                'amenities' => ['Deniz Manzarası', 'Balkon', 'Klima', 'Mini Bar', 'Jakuzi', 'Wi-Fi', 'Kasa'],
+                'amenities' => ['Deniz Manzarası', 'Balkon', 'Klima', 'Mini Bar', 'Jakuzi', 'Wi-Fi', 'Kasa', 'Oda Servisi'],
                 'bed_type' => 'King',
                 'size_m2' => 75,
                 'view' => 'Deniz',
@@ -76,3 +76,4 @@ class RoomTypeSeeder extends Seeder
         }
     }
 }
+

@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Review extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'reservation_id',
+        'room_id',
+        'guest_name',
         'rating',
         'comment',
         'is_approved',
@@ -19,8 +20,8 @@ class Review extends Model
         'is_approved' => 'boolean',
     ];
 
-    public function reservation()
+    public function room()
     {
-        return $this->belongsTo(Reservation::class);
+        return $this->belongsTo(Room::class);
     }
 }

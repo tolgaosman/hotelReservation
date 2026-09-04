@@ -10,7 +10,7 @@ class ReviewController extends Controller
     public function index()
     {
         // Admin panele gelecek yorumlar
-        return Review::with(['reservation.guest', 'reservation.room'])->orderBy('created_at', 'desc')->get();
+        return Review::with(['room'])->orderBy('created_at', 'desc')->get();
     }
 
     public function store(Request $request)
@@ -41,3 +41,4 @@ class ReviewController extends Controller
         return response()->json(null, 204);
     }
 }
+

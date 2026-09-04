@@ -11,20 +11,14 @@ import { cn } from "@/lib/utils";
 
 interface Review {
   id: number;
-  reservationId: number;
+  roomId: number;
+  guestName: string;
   rating: number;
   comment: string | null;
   isApproved: boolean;
   createdAt: string;
-  reservation: {
-    id: number;
-    room: {
-      number: string;
-    };
-    guest: {
-      firstName: string;
-      lastName: string;
-    };
+  room?: {
+    number: string;
   };
 }
 
@@ -80,11 +74,11 @@ export default function ReviewsPage() {
     if (filter === "pending" && r.isApproved) return false;
     if (filter === "approved" && !r.isApproved) return false;
     
-    const guestName = `${r.reservation?.guest?.firstName} ${r.reservation?.guest?.lastName}`.toLowerCase();
+    const guestName = (r.guestName || "").toLowerCase();
     const comment = (r.comment || "").toLowerCase();
     const s = search.toLowerCase();
     
-    return guestName.includes(s) || comment.includes(s) || r.reservation?.room?.number.includes(s);
+    return guestName.includes(s) || comment.includes(s) || r.room?.number.includes(s);
   });
 
   if (loading) return <PageSkeleton />;
@@ -143,15 +137,15 @@ export default function ReviewsPage() {
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[var(--surface-alt)] flex items-center justify-center font-bold text-[var(--ink)] border border-[var(--line)]">
-                    {review.reservation?.guest?.firstName?.[0]}{review.reservation?.guest?.lastName?.[0]}
+                    {review.guestName?.[0]}
                   </div>
                   <div>
                     <h3 className="font-bold text-[var(--ink)]">
-                      {review.reservation?.guest?.firstName} {review.reservation?.guest?.lastName}
+                      {review.guestName}
                     </h3>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs font-semibold text-[var(--muted)] bg-[var(--surface-alt)] px-2 py-0.5 rounded-md border border-[var(--line)]">
-                        Oda: {review.reservation?.room?.number}
+                        Oda: {review.room?.number}
                       </span>
                       <span className="text-xs text-[var(--muted)] font-medium">
                         {new Date(review.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -240,3 +234,4 @@ export default function ReviewsPage() {
     </div>
   );
 }
+

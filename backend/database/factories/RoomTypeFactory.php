@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace Database\Factories;
 
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class RoomTypeFactory extends Factory
 {
-    private const AMENITY_POOL = ['Deniz Manzarası', 'Balkon', 'Klima', 'Mini Bar', 'Jakuzi', 'Wi-Fi', 'Kasa'];
+    private const AMENITY_POOL = ['Deniz Manzarası', 'Balkon', 'Klima', 'Mini Bar', 'Jakuzi', 'Wi-Fi', 'Kasa', 'Oda Servisi'];
 
     public function definition(): array
     {
@@ -27,3 +27,4 @@ class RoomTypeFactory extends Factory
         ];
     }
 }
+

@@ -15,7 +15,7 @@ import type { RoomTypeDefinition } from "@/lib/types";
 // The vocabulary offered when tagging a type's amenities — a fixed starter
 // set, unioned below with whatever the type being edited already carries so
 // an amenity typed elsewhere (or seeded) never silently disappears from view.
-const AMENITY_OPTIONS = ["Deniz Manzarası", "Balkon", "Klima", "Mini Bar", "Jakuzi", "Wi-Fi", "Kasa"];
+const AMENITY_OPTIONS = ["Deniz Manzarası", "Balkon", "Klima", "Mini Bar", "Jakuzi", "Wi-Fi", "Kasa", "Oda Servisi"];
 
 interface FormHandle {
   submit(): void;

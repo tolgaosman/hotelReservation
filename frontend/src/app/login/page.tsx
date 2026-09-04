@@ -139,16 +139,37 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {process.env.NODE_ENV !== "production" && (
-          <div className="mt-7 border-t border-[var(--line)] pt-5 text-center text-xs leading-relaxed text-[var(--muted)]">
-            <p>
-              Admin — <span className="text-[var(--ink-soft)]">admin@hotel.test</span> / password
-            </p>
-            <p>
-              Personel — <span className="text-[var(--ink-soft)]">personel@hotel.test</span> / password
-            </p>
+        <div className="mt-7 border-t border-[var(--line)] pt-5">
+          <p className="mb-3 text-center text-[11px] font-medium text-[var(--muted)] uppercase tracking-wider">
+            Demo Hesapları (Tek Tıkla Giriş)
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {[
+              { name: "Sistem Yöneticisi", role: "Admin", email: "admin@hotel.test", password: "password" },
+              { name: "Elif Demir", role: "Resepsiyonist", email: "elif.demir@hotel.test", password: "12345678" },
+              { name: "Ayşe Yıldız", role: "Muhasebeci", email: "ayse.yildiz@hotel.test", password: "12345678" },
+              { name: "Hatice Aydın", role: "Temizlikçi", email: "hatice.aydin@hotel.test", password: "12345678" },
+              { name: "Deniz Aksoy", role: "Garson", email: "deniz.aksoy@hotel.test", password: "12345678" },
+              { name: "Burak Şahin", role: "Resepsiyon Amiri", email: "burak.sahin@hotel.test", password: "12345678" },
+              { name: "Kemal Er", role: "Muhasebe Müdürü", email: "kemal.er@hotel.test", password: "12345678" },
+              { name: "Mehmet Kaya", role: "Temizlik Sorumlusu", email: "mehmet.kaya@hotel.test", password: "12345678" },
+              { name: "Serkan Yılmaz", role: "Garson Şefi", email: "serkan.yilmaz@hotel.test", password: "12345678" },
+            ].map((acc) => (
+              <button
+                key={acc.email}
+                type="button"
+                onClick={() => {
+                  setEmail(acc.email);
+                  setPassword(acc.password);
+                }}
+                className="group flex flex-col items-center rounded-xl border border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2 text-center transition-all hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 hover:shadow-sm"
+              >
+                <span className="text-[11px] font-medium text-[var(--ink)] group-hover:text-[var(--accent)]">{acc.name}</span>
+                <span className="text-[9px] text-[var(--muted)]">{acc.role}</span>
+              </button>
+            ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

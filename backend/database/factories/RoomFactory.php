@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace Database\Factories;
 
@@ -20,7 +20,7 @@ class RoomFactory extends Factory
         ['type' => 'King Suite', 'capacity' => 5, 'rate' => 5500],
     ];
 
-    private const AMENITY_POOL = ['Deniz Manzarası', 'Balkon', 'Klima', 'Mini Bar', 'Jakuzi', 'Wi-Fi', 'Kasa'];
+    private const AMENITY_POOL = ['Deniz Manzarası', 'Balkon', 'Klima', 'Mini Bar', 'Jakuzi', 'Wi-Fi', 'Kasa', 'Oda Servisi'];
 
     public function definition(): array
     {
@@ -52,3 +52,4 @@ class RoomFactory extends Factory
         ]);
     }
 }
+
