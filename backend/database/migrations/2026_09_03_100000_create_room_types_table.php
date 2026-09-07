@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('bed_type', 50)->nullable();
             $table->unsignedSmallInteger('size_m2')->nullable();
             $table->string('view', 50)->nullable();
-            // Reserved for a future image-upload feature — no code reads or
+            // Reserved for a future image-upload feature â€” no code reads or
             // writes this column yet. Adding it now avoids a migration on a
             // populated table later; keep it out of $fillable/the resource
             // until the upload endpoint actually exists.

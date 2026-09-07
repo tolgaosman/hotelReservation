@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\DB;
  * Books each active room forward from wherever its existing reservations
  * currently end (or today, if that's later) out to a rolling horizon, so the
  * calendar always has a realistic forward book instead of the flat seed
- * dataset's frozen 2026-12/2027-01 cutoff. Safe to re-run — and worth
- * scheduling (see routes/console.php) — since each room's cursor is derived
+ * dataset's frozen 2026-12/2027-01 cutoff. Safe to re-run â€” and worth
+ * scheduling (see routes/console.php) â€” since each room's cursor is derived
  * from its own latest non-cancelled reservation, so a run never rewrites the
  * past or creates an overlap, it only ever extends the horizon further out.
  */
@@ -40,7 +40,7 @@ class FillCalendarCommand extends Command
         $guestIds = Guest::query()->pluck('id');
 
         if ($rooms->isEmpty() || $guestIds->isEmpty()) {
-            $this->error('No active rooms or no guests to book — run the base seeders first.');
+            $this->error('No active rooms or no guests to book â€” run the base seeders first.');
 
             return self::FAILURE;
         }
@@ -69,7 +69,7 @@ class FillCalendarCommand extends Command
 
             while ($cursor->lt($horizon)) {
                 // Leaves a vacancy gap between stays so the room isn't
-                // booked wall-to-wall — the gap length is what actually
+                // booked wall-to-wall â€” the gap length is what actually
                 // drives the target occupancy percentage down from 100%.
                 if (random_int(1, 100) > $occupancy) {
                     $cursor = $cursor->copy()->addDays(random_int(1, 4));
@@ -87,7 +87,7 @@ class FillCalendarCommand extends Command
 
                 $totalAmount = round((float) $room->nightly_rate * $nights, 2);
                 // Bookings this far out are never walk-ins, so only the two
-                // pre-arrival statuses apply — mirrors the seeded dataset's
+                // pre-arrival statuses apply â€” mirrors the seeded dataset's
                 // own confirmed/pending split for future stays.
                 $status = random_int(1, 100) <= 65 ? ReservationStatus::Confirmed : ReservationStatus::Pending;
 
@@ -106,7 +106,7 @@ class FillCalendarCommand extends Command
                         'reservation_id' => $reservation->id,
                         'amount' => round($totalAmount * (random_int(20, 60) / 100), 2),
                         'method' => collect(PaymentMethod::cases())->random(),
-                        'note' => 'Ön ödeme',
+                        'note' => 'Ã–n Ã¶deme',
                     ]);
                 }
 

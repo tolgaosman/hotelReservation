@@ -19,33 +19,33 @@ Route::middleware('throttle:60,1')->group(function () {
     // Yorumlar ana sayfada (veya her yerde) public olarak listelenebilir.
     Route::get('reviews', [ReviewController::class, 'index']);
     
-    // Rezervasyon esnasında ekstra hizmetleri çekmek için
+    // Rezervasyon esnasÄ±nda ekstra hizmetleri Ã§ekmek iÃ§in
     Route::get('addons', [AddonController::class, 'index']);
 
-    // Rezervasyon, hesabı guest kaydına bağlayabilmek için giriş yapmış bir
-    // müşteri gerektirir — BookingFlow zaten girişi zorunlu tutuyor.
+    // Rezervasyon, hesabÄ± guest kaydÄ±na baÄŸlayabilmek iÃ§in giriÅŸ yapmÄ±ÅŸ bir
+    // mÃ¼ÅŸteri gerektirir â€” BookingFlow zaten giriÅŸi zorunlu tutuyor.
     Route::middleware(['throttle:10,1', 'auth.customer'])->group(function () {
         Route::post('reservations', [ReservationController::class, 'store']);
         Route::put('reservations/{reservation}', [ReservationController::class, 'update']);
         Route::post('reservations/{reservation}/cancel', [ReservationController::class, 'cancel']);
         
-        // Sadece giriş yapmış müşteri yorum bırakabilir
+        // Sadece giriÅŸ yapmÄ±ÅŸ mÃ¼ÅŸteri yorum bÄ±rakabilir
         Route::post('reviews', [ReviewController::class, 'store']);
     });
 
-    // Profil ekranındaki "Rezervasyonlarım" listesi.
+    // Profil ekranÄ±ndaki "RezervasyonlarÄ±m" listesi.
     Route::get('reservations', [ReservationController::class, 'index'])
         ->middleware('auth.customer');
 
-    // Müşteri kayıt/giriş — admin panelin employee auth'undan tamamen
-    // ayrı (bkz. AuthController). Admin panel giriş bilgileri burada
-    // geçerli değildir.
+    // MÃ¼ÅŸteri kayÄ±t/giriÅŸ â€” admin panelin employee auth'undan tamamen
+    // ayrÄ± (bkz. AuthController). Admin panel giriÅŸ bilgileri burada
+    // geÃ§erli deÄŸildir.
     Route::prefix('auth')->middleware('throttle:20,1')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::post('login', [AuthController::class, 'login']);
 
-        // "Google ile devam et" — tam sayfa yönlendirmesiyle çalışır (fetch
-        // değil), bu yüzden auth.customer gerektirmez ve throttle:20,1'e tabidir.
+        // "Google ile devam et" â€” tam sayfa yÃ¶nlendirmesiyle Ã§alÄ±ÅŸÄ±r (fetch
+        // deÄŸil), bu yÃ¼zden auth.customer gerektirmez ve throttle:20,1'e tabidir.
         Route::get('google/redirect', [GoogleAuthController::class, 'redirect']);
         Route::get('google/callback', [GoogleAuthController::class, 'callback']);
 

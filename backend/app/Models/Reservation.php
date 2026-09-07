@@ -63,7 +63,7 @@ class Reservation extends Model
     }
 
     /**
-     * Other people staying alongside the primary guest — informational only,
+     * Other people staying alongside the primary guest â€” informational only,
      * the reservation itself still belongs to exactly one guest/room.
      */
     public function companions(): BelongsToMany

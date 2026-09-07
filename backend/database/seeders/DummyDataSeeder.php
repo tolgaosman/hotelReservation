@@ -17,32 +17,32 @@ class DummyDataSeeder extends Seeder
         // 1. Ekstra Hizmetler (Addons)
         $addons = [
             [
-                'name' => 'Havaalanı Transferi (VIP)',
-                'description' => 'Mercedes Vito ile lüks ve konforlu havalimanı transferi.',
+                'name' => 'HavaalanÄ± Transferi (VIP)',
+                'description' => 'Mercedes Vito ile lÃ¼ks ve konforlu havalimanÄ± transferi.',
                 'price' => 1500.00,
                 'is_active' => true,
             ],
             [
-                'name' => 'Odaya Kahvaltı',
-                'description' => 'Her sabah odanıza özel 2 kişilik serpme kahvaltı servisi.',
+                'name' => 'Odaya KahvaltÄ±',
+                'description' => 'Her sabah odanÄ±za Ã¶zel 2 kiÅŸilik serpme kahvaltÄ± servisi.',
                 'price' => 450.00,
                 'is_active' => true,
             ],
             [
                 'name' => 'Spa ve Masaj Paketi',
-                'description' => 'Konaklamanız boyunca 1 saatlik ücretsiz kese, köpük ve İsveç masajı.',
+                'description' => 'KonaklamanÄ±z boyunca 1 saatlik Ã¼cretsiz kese, kÃ¶pÃ¼k ve Ä°sveÃ§ masajÄ±.',
                 'price' => 1200.00,
                 'is_active' => true,
             ],
             [
-                'name' => 'Geç Çıkış (Late Check-out)',
-                'description' => 'Odadan ayrılış saatinizi 16:00\'a kadar uzatın.',
+                'name' => 'GeÃ§ Ã‡Ä±kÄ±ÅŸ (Late Check-out)',
+                'description' => 'Odadan ayrÄ±lÄ±ÅŸ saatinizi 16:00\'a kadar uzatÄ±n.',
                 'price' => 800.00,
                 'is_active' => true,
             ],
             [
-                'name' => 'Romantik Oda Süslemesi',
-                'description' => 'Gül yaprakları, meyve sepeti ve şampanya ile özel balayı/yıldönümü süslemesi.',
+                'name' => 'Romantik Oda SÃ¼slemesi',
+                'description' => 'GÃ¼l yapraklarÄ±, meyve sepeti ve ÅŸampanya ile Ã¶zel balayÄ±/yÄ±ldÃ¶nÃ¼mÃ¼ sÃ¼slemesi.',
                 'price' => 950.00,
                 'is_active' => true,
             ],
@@ -51,14 +51,14 @@ class DummyDataSeeder extends Seeder
         foreach ($addons as $addonData) {
             Addon::firstOrCreate(['name' => $addonData['name']], $addonData);
         }
-        $this->command->info('Ekstra hizmetler (Addons) oluşturuldu.');
+        $this->command->info('Ekstra hizmetler (Addons) oluÅŸturuldu.');
 
         // 2. Yorumlar (Reviews)
-        // Yorumları rastgele rezervasyonlara bağlamamız gerekiyor (örnek veriler varsa).
+        // YorumlarÄ± rastgele rezervasyonlara baÄŸlamamÄ±z gerekiyor (Ã¶rnek veriler varsa).
         $reservations = Reservation::where('status', 'completed')->get();
 
         if ($reservations->isEmpty()) {
-            $this->command->warn('Tamamlanmış rezervasyon bulunamadı. Yorumlar mevcut herhangi bir rezervasyona bağlanacak.');
+            $this->command->warn('TamamlanmÄ±ÅŸ rezervasyon bulunamadÄ±. Yorumlar mevcut herhangi bir rezervasyona baÄŸlanacak.');
             $reservations = Reservation::all();
         }
 
@@ -66,44 +66,44 @@ class DummyDataSeeder extends Seeder
             $reviews = [
                 [
                     'rating' => 5,
-                    'comment' => 'Mükemmel bir deneyimdi. Özellikle spa hizmetine bayıldım. Her şey harikaydı, kesinlikle tekrar geleceğiz!',
+                    'comment' => 'MÃ¼kemmel bir deneyimdi. Ã–zellikle spa hizmetine bayÄ±ldÄ±m. Her ÅŸey harikaydÄ±, kesinlikle tekrar geleceÄŸiz!',
                     'is_approved' => true,
                 ],
                 [
                     'rating' => 4,
-                    'comment' => 'Odalar çok temizdi ve çalışanlar güler yüzlüydü. Sadece kahvaltı çeşitliliği biraz daha artırılabilir.',
+                    'comment' => 'Odalar Ã§ok temizdi ve Ã§alÄ±ÅŸanlar gÃ¼ler yÃ¼zlÃ¼ydÃ¼. Sadece kahvaltÄ± Ã§eÅŸitliliÄŸi biraz daha artÄ±rÄ±labilir.',
                     'is_approved' => true,
                 ],
                 [
                     'rating' => 5,
-                    'comment' => 'Eşimin doğum günü için sürpriz bir tatil planlamıştım. Romantik oda süslemesi şahaneydi. Tüm ekibe teşekkürler.',
+                    'comment' => 'EÅŸimin doÄŸum gÃ¼nÃ¼ iÃ§in sÃ¼rpriz bir tatil planlamÄ±ÅŸtÄ±m. Romantik oda sÃ¼slemesi ÅŸahaneydi. TÃ¼m ekibe teÅŸekkÃ¼rler.',
                     'is_approved' => true,
                 ],
                 [
                     'rating' => 3,
-                    'comment' => 'Otel konumu güzel ama gece yan odalardan ses geliyordu. Yalıtım daha iyi olabilirdi.',
-                    'is_approved' => false, // Onaylanmamış yorum örneği (Admin panelde onaya düşecek)
+                    'comment' => 'Otel konumu gÃ¼zel ama gece yan odalardan ses geliyordu. YalÄ±tÄ±m daha iyi olabilirdi.',
+                    'is_approved' => false, // OnaylanmamÄ±ÅŸ yorum Ã¶rneÄŸi (Admin panelde onaya dÃ¼ÅŸecek)
                 ],
                 [
                     'rating' => 5,
-                    'comment' => 'VIP transfer hizmeti tam zamanındaydı ve çok konforluydu. Otel genel anlamda premium hissettiriyor. Teşekkürler.',
+                    'comment' => 'VIP transfer hizmeti tam zamanÄ±ndaydÄ± ve Ã§ok konforluydu. Otel genel anlamda premium hissettiriyor. TeÅŸekkÃ¼rler.',
                     'is_approved' => true,
                 ]
             ];
 
             foreach ($reviews as $index => $reviewData) {
-                // Rastgele bir rezervasyon seç, yoksa ilk sıradakileri kullan
+                // Rastgele bir rezervasyon seÃ§, yoksa ilk sÄ±radakileri kullan
                 $reservation = $reservations->random();
                 
-                // Aynı rezervasyona birden fazla yorum eklenmemesi için kontrol
+                // AynÄ± rezervasyona birden fazla yorum eklenmemesi iÃ§in kontrol
                 Review::firstOrCreate(
                     ['reservation_id' => $reservation->id],
                     $reviewData
                 );
             }
-            $this->command->info('Yorumlar (Reviews) oluşturuldu.');
+            $this->command->info('Yorumlar (Reviews) oluÅŸturuldu.');
         } else {
-            $this->command->warn('Veritabanında hiç rezervasyon bulunamadı. Yorum oluşturulamadı.');
+            $this->command->warn('VeritabanÄ±nda hiÃ§ rezervasyon bulunamadÄ±. Yorum oluÅŸturulamadÄ±.');
         }
     }
 }

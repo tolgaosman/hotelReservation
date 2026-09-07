@@ -27,16 +27,16 @@ class UserSeeder extends Seeder
         // Muhasebeci
         $accountingRole = Role::where('name', 'Muhasebeci')->first();
         User::factory()->create([
-            'name' => 'Ayşe Yıldız',
+            'name' => 'AyÅŸe YÄ±ldÄ±z',
             'email' => 'ayse.yildiz@hotel.test',
             'password' => bcrypt('12345678'),
             'role_id' => $accountingRole?->id,
         ]);
 
-        // Temizlikçi
-        $housekeepingRole = Role::where('name', 'Temizlikçi')->first();
+        // TemizlikÃ§i
+        $housekeepingRole = Role::where('name', 'TemizlikÃ§i')->first();
         User::factory()->create([
-            'name' => 'Hatice Aydın',
+            'name' => 'Hatice AydÄ±n',
             'email' => 'hatice.aydin@hotel.test',
             'password' => bcrypt('12345678'),
             'role_id' => $housekeepingRole?->id,
@@ -51,19 +51,19 @@ class UserSeeder extends Seeder
             'role_id' => $waiterRole?->id,
         ]);
 
-        // --- Yöneticiler / Şefler ---
+        // --- YÃ¶neticiler / Åefler ---
 
         // Resepsiyon Amiri
         $receptionManagerRole = Role::where('name', 'Resepsiyon Amiri')->first();
         User::factory()->create([
-            'name' => 'Burak Şahin',
+            'name' => 'Burak Åahin',
             'email' => 'burak.sahin@hotel.test',
             'password' => bcrypt('12345678'),
             'role_id' => $receptionManagerRole?->id,
         ]);
 
-        // Muhasebe Müdürü
-        $accountingManagerRole = Role::where('name', 'Muhasebe Müdürü')->first();
+        // Muhasebe MÃ¼dÃ¼rÃ¼
+        $accountingManagerRole = Role::where('name', 'Muhasebe MÃ¼dÃ¼rÃ¼')->first();
         User::factory()->create([
             'name' => 'Kemal Er',
             'email' => 'kemal.er@hotel.test',
@@ -80,10 +80,10 @@ class UserSeeder extends Seeder
             'role_id' => $housekeepingManagerRole?->id,
         ]);
 
-        // Garson Şefi
-        $waiterManagerRole = Role::where('name', 'Garson Şefi')->first();
+        // Garson Åefi
+        $waiterManagerRole = Role::where('name', 'Garson Åefi')->first();
         User::factory()->create([
-            'name' => 'Serkan Yılmaz',
+            'name' => 'Serkan YÄ±lmaz',
             'email' => 'serkan.yilmaz@hotel.test',
             'password' => bcrypt('12345678'),
             'role_id' => $waiterManagerRole?->id,

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 // List endpoints filter/sort on these columns directly (not just via the
 // existing reservations(room_id, status, check_in, check_out) composite,
-// whose leading column is room_id) — EXPLAIN showed full table scans + filesort.
+// whose leading column is room_id) â€” EXPLAIN showed full table scans + filesort.
 return new class extends Migration
 {
     public function up(): void

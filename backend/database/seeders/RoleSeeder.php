@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 class RoleSeeder extends Seeder
 {
     /**
-     * The eight professions requested for the staff — each is also a role
+     * The eight professions requested for the staff â€” each is also a role
      * carrying its own job description and a sensible default permission set.
      */
     public static function definitions(): array
@@ -31,7 +31,7 @@ class RoleSeeder extends Seeder
         return [
             [
                 'name' => 'Muhasebeci',
-                'description' => 'Otelin günlük gelir-gider takibini, ödeme kayıtlarını ve faturalandırma süreçlerini yönetir.',
+                'description' => 'Otelin gÃ¼nlÃ¼k gelir-gider takibini, Ã¶deme kayÄ±tlarÄ±nÄ± ve faturalandÄ±rma sÃ¼reÃ§lerini yÃ¶netir.',
                 'permissions' => [
                     ...$dashboardCore,
                     'dashboard.widget_revenue', 'dashboard.widget_total_revenue', 'dashboard.widget_country',
@@ -43,8 +43,8 @@ class RoleSeeder extends Seeder
                 'department' => Department::Muhasebe,
             ],
             [
-                'name' => 'Muhasebe Müdürü',
-                'description' => 'Muhasebe ekibini yönetir; mali raporları, rezervasyon gelirlerini ve ödeme süreçlerini denetler.',
+                'name' => 'Muhasebe MÃ¼dÃ¼rÃ¼',
+                'description' => 'Muhasebe ekibini yÃ¶netir; mali raporlarÄ±, rezervasyon gelirlerini ve Ã¶deme sÃ¼reÃ§lerini denetler.',
                 'permissions' => [
                     ...$dashboardCore, ...$allWidgets,
                     'payments.view', 'payments.create',
@@ -60,7 +60,7 @@ class RoleSeeder extends Seeder
             ],
             [
                 'name' => 'Resepsiyonist',
-                'description' => 'Misafir karşılama, check-in/check-out işlemlerini ve rezervasyon süreçlerini yürütür.',
+                'description' => 'Misafir karÅŸÄ±lama, check-in/check-out iÅŸlemlerini ve rezervasyon sÃ¼reÃ§lerini yÃ¼rÃ¼tÃ¼r.',
                 'permissions' => [
                     ...$dashboardCore,
                     'dashboard.widget_today_checkins', 'dashboard.widget_today_checkouts', 'dashboard.widget_upcoming',
@@ -76,7 +76,7 @@ class RoleSeeder extends Seeder
             ],
             [
                 'name' => 'Resepsiyon Amiri',
-                'description' => 'Ön büro ekibini yönetir; rezervasyon, oda ve misafir operasyonlarının tamamından sorumludur.',
+                'description' => 'Ã–n bÃ¼ro ekibini yÃ¶netir; rezervasyon, oda ve misafir operasyonlarÄ±nÄ±n tamamÄ±ndan sorumludur.',
                 'permissions' => [
                     ...$dashboardCore, ...$allWidgets,
                     'reservations.view', 'reservations.create', 'reservations.edit', 'reservations.confirm', 'reservations.cancel', 'reservations.checkin', 'reservations.checkout',
@@ -92,8 +92,8 @@ class RoleSeeder extends Seeder
                 'department' => Department::Resepsiyon,
             ],
             [
-                'name' => 'Temizlikçi',
-                'description' => 'Odaların temizlik, hazırlık ve bakım kontrollerini gerçekleştirir.',
+                'name' => 'TemizlikÃ§i',
+                'description' => 'OdalarÄ±n temizlik, hazÄ±rlÄ±k ve bakÄ±m kontrollerini gerÃ§ekleÅŸtirir.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_room_availability',
                     'housekeeping.view', 'housekeeping.update_status', 'housekeeping.maintenance',
@@ -104,7 +104,7 @@ class RoleSeeder extends Seeder
             ],
             [
                 'name' => 'Tamirci',
-                'description' => 'Odalardaki arıza ve bakım taleplerini karşılar, tesisatı onarır.',
+                'description' => 'Odalardaki arÄ±za ve bakÄ±m taleplerini karÅŸÄ±lar, tesisatÄ± onarÄ±r.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_room_availability',
                     'housekeeping.view', 'housekeeping.update_status', 'housekeeping.maintenance',
@@ -115,7 +115,7 @@ class RoleSeeder extends Seeder
             ],
             [
                 'name' => 'Temizlik & Tamir Sorumlusu',
-                'description' => 'Temizlik ve tamir ekibinin planlamasını yapar, oda hazırlık ve bakım standartlarını denetler.',
+                'description' => 'Temizlik ve tamir ekibinin planlamasÄ±nÄ± yapar, oda hazÄ±rlÄ±k ve bakÄ±m standartlarÄ±nÄ± denetler.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_room_availability',
                     'housekeeping.view', 'housekeeping.update_status', 'housekeeping.assign_staff', 'housekeeping.maintenance', 'housekeeping.mark_priority',
@@ -123,12 +123,12 @@ class RoleSeeder extends Seeder
                     'employees.view',
                     'settings.view',
                 ],
-                'visible_professions' => ['Temizlikçi', 'Tamirci'],
+                'visible_professions' => ['TemizlikÃ§i', 'Tamirci'],
                 'department' => Department::TemizlikTamir,
             ],
             [
                 'name' => 'Garson',
-                'description' => 'Oda servisi siparişlerini karşılar ve misafirlere odalarında servis yapar.',
+                'description' => 'Oda servisi sipariÅŸlerini karÅŸÄ±lar ve misafirlere odalarÄ±nda servis yapar.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_today_checkins',
                     'reservations.view',
@@ -138,8 +138,8 @@ class RoleSeeder extends Seeder
                 'department' => Department::Servis,
             ],
             [
-                'name' => 'Garson Şefi',
-                'description' => 'Oda servisi ekibini yönetir; sipariş, menü ve servis kalitesi süreçlerini denetler.',
+                'name' => 'Garson Åefi',
+                'description' => 'Oda servisi ekibini yÃ¶netir; sipariÅŸ, menÃ¼ ve servis kalitesi sÃ¼reÃ§lerini denetler.',
                 'permissions' => [
                     ...$dashboardCore, 'dashboard.widget_today_checkins',
                     'reservations.view',
@@ -154,7 +154,7 @@ class RoleSeeder extends Seeder
     }
 
     /**
-     * Renamed roles keyed by their old name — applied before the definitions
+     * Renamed roles keyed by their old name â€” applied before the definitions
      * loop so an in-place rename doesn't leave the old row behind as an
      * orphan alongside a freshly-created one under the new name.
      */

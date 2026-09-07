@@ -41,7 +41,7 @@ class StorePaymentRequest extends FormRequest
             }
 
             if ($reservation->status === ReservationStatus::Cancelled) {
-                $validator->errors()->add('reservation_id', 'İptal edilmiş bir rezervasyona ödeme eklenemez.');
+                $validator->errors()->add('reservation_id', 'Ä°ptal edilmiÅŸ bir rezervasyona Ã¶deme eklenemez.');
 
                 return;
             }
@@ -49,7 +49,7 @@ class StorePaymentRequest extends FormRequest
             $service = app(\App\Services\PaymentService::class);
 
             if ($service->wouldExceedBalance($reservation, (float) $this->input('amount'))) {
-                $validator->errors()->add('amount', 'Ödeme tutarı, rezervasyonun kalan bakiyesini aşamaz.');
+                $validator->errors()->add('amount', 'Ã–deme tutarÄ±, rezervasyonun kalan bakiyesini aÅŸamaz.');
             }
         });
     }

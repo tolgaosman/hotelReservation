@@ -22,7 +22,7 @@ class RoomAvailableForDates implements ValidationRule
         $service = app(ReservationService::class);
 
         if ($service->hasConflict($this->roomId, Carbon::parse($this->checkIn), Carbon::parse($this->checkOut), $this->excludeReservationId)) {
-            $fail('Bu oda seçilen tarihlerde başka bir aktif rezervasyona sahip.');
+            $fail('Bu oda seÃ§ilen tarihlerde baÅŸka bir aktif rezervasyona sahip.');
         }
     }
 }

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
             $table->string('full_name');
-            // Meslek (job title) — free text but the roles page seeds one role per profession.
+            // Meslek (job title) â€” free text but the roles page seeds one role per profession.
             $table->string('profession');
             $table->foreignId('role_id')->nullable()->constrained()->nullOnDelete();
             $table->string('email')->nullable();

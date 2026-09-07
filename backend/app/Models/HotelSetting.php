@@ -19,7 +19,7 @@ class HotelSetting extends Model
         'tax_rate' => 'decimal:2',
     ];
 
-    // Single-row config table — every call returns (and lazily creates) the
+    // Single-row config table â€” every call returns (and lazily creates) the
     // same record instead of the frontend ever needing to know an id.
     public static function current(): self
     {

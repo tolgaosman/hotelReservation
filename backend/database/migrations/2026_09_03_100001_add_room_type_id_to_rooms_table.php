@@ -19,7 +19,7 @@ return new class extends Migration
         // Backfill a room_types row per distinct legacy `type` string found
         // in the data (not a hardcoded list, so an unexpected type isn't
         // silently dropped), then link every room to it. Keyed by name via
-        // updateOrInsert/where so a re-run after a partial failure is safe —
+        // updateOrInsert/where so a re-run after a partial failure is safe â€”
         // MySQL DDL isn't transactional.
         $types = DB::table('rooms')->whereNotNull('type')->distinct()->pluck('type');
 

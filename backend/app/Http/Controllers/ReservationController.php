@@ -40,7 +40,7 @@ class ReservationController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Rezervasyon oluşturuldu.', 201);
+        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Rezervasyon oluÅŸturuldu.', 201);
     }
 
     public function show(Reservation $reservation): JsonResponse
@@ -55,7 +55,7 @@ class ReservationController extends Controller
         // Authorization already enforced by UpdateReservationRequest::authorize().
         $reservation = $this->reservations->update($reservation, $request->validated());
 
-        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Rezervasyon güncellendi.');
+        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Rezervasyon gÃ¼ncellendi.');
     }
 
     public function confirm(Reservation $reservation): JsonResponse
@@ -63,7 +63,7 @@ class ReservationController extends Controller
         $this->authorize('confirm', $reservation);
         $reservation = $this->reservations->confirm($reservation);
 
-        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Rezervasyon onaylandı.');
+        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Rezervasyon onaylandÄ±.');
     }
 
     public function cancel(Reservation $reservation): JsonResponse
@@ -79,7 +79,7 @@ class ReservationController extends Controller
         $this->authorize('checkIn', $reservation);
         $reservation = $this->reservations->checkIn($reservation);
 
-        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Check-in tamamlandı.');
+        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Check-in tamamlandÄ±.');
     }
 
     public function checkOut(Reservation $reservation): JsonResponse
@@ -87,7 +87,7 @@ class ReservationController extends Controller
         $this->authorize('checkOut', $reservation);
         $reservation = $this->reservations->checkOut($reservation);
 
-        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Check-out tamamlandı.');
+        return $this->success(new ReservationResource($reservation->load(['guest', 'room', 'companions'])), 'Check-out tamamlandÄ±.');
     }
 
     public function payments(Reservation $reservation): JsonResponse

@@ -69,10 +69,10 @@ class EmployeeControllerTest extends TestCase
         $employee = Employee::factory()->create();
 
         $this->putJson("/api/employees/{$employee->id}", [
-            'full_name' => 'Yeni İsim',
+            'full_name' => 'Yeni Ä°sim',
             'profession' => $employee->profession,
         ])->assertStatus(200);
-        $this->assertEquals('Yeni İsim', $employee->fresh()->full_name);
+        $this->assertEquals('Yeni Ä°sim', $employee->fresh()->full_name);
     }
 
     public function test_employees_cannot_be_deleted_via_api(): void
@@ -95,7 +95,7 @@ class EmployeeControllerTest extends TestCase
         $this->actingPersonel(['employees.view', 'employees.create']);
 
         $this->postJson('/api/employees', [
-            'full_name' => 'Test Çalışan',
+            'full_name' => 'Test Ã‡alÄ±ÅŸan',
             'profession' => 'Garson',
         ])->assertStatus(201);
     }
@@ -107,14 +107,14 @@ class EmployeeControllerTest extends TestCase
         $supervisor = User::factory()->create(['role_id' => $role->id]);
         $this->actingAs($supervisor, 'sanctum');
 
-        Employee::factory()->create(['full_name' => 'Görünür Garson', 'profession' => 'Garson']);
-        Employee::factory()->create(['full_name' => 'Görünmez Muhasebeci', 'profession' => 'Muhasebeci']);
+        Employee::factory()->create(['full_name' => 'GÃ¶rÃ¼nÃ¼r Garson', 'profession' => 'Garson']);
+        Employee::factory()->create(['full_name' => 'GÃ¶rÃ¼nmez Muhasebeci', 'profession' => 'Muhasebeci']);
 
         $response = $this->getJson('/api/employees')->assertStatus(200);
         $names = collect($response->json('data.items'))->pluck('full_name');
 
-        $this->assertTrue($names->contains('Görünür Garson'));
-        $this->assertFalse($names->contains('Görünmez Muhasebeci'));
+        $this->assertTrue($names->contains('GÃ¶rÃ¼nÃ¼r Garson'));
+        $this->assertFalse($names->contains('GÃ¶rÃ¼nmez Muhasebeci'));
     }
 
     public function test_unscoped_personel_sees_every_profession(): void

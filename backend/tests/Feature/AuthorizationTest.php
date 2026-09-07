@@ -55,8 +55,8 @@ class AuthorizationTest extends TestCase
 
     public function test_personel_can_create_reservations(): void
     {
-        $viewPermission = Permission::create(['key' => 'reservations.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'reservations', 'group_label' => 'Rezervasyonlar', 'is_page_permission' => true]);
-        $createPermission = Permission::create(['key' => 'reservations.create', 'label' => 'Yeni Rezervasyon Oluşturma', 'group' => 'reservations', 'group_label' => 'Rezervasyonlar']);
+        $viewPermission = Permission::create(['key' => 'reservations.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'reservations', 'group_label' => 'Rezervasyonlar', 'is_page_permission' => true]);
+        $createPermission = Permission::create(['key' => 'reservations.create', 'label' => 'Yeni Rezervasyon OluÅŸturma', 'group' => 'reservations', 'group_label' => 'Rezervasyonlar']);
         $role = Role::create(['name' => 'Test Resepsiyonist', 'slug' => 'test-resepsiyonist-reservations']);
         $role->permissions()->sync([$viewPermission->id, $createPermission->id]);
         $personel = User::factory()->create(['role_id' => $role->id]);

@@ -42,7 +42,7 @@ class GuestController extends Controller
         $guest = Guest::create($request->validated());
         $this->auditLog->record('guest.create', $guest);
 
-        return $this->success(new GuestResource($guest), 'Misafir oluşturuldu.', 201);
+        return $this->success(new GuestResource($guest), 'Misafir oluÅŸturuldu.', 201);
     }
 
     public function show(Guest $guest): JsonResponse
@@ -57,7 +57,7 @@ class GuestController extends Controller
         $guest->update($request->validated());
         $this->auditLog->record('guest.update', $guest);
 
-        return $this->success(new GuestResource($guest), 'Misafir güncellendi.');
+        return $this->success(new GuestResource($guest), 'Misafir gÃ¼ncellendi.');
     }
 
     public function reservations(Guest $guest): JsonResponse

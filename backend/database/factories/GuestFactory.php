@@ -16,7 +16,7 @@ class GuestFactory extends Factory
             'phone' => fake()->numerify('+90 5## ### ## ##'),
             'email' => fake()->unique()->safeEmail(),
             'identity_number' => fake()->unique()->numerify('###########'),
-            'country' => fake()->randomElement(['Türkiye', 'Almanya', 'Rusya', 'Birleşik Krallık', 'Fransa', 'ABD', 'Hollanda']),
+            'country' => fake()->randomElement(['TÃ¼rkiye', 'Almanya', 'Rusya', 'BirleÅŸik KrallÄ±k', 'Fransa', 'ABD', 'Hollanda']),
         ];
     }
 }

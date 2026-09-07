@@ -44,21 +44,21 @@ class StoreReservationRequest extends FormRequest
 
             // `active` was replaced by status=passive when the room status
             // enum gained a Passive case (see
-            // 2026_09_01_090301_modify_rooms_status_add_passive) — the
+            // 2026_09_01_090301_modify_rooms_status_add_passive) â€” the
             // column no longer exists, so this must check status instead.
             if ($room->status === RoomStatus::Passive || $room->status === RoomStatus::Maintenance) {
-                $validator->errors()->add('room_id', 'Bu oda pasif veya bakımda, rezervasyon oluşturulamaz.');
+                $validator->errors()->add('room_id', 'Bu oda pasif veya bakÄ±mda, rezervasyon oluÅŸturulamaz.');
 
                 return;
             }
 
             if ($this->input('guest_count') > $room->capacity) {
-                $validator->errors()->add('guest_count', 'Misafir sayısı odanın kapasitesini aşamaz.');
+                $validator->errors()->add('guest_count', 'Misafir sayÄ±sÄ± odanÄ±n kapasitesini aÅŸamaz.');
             }
 
             $companionCount = count($this->input('companions', []));
             if ($companionCount + 1 > $this->input('guest_count')) {
-                $validator->errors()->add('companions', 'Misafir sayısı, ana misafir dahil belirtilen kişi sayısından az olamaz.');
+                $validator->errors()->add('companions', 'Misafir sayÄ±sÄ±, ana misafir dahil belirtilen kiÅŸi sayÄ±sÄ±ndan az olamaz.');
             }
 
             (new RoomAvailableForDates(

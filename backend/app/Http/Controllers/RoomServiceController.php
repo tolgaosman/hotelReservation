@@ -56,7 +56,7 @@ class RoomServiceController extends Controller
             $locked = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
 
             if ($locked->status === \App\Enums\ReservationStatus::Cancelled) {
-                throw new DomainActionException('İptal edilmiş bir rezervasyona ek hizmet eklenemez.');
+                throw new DomainActionException('Ä°ptal edilmiÅŸ bir rezervasyona ek hizmet eklenemez.');
             }
 
             $roomService = $locked->roomServices()->create($validated);
@@ -82,7 +82,7 @@ class RoomServiceController extends Controller
 
             $newTotal = $locked->total_amount - $roomService->amount;
             if (bccomp((string) $newTotal, (string) $locked->paid_amount, 2) < 0) {
-                throw new DomainActionException('Bu ek hizmet silinemez: rezervasyon için ödenen tutarın altına düşürür.');
+                throw new DomainActionException('Bu ek hizmet silinemez: rezervasyon iÃ§in Ã¶denen tutarÄ±n altÄ±na dÃ¼ÅŸÃ¼rÃ¼r.');
             }
 
             $locked->total_amount = $newTotal;

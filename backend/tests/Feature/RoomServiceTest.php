@@ -17,9 +17,9 @@ class RoomServiceTest extends TestCase
 
     private function actingPersonel(): User
     {
-        $viewPermission = Permission::create(['key' => 'room_service.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'room_service', 'group_label' => 'Oda Servisi', 'is_page_permission' => true]);
-        $createPermission = Permission::create(['key' => 'room_service.create', 'label' => 'Sipariş Ekleme', 'group' => 'room_service', 'group_label' => 'Oda Servisi']);
-        $deletePermission = Permission::create(['key' => 'room_service.delete', 'label' => 'Sipariş Silme', 'group' => 'room_service', 'group_label' => 'Oda Servisi']);
+        $viewPermission = Permission::create(['key' => 'room_service.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'room_service', 'group_label' => 'Oda Servisi', 'is_page_permission' => true]);
+        $createPermission = Permission::create(['key' => 'room_service.create', 'label' => 'SipariÅŸ Ekleme', 'group' => 'room_service', 'group_label' => 'Oda Servisi']);
+        $deletePermission = Permission::create(['key' => 'room_service.delete', 'label' => 'SipariÅŸ Silme', 'group' => 'room_service', 'group_label' => 'Oda Servisi']);
         $role = Role::create(['name' => 'Test Garson', 'slug' => 'test-garson']);
         $role->permissions()->sync([$viewPermission->id, $createPermission->id, $deletePermission->id]);
         $personel = User::factory()->create(['role_id' => $role->id]);
@@ -34,7 +34,7 @@ class RoomServiceTest extends TestCase
             'room_id' => Room::factory()->create()->id,
             'guest_id' => Guest::factory()->create()->id,
             'total_amount' => $total,
-            // Pin a non-cancelled status — the factory's default is random
+            // Pin a non-cancelled status â€” the factory's default is random
             // across all statuses, which would make this flaky now that
             // room-service charges against a cancelled reservation are rejected.
             'status' => \App\Enums\ReservationStatus::Confirmed,

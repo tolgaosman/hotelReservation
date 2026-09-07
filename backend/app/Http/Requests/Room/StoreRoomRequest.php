@@ -18,7 +18,7 @@ class StoreRoomRequest extends FormRequest
     {
         return [
             'number' => ['required', 'string', 'max:20', 'unique:rooms,number'],
-            // Capacity/nightly_rate/amenities are no longer accepted here —
+            // Capacity/nightly_rate/amenities are no longer accepted here â€”
             // they're a server-written snapshot of the selected room type
             // (RoomType::roomAttributes(), applied in RoomController::store)
             // so a room can never drift from its type's current definition.

@@ -53,7 +53,7 @@ class ExchangeRateController extends Controller
         if (!$rates) {
             return response()->json([
                 'success' => false,
-                'message' => 'Döviz kurları alınamadı.'
+                'message' => 'DÃ¶viz kurlarÄ± alÄ±namadÄ±.'
             ], 500);
         }
         

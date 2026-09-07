@@ -24,8 +24,8 @@ class ReviewController extends Controller
             'comment' => 'nullable|string',
         ]);
         
-        // Müşterinin kendi rezervasyonuna yorum yapabilmesi için yetki kontrolü yapılabilir,
-        // şimdilik basit tutuyoruz. (Guest user ID vs.)
+        // MÃ¼ÅŸterinin kendi rezervasyonuna yorum yapabilmesi iÃ§in yetki kontrolÃ¼ yapÄ±labilir,
+        // ÅŸimdilik basit tutuyoruz. (Guest user ID vs.)
         
         $review = Review::create($validated);
         return response()->json($review, 201);

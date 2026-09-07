@@ -15,7 +15,7 @@ class AuthController extends Controller
         $credentials = $request->validated();
 
         if (! Auth::once($credentials)) {
-            return $this->error('Geçersiz kimlik bilgileri.', ['email' => ['E-posta veya şifre hatalı.']], 422);
+            return $this->error('GeÃ§ersiz kimlik bilgileri.', ['email' => ['E-posta veya ÅŸifre hatalÄ±.']], 422);
         }
 
         /** @var User $user */
@@ -25,14 +25,14 @@ class AuthController extends Controller
         return $this->success([
             'token' => $token,
             'user' => $this->serializeUser($user),
-        ], 'Giriş başarılı.');
+        ], 'GiriÅŸ baÅŸarÄ±lÄ±.');
     }
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
-        return $this->success(null, 'Çıkış yapıldı.');
+        return $this->success(null, 'Ã‡Ä±kÄ±ÅŸ yapÄ±ldÄ±.');
     }
 
     public function me(Request $request): JsonResponse

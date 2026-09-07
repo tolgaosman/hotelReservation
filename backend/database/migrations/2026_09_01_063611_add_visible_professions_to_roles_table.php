@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('roles', function (Blueprint $table) {
             // When set, a user with this role only sees employees whose
-            // profession is in this list on the Çalışanlar page (a supervisor
-            // role scoped to their own team). Null/empty means unscoped —
+            // profession is in this list on the Ã‡alÄ±ÅŸanlar page (a supervisor
+            // role scoped to their own team). Null/empty means unscoped â€”
             // every employee stays visible, same as before this column existed.
             $table->json('visible_professions')->nullable()->after('is_system');
         });

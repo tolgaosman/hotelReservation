@@ -49,10 +49,10 @@ class GuestControllerTest extends TestCase
         $this->actingAdmin();
 
         $response = $this->postJson('/api/guests', [
-            'full_name' => 'Ayşe Yılmaz',
+            'full_name' => 'AyÅŸe YÄ±lmaz',
             'phone' => '+90 555 111 22 33',
             'identity_number' => '12345678901',
-            'country' => 'Türkiye',
+            'country' => 'TÃ¼rkiye',
         ]);
 
         $response->assertStatus(201);
@@ -75,11 +75,11 @@ class GuestControllerTest extends TestCase
         $guest = Guest::factory()->create();
 
         $response = $this->putJson("/api/guests/{$guest->id}", [
-            'full_name' => 'Güncellenmiş İsim',
+            'full_name' => 'GÃ¼ncellenmiÅŸ Ä°sim',
         ]);
 
         $response->assertStatus(200);
-        $this->assertEquals('Güncellenmiş İsim', $guest->fresh()->full_name);
+        $this->assertEquals('GÃ¼ncellenmiÅŸ Ä°sim', $guest->fresh()->full_name);
     }
 
     public function test_personel_without_guests_view_cannot_list_guests(): void

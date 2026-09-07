@@ -38,17 +38,17 @@ class StoreReservationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'roomId.required' => 'Oda seçimi zorunludur.',
-            'roomId.exists' => 'Seçilen oda bulunamadı.',
-            'checkIn.required' => 'Giriş tarihi zorunludur.',
-            'checkIn.after_or_equal' => 'Giriş tarihi bugünden önce olamaz.',
-            'checkOut.required' => 'Çıkış tarihi zorunludur.',
-            'checkOut.after' => 'Çıkış tarihi, giriş tarihinden sonra olmalıdır.',
-            'guestCount.required' => 'Misafir sayısı zorunludur.',
-            'guestCount.min' => 'En az 1 misafir olmalıdır.',
+            'roomId.required' => 'Oda seÃ§imi zorunludur.',
+            'roomId.exists' => 'SeÃ§ilen oda bulunamadÄ±.',
+            'checkIn.required' => 'GiriÅŸ tarihi zorunludur.',
+            'checkIn.after_or_equal' => 'GiriÅŸ tarihi bugÃ¼nden Ã¶nce olamaz.',
+            'checkOut.required' => 'Ã‡Ä±kÄ±ÅŸ tarihi zorunludur.',
+            'checkOut.after' => 'Ã‡Ä±kÄ±ÅŸ tarihi, giriÅŸ tarihinden sonra olmalÄ±dÄ±r.',
+            'guestCount.required' => 'Misafir sayÄ±sÄ± zorunludur.',
+            'guestCount.min' => 'En az 1 misafir olmalÄ±dÄ±r.',
             'guest.fullName.required' => 'Ad soyad zorunludur.',
-            'guest.phone.required' => 'Telefon numarası zorunludur.',
-            'guest.email.email' => 'Geçerli bir e-posta adresi giriniz.',
+            'guest.phone.required' => 'Telefon numarasÄ± zorunludur.',
+            'guest.email.email' => 'GeÃ§erli bir e-posta adresi giriniz.',
             'guest.identityNumber.required' => 'TC Kimlik / Pasaport No zorunludur.',
         ];
     }
@@ -67,12 +67,12 @@ class StoreReservationRequest extends FormRequest
             }
 
             if (! in_array($room->status, [RoomStatus::Available, RoomStatus::Occupied], true)) {
-                $validator->errors()->add('roomId', 'Bu oda tipi şu anda rezervasyona kapalı.');
+                $validator->errors()->add('roomId', 'Bu oda tipi ÅŸu anda rezervasyona kapalÄ±.');
             }
 
             $guestCount = (int) $this->input('guestCount');
             if ($guestCount > 0 && $guestCount > $room->capacity) {
-                $validator->errors()->add('guestCount', 'Misafir sayısı bu oda tipinin kapasitesini aşıyor.');
+                $validator->errors()->add('guestCount', 'Misafir sayÄ±sÄ± bu oda tipinin kapasitesini aÅŸÄ±yor.');
             }
         });
     }

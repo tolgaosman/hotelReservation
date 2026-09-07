@@ -19,7 +19,7 @@ class UpdateRoomRequest extends FormRequest
 
         return [
             'number' => ['sometimes', 'string', 'max:20', Rule::unique('rooms', 'number')->ignore($roomId)],
-            // No `active` filter here (unlike StoreRoomRequest) — a room
+            // No `active` filter here (unlike StoreRoomRequest) â€” a room
             // already assigned to a type that was later deactivated must
             // stay editable (e.g. to change its number or status).
             'room_type_id' => ['sometimes', 'exists:room_types,id'],

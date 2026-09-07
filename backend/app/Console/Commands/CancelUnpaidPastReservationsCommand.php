@@ -10,11 +10,11 @@ use Illuminate\Support\Carbon;
 
 /**
  * A pending/confirmed reservation whose check-out date has already passed
- * means the guest never checked in — the room was simply never claimed.
+ * means the guest never checked in â€” the room was simply never claimed.
  * If it's also still short of its total (partial or fully unpaid), it's
  * dead stock: nothing left to collect and nothing to check in, so it's
  * auto-cancelled instead of lingering and skewing occupancy/revenue views.
- * checked_in/completed reservations are untouched — cancel() only allows
+ * checked_in/completed reservations are untouched â€” cancel() only allows
  * pending/confirmed -> cancelled anyway (see ReservationService::cancel()).
  */
 class CancelUnpaidPastReservationsCommand extends Command

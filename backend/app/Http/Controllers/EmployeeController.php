@@ -41,7 +41,7 @@ class EmployeeController extends Controller
         $employee = Employee::create($request->validated())->load('role');
         $this->auditLog->record('employee.create', $employee);
 
-        return $this->success(new EmployeeResource($employee), 'Çalışan eklendi.', 201);
+        return $this->success(new EmployeeResource($employee), 'Ã‡alÄ±ÅŸan eklendi.', 201);
     }
 
     public function show(Employee $employee): JsonResponse
@@ -56,6 +56,6 @@ class EmployeeController extends Controller
         $employee->update($request->validated());
         $this->auditLog->record('employee.update', $employee);
 
-        return $this->success(new EmployeeResource($employee->load('role')), 'Çalışan güncellendi.');
+        return $this->success(new EmployeeResource($employee->load('role')), 'Ã‡alÄ±ÅŸan gÃ¼ncellendi.');
     }
 }

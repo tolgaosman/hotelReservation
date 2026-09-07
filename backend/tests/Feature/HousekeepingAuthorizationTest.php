@@ -33,7 +33,7 @@ class HousekeepingAuthorizationTest extends TestCase
         $this->actingAs($personel, 'sanctum');
         $room = Room::factory()->create();
 
-        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['assigned_staff' => 'Ayşe'])
+        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['assigned_staff' => 'AyÅŸe'])
             ->assertStatus(403);
     }
 
@@ -53,7 +53,7 @@ class HousekeepingAuthorizationTest extends TestCase
         $this->actingAs($personel, 'sanctum');
         $room = Room::factory()->create();
 
-        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['assigned_staff' => 'Ayşe'])
+        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['assigned_staff' => 'AyÅŸe'])
             ->assertStatus(200);
 
         $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['housekeeping_status' => 'dirty'])
@@ -66,7 +66,7 @@ class HousekeepingAuthorizationTest extends TestCase
         $this->actingAs($personel, 'sanctum');
         $room = Room::factory()->create();
 
-        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['is_maintenance' => true, 'maintenance_note' => 'Klima arızalı'])
+        $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['is_maintenance' => true, 'maintenance_note' => 'Klima arÄ±zalÄ±'])
             ->assertStatus(200);
 
         $this->patchJson("/api/rooms/{$room->id}/housekeeping", ['housekeeping_status' => 'dirty'])

@@ -10,7 +10,7 @@ use Throwable;
 class AuditLogService
 {
     /**
-     * Records one domain action. Never throws — a logging failure must not
+     * Records one domain action. Never throws â€” a logging failure must not
      * break the underlying business action it's recording, so any error is
      * swallowed and written to the application log instead.
      */
@@ -26,7 +26,7 @@ class AuditLogService
                 'ip_address' => request()->ip(),
             ]);
         } catch (Throwable $e) {
-            Log::error('Aktivite kaydı oluşturulamadı: '.$e->getMessage());
+            Log::error('Aktivite kaydÄ± oluÅŸturulamadÄ±: '.$e->getMessage());
         }
     }
 }

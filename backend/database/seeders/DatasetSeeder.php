@@ -27,7 +27,7 @@ class DatasetSeeder extends Seeder
 
         $this->command->info('Inserting Rooms...');
         // Room types are seeded before this runs (RoomTypeSeeder, in
-        // DatabaseSeeder) — resolve each room's type name to its id so the
+        // DatabaseSeeder) â€” resolve each room's type name to its id so the
         // dataset's rooms come in already linked, instead of relying on the
         // FK-backfill migration (which only runs once, on schema setup).
         $roomTypeIdsByName = DB::table('room_types')->pluck('id', 'name');
@@ -43,7 +43,7 @@ class DatasetSeeder extends Seeder
                 'status' => $room['status'],
                 // dataset.json still carries the dataset dump's `active`
                 // field, but the column itself was dropped in favor of
-                // status=passive — every row here is active:true anyway, so
+                // status=passive â€” every row here is active:true anyway, so
                 // nothing is lost by not writing it.
                 'created_at' => now(),
                 'updated_at' => now(),

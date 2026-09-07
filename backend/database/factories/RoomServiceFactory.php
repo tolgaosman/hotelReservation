@@ -14,7 +14,7 @@ class RoomServiceFactory extends Factory
     {
         return [
             'reservation_id' => Reservation::factory(),
-            'description' => fake()->randomElement(['Minibar', 'Oda Servisi Kahvaltı', 'Çamaşırhane', 'Spa']),
+            'description' => fake()->randomElement(['Minibar', 'Oda Servisi KahvaltÄ±', 'Ã‡amaÅŸÄ±rhane', 'Spa']),
             'amount' => fake()->randomFloat(2, 20, 500),
         ];
     }

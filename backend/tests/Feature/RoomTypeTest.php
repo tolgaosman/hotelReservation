@@ -22,7 +22,7 @@ class RoomTypeTest extends TestCase
             'name' => 'Panorama Suite',
             'capacity' => 4,
             'nightly_rate' => 4200,
-            'amenities' => ['Deniz Manzarası', 'Jakuzi'],
+            'amenities' => ['Deniz ManzarasÄ±', 'Jakuzi'],
         ]);
 
         $response->assertStatus(201);

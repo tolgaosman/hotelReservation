@@ -19,6 +19,6 @@ class SettingController extends Controller
         $setting = HotelSetting::current();
         $setting->update($request->validated());
 
-        return $this->success(new HotelSettingResource($setting), 'Ayarlar güncellendi.');
+        return $this->success(new HotelSettingResource($setting), 'Ayarlar gÃ¼ncellendi.');
     }
 }

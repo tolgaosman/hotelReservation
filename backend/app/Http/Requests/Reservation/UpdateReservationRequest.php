@@ -45,15 +45,15 @@ class UpdateReservationRequest extends FormRequest
             $guestCount = $this->input('guest_count', $reservation->guest_count);
 
             if ($guestCount > $room->capacity) {
-                $validator->errors()->add('guest_count', 'Misafir sayısı odanın kapasitesini aşamaz.');
+                $validator->errors()->add('guest_count', 'Misafir sayÄ±sÄ± odanÄ±n kapasitesini aÅŸamaz.');
             }
 
             $guestId = $this->input('guest_id', $reservation->guest_id);
             $companions = $this->input('companions', []);
             if (in_array($guestId, $companions, false)) {
-                $validator->errors()->add('companions', 'Ana misafir aynı zamanda diğer misafirler arasında olamaz.');
+                $validator->errors()->add('companions', 'Ana misafir aynÄ± zamanda diÄŸer misafirler arasÄ±nda olamaz.');
             } elseif (count($companions) + 1 > $guestCount) {
-                $validator->errors()->add('companions', 'Misafir sayısı, ana misafir dahil belirtilen kişi sayısından az olamaz.');
+                $validator->errors()->add('companions', 'Misafir sayÄ±sÄ±, ana misafir dahil belirtilen kiÅŸi sayÄ±sÄ±ndan az olamaz.');
             }
 
             $checkIn = $this->input('check_in', $reservation->check_in->toDateString());

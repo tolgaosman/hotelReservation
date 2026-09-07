@@ -32,7 +32,7 @@ class PaymentTest extends TestCase
             // The factory's default status is random across all
             // ReservationStatus cases (including Cancelled), which made this
             // helper flaky once payments against a cancelled reservation
-            // were rejected — pin a payable status explicitly.
+            // were rejected â€” pin a payable status explicitly.
             'status' => \App\Enums\ReservationStatus::Confirmed,
         ]);
     }
@@ -91,8 +91,8 @@ class PaymentTest extends TestCase
 
     public function test_personel_with_payments_permission_can_view_and_create_payments(): void
     {
-        $viewPermission = Permission::create(['key' => 'payments.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'payments', 'group_label' => 'Ödemeler', 'is_page_permission' => true]);
-        $createPermission = Permission::create(['key' => 'payments.create', 'label' => 'Ödeme Alma', 'group' => 'payments', 'group_label' => 'Ödemeler']);
+        $viewPermission = Permission::create(['key' => 'payments.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'payments', 'group_label' => 'Ã–demeler', 'is_page_permission' => true]);
+        $createPermission = Permission::create(['key' => 'payments.create', 'label' => 'Ã–deme Alma', 'group' => 'payments', 'group_label' => 'Ã–demeler']);
         $role = Role::create(['name' => 'Test Resepsiyonist', 'slug' => 'test-resepsiyonist']);
         $role->permissions()->sync([$viewPermission->id, $createPermission->id]);
         $personel = User::factory()->create(['role_id' => $role->id]);

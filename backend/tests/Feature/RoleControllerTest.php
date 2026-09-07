@@ -74,13 +74,13 @@ class RoleControllerTest extends TestCase
         $this->actingAdmin();
 
         $response = $this->postJson('/api/roles', [
-            'name' => 'Yeni Departmanlı Rol',
+            'name' => 'Yeni DepartmanlÄ± Rol',
             'department' => 'muhasebe',
         ]);
 
         $response->assertStatus(201);
         $response->assertJsonPath('data.department', 'muhasebe');
-        $this->assertDatabaseHas('roles', ['name' => 'Yeni Departmanlı Rol', 'department' => 'muhasebe']);
+        $this->assertDatabaseHas('roles', ['name' => 'Yeni DepartmanlÄ± Rol', 'department' => 'muhasebe']);
     }
 
     public function test_admin_can_update_role_department(): void
@@ -102,15 +102,15 @@ class RoleControllerTest extends TestCase
     {
         $this->actingAdmin();
 
-        $this->postJson('/api/roles', ['name' => 'Geçersiz Departman', 'department' => 'not-a-real-department'])
+        $this->postJson('/api/roles', ['name' => 'GeÃ§ersiz Departman', 'department' => 'not-a-real-department'])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['department']);
     }
 
     public function test_personel_without_roles_create_cannot_create_role(): void
     {
-        $viewPermission = Permission::create(['key' => 'roles.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'roles', 'group_label' => 'Roller', 'is_page_permission' => true]);
-        $role = Role::create(['name' => 'Test Görüntüleyici Roller', 'slug' => 'test-goruntuleyici-roller']);
+        $viewPermission = Permission::create(['key' => 'roles.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'roles', 'group_label' => 'Roller', 'is_page_permission' => true]);
+        $role = Role::create(['name' => 'Test GÃ¶rÃ¼ntÃ¼leyici Roller', 'slug' => 'test-goruntuleyici-roller']);
         $role->permissions()->sync([$viewPermission->id]);
         $personel = User::factory()->create(['role_id' => $role->id]);
         $this->actingAs($personel, 'sanctum');

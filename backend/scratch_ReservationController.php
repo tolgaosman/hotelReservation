@@ -43,7 +43,7 @@ class ReservationController extends Controller
         $customer = $request->attributes->get('customer');
 
         if (! filled($customer->identity_number)) {
-            throw new HttpException(422, 'Rezervasyon için profilinizde Pasaport/Kimlik No kayıtlı olmalıdır.');
+            throw new HttpException(422, 'Rezervasyon iÃ§in profilinizde Pasaport/Kimlik No kayÄ±tlÄ± olmalÄ±dÄ±r.');
         }
 
         $reservation = DB::transaction(function () use ($data, $customer) {
@@ -59,7 +59,7 @@ class ReservationController extends Controller
                 ->first();
 
             if (! $room) {
-                throw new HttpException(409, 'Seçtiğiniz oda tipi bu tarihlerde dolu.');
+                throw new HttpException(409, 'SeÃ§tiÄŸiniz oda tipi bu tarihlerde dolu.');
             }
 
             $guest = Guest::updateOrCreate(
@@ -126,11 +126,11 @@ class ReservationController extends Controller
         $customer = $request->attributes->get('customer');
 
         if ($reservation->guest->customer_id !== $customer->id) {
-            throw new HttpException(403, 'Bu işlem için yetkiniz yok.');
+            throw new HttpException(403, 'Bu iÅŸlem iÃ§in yetkiniz yok.');
         }
 
         if ($reservation->status !== ReservationStatus::Pending->value) {
-            throw new HttpException(422, 'Sadece bekleyen rezervasyonlar düzenlenebilir.');
+            throw new HttpException(422, 'Sadece bekleyen rezervasyonlar dÃ¼zenlenebilir.');
         }
 
         $data = $request->validated();
@@ -157,7 +157,7 @@ class ReservationController extends Controller
                     ->first();
                 
                 if (! $room) {
-                    throw new HttpException(409, 'Seçtiğiniz oda tipi bu tarihlerde dolu.');
+                    throw new HttpException(409, 'SeÃ§tiÄŸiniz oda tipi bu tarihlerde dolu.');
                 }
                 
                 $reservation->room_id = $room->id;
@@ -192,7 +192,7 @@ class ReservationController extends Controller
         $customer = $request->attributes->get('customer');
 
         if ($reservation->guest->customer_id !== $customer->id) {
-            throw new HttpException(403, 'Bu işlem için yetkiniz yok.');
+            throw new HttpException(403, 'Bu iÅŸlem iÃ§in yetkiniz yok.');
         }
 
         if ($reservation->status !== ReservationStatus::Pending->value) {
@@ -202,6 +202,6 @@ class ReservationController extends Controller
         $reservation->status = ReservationStatus::Cancelled->value;
         $reservation->save();
 
-        return response()->json(['message' => 'Rezervasyon başarıyla iptal edildi.']);
+        return response()->json(['message' => 'Rezervasyon baÅŸarÄ±yla iptal edildi.']);
     }
 }

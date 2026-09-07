@@ -41,7 +41,7 @@ class User extends Authenticatable
         return $this->role === UserRole::Admin;
     }
 
-    // Named distinctly from the `role` enum attribute/column above — Eloquent
+    // Named distinctly from the `role` enum attribute/column above â€” Eloquent
     // would otherwise never reach this relation via property access since the
     // real "role" column takes precedence over a same-named relation method.
     public function permissionRole(): BelongsTo

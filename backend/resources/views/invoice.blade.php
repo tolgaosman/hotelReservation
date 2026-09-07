@@ -26,22 +26,22 @@
 
     <div class="header">
         <div class="hotel-details">
-            Otel Yönetim A.Ş.<br>
-            Atatürk Cad. No:123 Merkez/İstanbul<br>
+            Otel YÃ¶netim A.Å.<br>
+            AtatÃ¼rk Cad. No:123 Merkez/Ä°stanbul<br>
             Vergi No: 1234567890<br>
             info@hotel.test
         </div>
-        <div class="logo">Otel Yönetim Sistemi</div>
+        <div class="logo">Otel YÃ¶netim Sistemi</div>
         <div style="clear:both;"></div>
     </div>
 
-    <div class="invoice-title">Konaklama Faturası</div>
+    <div class="invoice-title">Konaklama FaturasÄ±</div>
 
     <table class="info-table">
         <tr>
             <td style="padding-right: 15px;">
                 <div class="info-box">
-                    <span class="label">Müşteri Bilgileri</span>
+                    <span class="label">MÃ¼ÅŸteri Bilgileri</span>
                     <span class="value">{{ $reservation->guest->full_name }}</span><br>
                     {{ $reservation->guest->email }}<br>
                     {{ $reservation->guest->phone }}<br>
@@ -63,43 +63,43 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th>Açıklama</th>
+                <th>AÃ§Ä±klama</th>
                 <th>Oda Tipi</th>
-                <th>Gece Sayısı</th>
+                <th>Gece SayÄ±sÄ±</th>
                 <th class="amount">Birim Fiyat</th>
                 <th class="amount">Toplam</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>Oda Konaklaması (Oda No: {{ $reservation->room->number }})</td>
+                <td>Oda KonaklamasÄ± (Oda No: {{ $reservation->room->number }})</td>
                 <td>{{ $reservation->room->type }}</td>
                 <td>{{ \Carbon\Carbon::parse($reservation->check_in)->diffInDays(\Carbon\Carbon::parse($reservation->check_out)) }} Gece</td>
-                <td class="amount">₺{{ number_format($reservation->room->nightly_rate, 2, ',', '.') }}</td>
-                <td class="amount">₺{{ number_format($reservation->total_amount, 2, ',', '.') }}</td>
+                <td class="amount">â‚º{{ number_format($reservation->room->nightly_rate, 2, ',', '.') }}</td>
+                <td class="amount">â‚º{{ number_format($reservation->total_amount, 2, ',', '.') }}</td>
             </tr>
             <tr class="total-row">
                 <td colspan="4" style="text-align: right; font-weight: bold;">Genel Toplam</td>
-                <td class="amount">₺{{ number_format($reservation->total_amount, 2, ',', '.') }}</td>
+                <td class="amount">â‚º{{ number_format($reservation->total_amount, 2, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>
     
     <div>
-        <strong>Ödeme Geçmişi:</strong>
+        <strong>Ã–deme GeÃ§miÅŸi:</strong>
         <ul style="font-size: 12px; margin-top: 5px;">
             @foreach($reservation->payments as $payment)
-                <li>{{ \Carbon\Carbon::parse($payment->created_at)->format('d.m.Y') }} - {{ $payment->method->value }} - ₺{{ number_format($payment->amount, 2, ',', '.') }}</li>
+                <li>{{ \Carbon\Carbon::parse($payment->created_at)->format('d.m.Y') }} - {{ $payment->method->value }} - â‚º{{ number_format($payment->amount, 2, ',', '.') }}</li>
             @endforeach
             @if($reservation->payments->isEmpty())
-                <li>Henüz ödeme alınmadı.</li>
+                <li>HenÃ¼z Ã¶deme alÄ±nmadÄ±.</li>
             @endif
         </ul>
     </div>
 
     <div class="footer">
-        Bizi tercih ettiğiniz için teşekkür ederiz.<br>
-        Bu belge elektronik olarak üretilmiştir.
+        Bizi tercih ettiÄŸiniz iÃ§in teÅŸekkÃ¼r ederiz.<br>
+        Bu belge elektronik olarak Ã¼retilmiÅŸtir.
     </div>
 
 </body>

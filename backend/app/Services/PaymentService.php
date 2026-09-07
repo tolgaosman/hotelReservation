@@ -25,7 +25,7 @@ class PaymentService
             $reservation = Reservation::query()->lockForUpdate()->findOrFail($data['reservation_id']);
 
             if ($this->wouldExceedBalance($reservation, (float) $data['amount'])) {
-                throw new DomainActionException('Ödeme tutarı, rezervasyonun kalan bakiyesini aşamaz.');
+                throw new DomainActionException('Ã–deme tutarÄ±, rezervasyonun kalan bakiyesini aÅŸamaz.');
             }
 
             $payment = Payment::create([
@@ -38,7 +38,7 @@ class PaymentService
 
             // created_at is intentionally excluded from Payment::$fillable (mass
             // assignment should never let a client stamp arbitrary timestamps by
-            // default) — backdating is instead an explicit, opt-in write here,
+            // default) â€” backdating is instead an explicit, opt-in write here,
             // gated by StorePaymentRequest's before_or_equal:now rule.
             if (! empty($data['created_at'])) {
                 $payment->created_at = $data['created_at'];

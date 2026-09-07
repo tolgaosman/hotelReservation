@@ -87,8 +87,8 @@ class DashboardControllerTest extends TestCase
 
     public function test_revenue_requires_dashboard_widget_revenue_permission(): void
     {
-        $viewPermission = Permission::create(['key' => 'dashboard.view', 'label' => 'Dashboardı Görüntüleme', 'group' => 'dashboard', 'group_label' => 'Dashboard', 'is_page_permission' => true]);
-        $role = Role::create(['name' => 'Test Görüntüleyici', 'slug' => 'test-dashboard-goruntuleyici']);
+        $viewPermission = Permission::create(['key' => 'dashboard.view', 'label' => 'DashboardÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'dashboard', 'group_label' => 'Dashboard', 'is_page_permission' => true]);
+        $role = Role::create(['name' => 'Test GÃ¶rÃ¼ntÃ¼leyici', 'slug' => 'test-dashboard-goruntuleyici']);
         $role->permissions()->sync([$viewPermission->id]);
         $personel = User::factory()->create(['role_id' => $role->id]);
         $this->actingAs($personel, 'sanctum');

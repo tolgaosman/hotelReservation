@@ -45,7 +45,7 @@ class RoomController extends Controller
         $room = Room::create($data)->refresh();
         $this->auditLog->record('room.create', $room);
 
-        return $this->success(new RoomResource($room), 'Oda oluşturuldu.', 201);
+        return $this->success(new RoomResource($room), 'Oda oluÅŸturuldu.', 201);
     }
 
     public function show(Room $room): JsonResponse
@@ -65,7 +65,7 @@ class RoomController extends Controller
         $room->update($data);
         $this->auditLog->record('room.update', $room);
 
-        return $this->success(new RoomResource($room), 'Oda güncellendi.');
+        return $this->success(new RoomResource($room), 'Oda gÃ¼ncellendi.');
     }
 
     public function deactivate(Room $room): JsonResponse
@@ -73,13 +73,13 @@ class RoomController extends Controller
         $this->authorize('deactivate', $room);
 
         if ($room->status === RoomStatus::Occupied) {
-            return $this->error('Dolu bir oda pasife alınamaz.', null, 422);
+            return $this->error('Dolu bir oda pasife alÄ±namaz.', null, 422);
         }
 
         $room->update(['status' => RoomStatus::Passive]);
         $this->auditLog->record('room.deactivate', $room);
 
-        return $this->success(new RoomResource($room), 'Oda pasife alındı.');
+        return $this->success(new RoomResource($room), 'Oda pasife alÄ±ndÄ±.');
     }
 
     public function activate(Room $room): JsonResponse
@@ -89,7 +89,7 @@ class RoomController extends Controller
         $room->update(['status' => RoomStatus::Available]);
         $this->auditLog->record('room.activate', $room);
 
-        return $this->success(new RoomResource($room), 'Oda aktifleştirildi.');
+        return $this->success(new RoomResource($room), 'Oda aktifleÅŸtirildi.');
     }
 
     public function updateHousekeeping(Request $request, Room $room): JsonResponse
@@ -136,7 +136,7 @@ class RoomController extends Controller
         $room->save();
         $this->auditLog->record('room.housekeeping_update', $room, $validated);
 
-        return $this->success(new RoomResource($room), 'Temizlik durumu güncellendi.');
+        return $this->success(new RoomResource($room), 'Temizlik durumu gÃ¼ncellendi.');
     }
 
     public function availability(Request $request, Room $room, ReservationService $service): JsonResponse

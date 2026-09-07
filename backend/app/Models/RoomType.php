@@ -44,7 +44,7 @@ class RoomType extends Model
      * The single writer of the denormalized snapshot every Room carries
      * (type/capacity/nightly_rate/amenities). Reservation pricing reads
      * those columns on the room, not this model, so a rate change here only
-     * reaches future reservations once it's propagated through this array —
+     * reaches future reservations once it's propagated through this array â€”
      * see RoomTypeController::update.
      */
     public function roomAttributes(): array

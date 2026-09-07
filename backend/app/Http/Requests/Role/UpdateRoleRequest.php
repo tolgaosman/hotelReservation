@@ -27,7 +27,7 @@ class UpdateRoleRequest extends FormRequest
         ];
     }
 
-    // See StoreRoleRequest::withValidator() — same derived-slug collision guard.
+    // See StoreRoleRequest::withValidator() â€” same derived-slug collision guard.
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
@@ -38,7 +38,7 @@ class UpdateRoleRequest extends FormRequest
             $slug = Str::slug($this->input('name'));
             $role = $this->route('role');
             if (Role::query()->where('slug', $slug)->where('id', '!=', $role->id)->exists()) {
-                $validator->errors()->add('name', 'Bu isim mevcut bir rolle aynı kısa koda (slug) dönüşüyor, farklı bir isim seçin.');
+                $validator->errors()->add('name', 'Bu isim mevcut bir rolle aynÄ± kÄ±sa koda (slug) dÃ¶nÃ¼ÅŸÃ¼yor, farklÄ± bir isim seÃ§in.');
             }
         });
     }

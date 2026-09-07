@@ -36,7 +36,7 @@ class RoomTypeController extends Controller
         $roomType = RoomType::create($request->validated())->refresh();
         $this->auditLog->record('room_type.create', $roomType);
 
-        return $this->success(new RoomTypeResource($roomType), 'Oda tipi oluşturuldu.', 201);
+        return $this->success(new RoomTypeResource($roomType), 'Oda tipi oluÅŸturuldu.', 201);
     }
 
     public function update(UpdateRoomTypeRequest $request, RoomType $roomType): JsonResponse
@@ -45,7 +45,7 @@ class RoomTypeController extends Controller
             $roomType->update($request->validated());
 
             // Propagate the new snapshot to every room already on this type
-            // — Builder::update() skips model casts, so amenities needs its
+            // â€” Builder::update() skips model casts, so amenities needs its
             // own json_encode. This only reprices *future* reservations:
             // total_amount on existing reservations was already frozen at
             // booking time and is never touched here.
@@ -56,7 +56,7 @@ class RoomTypeController extends Controller
 
         $this->auditLog->record('room_type.update', $roomType, $roomType->getChanges());
 
-        return $this->success(new RoomTypeResource($roomType->fresh()), 'Oda tipi güncellendi.');
+        return $this->success(new RoomTypeResource($roomType->fresh()), 'Oda tipi gÃ¼ncellendi.');
     }
 
     public function destroy(RoomType $roomType): JsonResponse
@@ -64,7 +64,7 @@ class RoomTypeController extends Controller
         $this->authorize('delete', $roomType);
 
         if ($roomType->rooms()->exists()) {
-            return $this->error('Bu oda tipine bağlı odalar var. Önce odaları başka bir tipe taşıyın veya tipi pasife alın.', null, 422);
+            return $this->error('Bu oda tipine baÄŸlÄ± odalar var. Ã–nce odalarÄ± baÅŸka bir tipe taÅŸÄ±yÄ±n veya tipi pasife alÄ±n.', null, 422);
         }
 
         $name = $roomType->name;

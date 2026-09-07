@@ -34,6 +34,6 @@ class PaymentController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        return $this->success(new PaymentResource($payment), 'Ödeme kaydedildi.', 201);
+        return $this->success(new PaymentResource($payment), 'Ã–deme kaydedildi.', 201);
     }
 }

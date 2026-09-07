@@ -13,7 +13,7 @@ class EmployeeFactory extends Factory
     {
         return [
             'full_name' => fake()->name(),
-            'profession' => fake()->randomElement(['Resepsiyonist', 'Kat Görevlisi', 'Garson', 'Müdür']),
+            'profession' => fake()->randomElement(['Resepsiyonist', 'Kat GÃ¶revlisi', 'Garson', 'MÃ¼dÃ¼r']),
             'role_id' => null,
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->numerify('+90 5## ### ## ##'),

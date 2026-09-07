@@ -14,8 +14,8 @@ class RoleDeletionAuthorizationTest extends TestCase
 
     public function test_personel_without_roles_delete_cannot_delete_a_role(): void
     {
-        $viewPermission = Permission::create(['key' => 'roles.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'roles', 'group_label' => 'Roller', 'is_page_permission' => true]);
-        $role = Role::create(['name' => 'Test Görüntüleyici', 'slug' => 'test-goruntuleyici']);
+        $viewPermission = Permission::create(['key' => 'roles.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'roles', 'group_label' => 'Roller', 'is_page_permission' => true]);
+        $role = Role::create(['name' => 'Test GÃ¶rÃ¼ntÃ¼leyici', 'slug' => 'test-goruntuleyici']);
         $role->permissions()->sync([$viewPermission->id]);
         $personel = User::factory()->create(['role_id' => $role->id]);
         $this->actingAs($personel, 'sanctum');
@@ -27,7 +27,7 @@ class RoleDeletionAuthorizationTest extends TestCase
 
     public function test_personel_with_roles_delete_can_delete_a_non_system_role(): void
     {
-        $viewPermission = Permission::create(['key' => 'roles.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'roles', 'group_label' => 'Roller', 'is_page_permission' => true]);
+        $viewPermission = Permission::create(['key' => 'roles.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'roles', 'group_label' => 'Roller', 'is_page_permission' => true]);
         $deletePermission = Permission::create(['key' => 'roles.delete', 'label' => 'Rol Silme', 'group' => 'roles', 'group_label' => 'Roller']);
         $role = Role::create(['name' => 'Test Silici', 'slug' => 'test-silici']);
         $role->permissions()->sync([$viewPermission->id, $deletePermission->id]);

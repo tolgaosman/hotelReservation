@@ -21,7 +21,7 @@ class PaginationTest extends TestCase
 
     // Note: a PDF-rendering regression test for invoice.blade.php's
     // Guest::first_name/last_name bug (the field is actually full_name) was
-    // intentionally not added here — this environment's dompdf/dompdf
+    // intentionally not added here â€” this environment's dompdf/dompdf
     // install is broken independent of this codebase (composer extracts it
     // to an empty directory), so a test exercising the PDF pipeline can't
     // run here. The template fix itself is in invoice.blade.php.

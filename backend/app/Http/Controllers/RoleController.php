@@ -44,10 +44,10 @@ class RoleController extends Controller
         $role->load('permissions')->loadCount('employees');
         $this->auditLog->record('role.create', $role);
 
-        return $this->success(new RoleResource($role), 'Rol oluşturuldu.', 201);
+        return $this->success(new RoleResource($role), 'Rol oluÅŸturuldu.', 201);
     }
 
-    // No show() — the roles route excludes it (the index already eager-loads
+    // No show() â€” the roles route excludes it (the index already eager-loads
     // permissions/employee counts for every role, so a single-role fetch has
     // no caller on the frontend).
 
@@ -66,7 +66,7 @@ class RoleController extends Controller
         $role->load('permissions')->loadCount('employees');
         $this->auditLog->record('role.update', $role);
 
-        return $this->success(new RoleResource($role), 'Rol güncellendi.');
+        return $this->success(new RoleResource($role), 'Rol gÃ¼ncellendi.');
     }
 
     public function destroy(Role $role): JsonResponse
@@ -78,7 +78,7 @@ class RoleController extends Controller
         }
 
         if ($role->employees()->exists()) {
-            return $this->error('Bu role atanmış çalışanlar var, önce onları başka bir role taşıyın.', null, 422);
+            return $this->error('Bu role atanmÄ±ÅŸ Ã§alÄ±ÅŸanlar var, Ã¶nce onlarÄ± baÅŸka bir role taÅŸÄ±yÄ±n.', null, 422);
         }
 
         $roleName = $role->name;

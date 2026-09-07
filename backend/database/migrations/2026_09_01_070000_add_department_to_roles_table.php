@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('roles', function (Blueprint $table) {
             // Formal grouping of a role into one of the fixed departments
             // (App\Enums\Department). Drives the Roller page's department
-            // sections and the Aktivite Kayıtları "own department" scoping.
+            // sections and the Aktivite KayÄ±tlarÄ± "own department" scoping.
             $table->string('department')->nullable()->after('visible_professions');
         });
     }

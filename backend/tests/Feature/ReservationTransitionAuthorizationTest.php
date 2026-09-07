@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * Before this, ReservationPolicy::transition() (confirm/cancel/check-in/
- * check-out) returned true unconditionally for any authenticated personel —
+ * check-out) returned true unconditionally for any authenticated personel â€”
  * these lock down each action to its own granular permission.
  */
 class ReservationTransitionAuthorizationTest extends TestCase

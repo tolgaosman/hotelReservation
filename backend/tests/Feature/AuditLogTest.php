@@ -73,8 +73,8 @@ class AuditLogTest extends TestCase
 
     public function test_personel_with_audit_logs_view_permission_can_list_logs(): void
     {
-        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => true]);
-        $role = Role::create(['name' => 'Test Denetçi', 'slug' => 'test-denetci']);
+        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'audit_logs', 'group_label' => 'Aktivite KayÄ±tlarÄ±', 'is_page_permission' => true]);
+        $role = Role::create(['name' => 'Test DenetÃ§i', 'slug' => 'test-denetci']);
         $role->permissions()->sync([$viewPermission->id]);
         $personel = User::factory()->create(['role_id' => $role->id]);
         $this->actingAs($personel, 'sanctum');
@@ -84,9 +84,9 @@ class AuditLogTest extends TestCase
 
     public function test_personel_with_only_view_sees_only_own_department_logs(): void
     {
-        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => true]);
+        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'audit_logs', 'group_label' => 'Aktivite KayÄ±tlarÄ±', 'is_page_permission' => true]);
 
-        $accountingRole = Role::create(['name' => 'Test Muhasebe Müdürü', 'slug' => 'test-muhasebe-muduru', 'department' => 'muhasebe']);
+        $accountingRole = Role::create(['name' => 'Test Muhasebe MÃ¼dÃ¼rÃ¼', 'slug' => 'test-muhasebe-muduru', 'department' => 'muhasebe']);
         $accountingRole->permissions()->sync([$viewPermission->id]);
         $receptionRole = Role::create(['name' => 'Test Resepsiyon Amiri', 'slug' => 'test-resepsiyon-amiri', 'department' => 'resepsiyon']);
         $receptionRole->permissions()->sync([$viewPermission->id]);
@@ -103,15 +103,15 @@ class AuditLogTest extends TestCase
         $response->assertStatus(200);
         $items = $response->json('data.items');
         $this->assertCount(1, $items);
-        $this->assertSame($accountingUser->id, $items[0]['userId']);
+        $this->assertSame($accountingUser->id, $items[0]['user_id']);
     }
 
     public function test_personel_with_view_all_sees_every_department_logs(): void
     {
-        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => true]);
-        $viewAllPermission = Permission::create(['key' => 'audit_logs.view_all', 'label' => 'Tüm Departmanları Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => false]);
+        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'audit_logs', 'group_label' => 'Aktivite KayÄ±tlarÄ±', 'is_page_permission' => true]);
+        $viewAllPermission = Permission::create(['key' => 'audit_logs.view_all', 'label' => 'TÃ¼m DepartmanlarÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'audit_logs', 'group_label' => 'Aktivite KayÄ±tlarÄ±', 'is_page_permission' => false]);
 
-        $accountingRole = Role::create(['name' => 'Test Muhasebe Müdürü 2', 'slug' => 'test-muhasebe-muduru-2', 'department' => 'muhasebe']);
+        $accountingRole = Role::create(['name' => 'Test Muhasebe MÃ¼dÃ¼rÃ¼ 2', 'slug' => 'test-muhasebe-muduru-2', 'department' => 'muhasebe']);
         $accountingRole->permissions()->sync([$viewPermission->id, $viewAllPermission->id]);
         $receptionRole = Role::create(['name' => 'Test Resepsiyon Amiri 2', 'slug' => 'test-resepsiyon-amiri-2', 'department' => 'resepsiyon']);
         $receptionRole->permissions()->sync([$viewPermission->id]);
@@ -133,8 +133,8 @@ class AuditLogTest extends TestCase
     {
         $admin = $this->actingAdmin();
 
-        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'Sayfayı Görüntüleme', 'group' => 'audit_logs', 'group_label' => 'Aktivite Kayıtları', 'is_page_permission' => true]);
-        $role = Role::create(['name' => 'Test Departmanlı Rol', 'slug' => 'test-departmanli-rol', 'department' => 'servis']);
+        $viewPermission = Permission::create(['key' => 'audit_logs.view', 'label' => 'SayfayÄ± GÃ¶rÃ¼ntÃ¼leme', 'group' => 'audit_logs', 'group_label' => 'Aktivite KayÄ±tlarÄ±', 'is_page_permission' => true]);
+        $role = Role::create(['name' => 'Test DepartmanlÄ± Rol', 'slug' => 'test-departmanli-rol', 'department' => 'servis']);
         $role->permissions()->sync([$viewPermission->id]);
         $otherUser = User::factory()->create(['role_id' => $role->id]);
 
