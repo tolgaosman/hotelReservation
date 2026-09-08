@@ -45,7 +45,16 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     title: "Ön Büro",
     items: [
-      { href: "/reservations", label: "Rezervasyonlar", icon: CalendarCheck, permission: "reservations.view" },
+      {
+        href: "/reservations",
+        label: "Rezervasyonlar",
+        icon: CalendarCheck,
+        permission: "reservations.view",
+        children: [
+          { href: "/reservations/rooms", label: "Odalar", icon: BedDouble, permission: "reservations.view", exact: true },
+          { href: "/reservations/restaurant", label: "Restoran", icon: UtensilsCrossed, permission: "reservations.view" },
+        ],
+      },
       { href: "/calendar", label: "Takvim", icon: CalendarDays, permission: "calendar.view" },
       { href: "/guests", label: "Misafirler", icon: Users, permission: "guests.view" },
     ],

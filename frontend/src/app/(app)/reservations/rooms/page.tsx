@@ -1,0 +1,68 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import { Topbar } from "@/components/layout/Topbar";
+import { Button } from "@/components/ui/Button";
+import { PageSkeleton } from "@/components/ui/Skeleton";
+import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
+import { getReservationViews } from "@/lib/selectors";
+import { ReservationsHeroBanner } from "@/components/reservations/ReservationsHeroBanner";
+import { ReservationsTable } from "@/components/reservations/ReservationsTable";
+import { ReservationDrawer } from "@/components/reservations/ReservationDrawer";
+
+export default function ReservationsPage() {
+  const store = useStore();
+  const { hasPermission } = useAuth();
+  const views = useMemo(() => getReservationViews(store.state), [store.state]);
+  const totalCollected = useMemo(() => store.state.payments.reduce((sum, p) => sum + p.amount, 0), [store.state]);
+
+  // Track the id, not the object — actions taken inside the drawer mutate the
+  // store, and re-deriving the view from fresh state on every render keeps
+  // the open drawer's status/badges/buttons in sync with what just happened.
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  const selectedView = selectedId ? views.find((v) => v.id === selectedId) : undefined;
+
+  return (
+    <>
+      <Topbar
+        title="Rezervasyonlar"
+        subtitle="Rezervasyonları, check-in/check-out işlemlerini ve iptalleri yönetin"
+        action={
+          hasPermission("reservations.create") ? (
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus size={14} /> Yeni Rezervasyon
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <main className="flex-1 space-y-6 p-6 lg:p-8">
+        {/* getReservationViews reads reservations/guests/rooms/payments/
+            roomServices — narrowed off the store-wide `hydrating` flag,
+            which also waited on permissions/roles/employees. */}
+        {store.loading.reservations || store.loading.guests || store.loading.rooms || store.loading.payments || store.loading.roomServices ? (
+          <PageSkeleton />
+        ) : (
+          <>
+            <ReservationsHeroBanner reservations={store.state.reservations} totalCollected={totalCollected} />
+            <ReservationsTable
+              reservations={views}
+              onRowClick={(r) => {
+                setSelectedId(r.id);
+                setDetailOpen(true);
+              }}
+            />
+          </>
+        )}
+      </main>
+
+      <ReservationDrawer open={creating} onClose={() => setCreating(false)} />
+      <ReservationDrawer open={detailOpen} onClose={() => setDetailOpen(false)} reservation={selectedView} />
+    </>
+  );
+}

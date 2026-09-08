@@ -243,3 +243,22 @@ export interface AuditLog {
   department?: string | null;
   departmentLabel?: string | null;
 }
+
+export interface RestaurantReservation {
+  id: number;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  partySize: number;
+  date: string;
+  time: string;
+  note: string | null;
+  isHotelGuest: boolean;
+  reservationId: number | null;
+  paymentStatus: "paid" | "waived";
+  amount: number;
+  cardHolderName: string | null;
+  cardLastFour: string | null;
+  createdAt: string;
+  reservation?: ReservationView | null;
+}

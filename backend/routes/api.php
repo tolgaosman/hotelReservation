@@ -14,6 +14,7 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomServiceController;
 use App\Http\Controllers\RoomTypeController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\RestaurantReservationController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
@@ -61,6 +62,7 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
 
     Route::apiResource('addons', \App\Http\Controllers\AddonController::class);
     Route::apiResource('reviews', \App\Http\Controllers\ReviewController::class);
+    Route::apiResource('restaurant-reservations', RestaurantReservationController::class)->only(['index', 'destroy']);
 
     Route::get('settings', [SettingController::class, 'show']);
     Route::put('settings', [SettingController::class, 'update']);

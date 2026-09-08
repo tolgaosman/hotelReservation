@@ -17,6 +17,7 @@ function NavLink({ href, label, icon: Icon, active, small }: { href: string; lab
   return (
     <Link
       href={href}
+      prefetch={false}
       className={cn(
         LINK_CLASS,
         small && "py-1.5 text-[12.5px]",
