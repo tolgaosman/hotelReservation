@@ -35,7 +35,7 @@ export function EmployeesTable({ employees, onRowClick }: { employees: Employee[
       width: "26%",
       sortValue: (e) => e.fullName,
       render: (e) => (
-        <div className="text-left">
+        <div className="text-center">
           <p className="font-semibold text-[var(--ink)]">{e.fullName}</p>
           <p className="text-xs text-[var(--muted)]">{e.email || "—"}</p>
         </div>

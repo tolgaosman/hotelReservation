@@ -196,9 +196,9 @@ export function GuestDrawer({ open, onClose, guest }: Props) {
                           </p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="flex items-center justify-end gap-3">
                         <MoneyBreakdown roomAmount={r.roomAmount} roomServiceAmount={r.roomServiceAmount} className="text-sm font-semibold text-[var(--ink)]" />
-                        <StatusBadge status={r.status} className="mt-1" />
+                        <StatusBadge status={r.status} />
                       </div>
                     </div>
                   ))}

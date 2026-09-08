@@ -80,7 +80,7 @@ export default function AuditLogsPage() {
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-muted)]">Toplam</span>
                     <span className="text-lg font-extrabold text-[var(--color-accent-ink)] leading-none mt-1.5">{total.toLocaleString("tr-TR")}</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-3">
+                  <div className="flex flex-wrap items-stretch divide-x divide-[var(--color-line)]">
                     {Object.entries({
                       "Reservation": "Rezervasyon",
                       "Payment": "Ödeme",
@@ -93,8 +93,8 @@ export default function AuditLogsPage() {
                     }).map(([type, label]) => {
                       const count = moduleStats[type] || 0;
                       return (
-                        <div key={type} className="flex flex-col justify-center">
-                          <span className="text-[9px] font-semibold text-[var(--color-muted)] uppercase tracking-wider">{label}</span>
+                        <div key={type} className="flex flex-col items-center justify-center px-4 py-3 text-center">
+                          <span className="text-[9px] font-semibold text-[var(--color-muted)] uppercase tracking-wider whitespace-nowrap">{label}</span>
                           <span className="text-[13px] font-bold text-[var(--color-ink)] leading-none mt-1.5">{count.toLocaleString("tr-TR")}</span>
                         </div>
                       );

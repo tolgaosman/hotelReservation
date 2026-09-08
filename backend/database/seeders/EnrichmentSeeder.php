@@ -105,7 +105,16 @@ class EnrichmentSeeder extends Seeder
         }
 
         // 4. Yorumlar (Reviews)
-        $completedReservations = Reservation::where('status', ReservationStatus::Completed)->get();
+        // Gerçek misafir adı ve oda numarasına bağlı kalması için, tamamlanmış
+        // rezervasyonlardan (misafir + oda ilişkileri yüklenmiş) rastgele bir
+        // örneklem alınır — tüm tamamlanmış rezervasyonlar için yorum
+        // oluşturmak (binlerce satır olabilir) burada amaçlanmıyor.
+        $completedReservations = Reservation::with(['guest', 'room'])
+            ->where('status', ReservationStatus::Completed)
+            ->inRandomOrder()
+            ->limit(15)
+            ->get()
+            ->filter(fn ($res) => $res->guest && $res->room);
         $comments = [
             'Oda çok temizdi, personel çok ilgiliydi.',
             'Kahvaltı efsaneydi, kesinlikle tavsiye ederim.',
@@ -117,7 +126,7 @@ class EnrichmentSeeder extends Seeder
         foreach ($completedReservations as $res) {
             if (rand(0, 10) > 4) {
                 Review::firstOrCreate(
-                    ['reservation_id' => $res->id],
+                    ['room_id' => $res->room_id, 'guest_name' => $res->guest->full_name],
                     [
                         'rating' => rand(4, 5),
                         'comment' => $comments[array_rand($comments)],

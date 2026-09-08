@@ -55,12 +55,14 @@ class DummyDataSeeder extends Seeder
 
         // 2. Yorumlar (Reviews)
         // YorumlarÄ± rastgele rezervasyonlara baÄŸlamamÄ±z gerekiyor (Ã¶rnek veriler varsa).
-        $reservations = Reservation::where('status', 'completed')->get();
+        $reservations = Reservation::with(['guest', 'room'])->where('status', 'completed')->get();
 
         if ($reservations->isEmpty()) {
             $this->command->warn('TamamlanmÄ±ÅŸ rezervasyon bulunamadÄ±. Yorumlar mevcut herhangi bir rezervasyona baÄŸlanacak.');
-            $reservations = Reservation::all();
+            $reservations = Reservation::with(['guest', 'room'])->get();
         }
+
+        $reservations = $reservations->filter(fn ($res) => $res->guest && $res->room);
 
         if ($reservations->isNotEmpty()) {
             $reviews = [
@@ -91,13 +93,16 @@ class DummyDataSeeder extends Seeder
                 ]
             ];
 
+            $usedReservationIds = [];
             foreach ($reviews as $index => $reviewData) {
                 // Rastgele bir rezervasyon seÃ§, yoksa ilk sÄ±radakileri kullan
-                $reservation = $reservations->random();
-                
-                // AynÄ± rezervasyona birden fazla yorum eklenmemesi iÃ§in kontrol
+                $reservation = $reservations->reject(fn ($res) => in_array($res->id, $usedReservationIds))->random()
+                    ?? $reservations->random();
+                $usedReservationIds[] = $reservation->id;
+
+                // AynÄ± misafir/oda kombinasyonuna birden fazla yorum eklenmemesi iÃ§in kontrol
                 Review::firstOrCreate(
-                    ['reservation_id' => $reservation->id],
+                    ['room_id' => $reservation->room_id, 'guest_name' => $reservation->guest->full_name],
                     $reviewData
                 );
             }
