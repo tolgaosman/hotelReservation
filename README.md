@@ -41,6 +41,41 @@ giriş ekranı görüntülenir.
 | Admin    | admin@hotel.test      | password |
 | Personel | personel@hotel.test   | password |
 
+## Production Deploy (Docker, Hetzner)
+
+Repo kökündeki `docker-compose.yml`, `backend/Dockerfile` ve
+`frontend/Dockerfile` ile 4 container ayağa kalkar: `hotel-db` (MySQL 8),
+`hotel-backend` (Laravel, sadece iç ağda — dışarı açılmaz), `hotel-scheduler`
+(günlük `Schedule::command()` işleri için `php artisan schedule:work`) ve
+`hotel-frontend` (Next.js, tek dışarı açık port). Tarayıcı backend'e hiç
+doğrudan bağlanmaz; tüm `/api/*` istekleri frontend container'ı üzerinden
+proxy'lenir (`frontend/next.config.ts`), bu yüzden sadece tek bir port
+açmak yeterli.
+
+```bash
+# Sunucuda, repo kökünde:
+cp backend/.env.production.example backend/.env
+# backend/.env içindeki APP_KEY / DB_PASSWORD / MYSQL_ROOT_PASSWORD
+# değerlerini gerçek, üretilmiş değerlerle değiştirin (dosyanın içindeki
+# yorumlarda üretim komutu var) — APP_URL ve FRONTEND_URL'i sunucunun
+# gerçek IP:port'una göre güncelleyin.
+
+docker compose up -d --build
+```
+
+İlk ayağa kalkışta migration'lar otomatik çalışır (`RUN_MIGRATIONS=true`
+olan `backend` servisi). Demo/seed verisi otomatik yüklenmez — isterseniz
+tek seferlik çalıştırın:
+
+```bash
+docker compose exec backend php artisan db:seed --force
+```
+
+Uygulama `http://<sunucu-ip>:4005` üzerinden erişilebilir olur. Port
+numarasını değiştirmek için `docker-compose.yml`'deki `frontend.ports`
+altındaki `"4005:3000"` satırını güncelleyin — sol taraf (4005) dışarı
+açılan port, sağ taraf (3000) container içindeki sabit Next.js portu.
+
 ## Teknoloji Yığını
 
 - **Backend**: Laravel 11, MySQL, Sanctum, `barryvdh/laravel-dompdf` (fatura PDF)

@@ -37,11 +37,14 @@ const deepMapKeys = (obj: any, mapFn: (key: string) => string): any => {
 
 function getBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    // Client-side: use the Next.js proxy to bypass firewall
+    // Client-side: always relative, routed through the Next.js rewrite in
+    // next.config.ts so the browser never needs a direct line to the backend.
     return '';
   }
-  // Server-side: connect to backend directly over localhost
-  return 'http://127.0.0.1:8000';
+  // Server-side (SSR/server actions): talk to the backend directly.
+  // BACKEND_INTERNAL_URL lets docker-compose point this at the backend
+  // container's service name instead of localhost.
+  return process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:8000';
 }
 
 export const api = axios.create({
@@ -84,9 +87,6 @@ if (initialToken) {
 }
 
 api.interceptors.request.use((config) => {
-  if (!process.env.NEXT_PUBLIC_API_URL && typeof window !== 'undefined' && window.location.hostname) {
-    config.baseURL = `http://${window.location.hostname}:8000`;
-  }
   if (config.data && !(config.data instanceof FormData)) {
     config.data = deepMapKeys(config.data, toSnakeCase);
   }

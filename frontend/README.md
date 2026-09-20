@@ -16,8 +16,10 @@ npm install
 cp .env.example .env.local
 ```
 
-`.env.local` içindeki `NEXT_PUBLIC_API_URL`, backend'in adresini gösterir
-(varsayılan `http://localhost:8000`). Backend farklı bir adres/portta
+`.env.local` içindeki `BACKEND_INTERNAL_URL`, Next.js sunucusunun backend'e
+ulaştığı adresi gösterir (varsayılan `http://127.0.0.1:8000`). Tarayıcı
+backend'e hiç doğrudan bağlanmaz; tüm `/api/*` istekleri Next.js sunucusu
+üzerinden proxy'lenir (bkz. `next.config.ts`). Backend farklı bir adres/portta
 çalışıyorsa burayı güncelleyin.
 
 ## Çalıştırma

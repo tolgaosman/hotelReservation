@@ -1,0 +1,65 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: hotel-db
+    restart: unless-stopped
+    # Reads MYSQL_DATABASE/MYSQL_USER/MYSQL_PASSWORD/MYSQL_ROOT_PASSWORD
+    # straight out of the same file Laravel's DB_* vars live in — see
+    # backend/.env.production.example. No compose-level ${...} substitution
+    # is used here on purpose: that only reads a root .env, not a service's
+    # env_file, so it would silently resolve to empty values.
+    env_file:
+      - ./backend/.env
+    volumes:
+      - hotel_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    image: hotel-backend:latest
+    container_name: hotel-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Runs the two daily Schedule::command() jobs (routes/console.php) — this
+  # app has no queued jobs, so no separate queue worker is needed.
+  scheduler:
+    image: hotel-backend:latest
+    container_name: hotel-scheduler
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      RUN_MIGRATIONS: "false"
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: hotel-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+    ports:
+      - "4005:3000"
+    depends_on:
+      - backend
+
+volumes:
+  hotel_db_data:
