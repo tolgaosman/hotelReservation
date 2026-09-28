@@ -41,7 +41,7 @@ giriş ekranı görüntülenir.
 | Admin    | admin@hotel.test      | password |
 | Personel | personel@hotel.test   | password |
 
-## Production Deploy (Docker, Hetzner)
+## Production Deploy (Docker / Coolify)
 
 Repo kökündeki `docker-compose.yml`, `backend/Dockerfile` ve
 `frontend/Dockerfile` ile 4 container ayağa kalkar: `hotel-db` (MySQL 8),
@@ -52,16 +52,29 @@ doğrudan bağlanmaz; tüm `/api/*` istekleri frontend container'ı üzerinden
 proxy'lenir (`frontend/next.config.ts`), bu yüzden sadece tek bir port
 açmak yeterli.
 
+Tüm servisler tek bir kök `.env` dosyasını okur (`env_file: .env` —
+`backend/.env` değil), çünkü Coolify'ın "Environment Variables" ekranına
+girilen değerler de tam olarak bu dosyaya (`docker-compose.yml`'in yanına)
+yazılıyor.
+
+**Manuel (SSH ile docker compose):**
 ```bash
 # Sunucuda, repo kökünde:
-cp backend/.env.production.example backend/.env
-# backend/.env içindeki APP_KEY / DB_PASSWORD / MYSQL_ROOT_PASSWORD
+cp .env.production.example .env
+# .env içindeki APP_KEY / DB_PASSWORD / MYSQL_ROOT_PASSWORD
 # değerlerini gerçek, üretilmiş değerlerle değiştirin (dosyanın içindeki
 # yorumlarda üretim komutu var) — APP_URL ve FRONTEND_URL'i sunucunun
 # gerçek IP:port'una göre güncelleyin.
 
 docker compose up -d --build
 ```
+
+**Coolify (Docker Compose resource):**
+Repoyu bağlayıp compose dosyası olarak kök dizindeki `docker-compose.yml`'i
+gösterin, sonra resource'un Environment Variables > Production kutusuna
+`.env.production.example` içeriğini gerçek değerlerle doldurup yapıştırın —
+ayrıca sunucuya SSH ile bağlanıp elle bir `.env` dosyası oluşturmaya gerek
+yok.
 
 İlk ayağa kalkışta migration'lar otomatik çalışır (`RUN_MIGRATIONS=true`
 olan `backend` servisi). Demo/seed verisi otomatik yüklenmez — isterseniz
