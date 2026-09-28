@@ -71,9 +71,9 @@ tek seferlik çalıştırın:
 docker compose exec backend php artisan db:seed --force
 ```
 
-Uygulama `http://<sunucu-ip>:4005` üzerinden erişilebilir olur. Port
+Uygulama `http://<sunucu-ip>:4008` üzerinden erişilebilir olur. Port
 numarasını değiştirmek için `docker-compose.yml`'deki `frontend.ports`
-altındaki `"4005:3000"` satırını güncelleyin — sol taraf (4005) dışarı
+altındaki `"4008:3000"` satırını güncelleyin — sol taraf (4008) dışarı
 açılan port, sağ taraf (3000) container içindeki sabit Next.js portu.
 
 ## Teknoloji Yığını

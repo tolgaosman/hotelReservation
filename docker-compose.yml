@@ -57,7 +57,7 @@ services:
     environment:
       BACKEND_INTERNAL_URL: http://backend:8000
     ports:
-      - "4005:3000"
+      - "4008:3000"
     depends_on:
       - backend
 
