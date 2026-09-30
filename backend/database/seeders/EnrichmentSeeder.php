@@ -77,33 +77,6 @@ class EnrichmentSeeder extends Seeder
             ]);
         }
 
-        // 3. Restoran Rezervasyonları
-        $restNames = ['Ali Yılmaz', 'Ayşe Demir', 'Fatma Kaya', 'Mehmet Çelik', 'Caner Can'];
-        for ($i = 0; $i < 15; $i++) {
-            $isGuest = rand(0, 1) == 1;
-            $resId = null;
-            
-            if ($isGuest && $reservations->isNotEmpty()) {
-                $resId = $reservations->random()->id;
-            }
-
-            RestaurantReservation::create([
-                'full_name' => $restNames[array_rand($restNames)] . ' ' . rand(1, 100),
-                'phone' => '05' . rand(300000000, 599999999),
-                'email' => 'test' . rand(1, 999) . '@example.com',
-                'party_size' => rand(2, 6),
-                'date' => $today->copy()->addDays(rand(-2, 5))->format('Y-m-d'),
-                'time' => rand(18, 22) . ':00',
-                'note' => rand(0, 1) ? 'Deniz kenarı masa tercihi' : null,
-                'is_hotel_guest' => $isGuest,
-                'reservation_id' => $resId,
-                'payment_status' => $isGuest ? RestaurantPaymentStatus::Waived : RestaurantPaymentStatus::PayAtHotel,
-                'amount' => $isGuest ? 0 : rand(500, 3000),
-                'card_holder_name' => null,
-                'card_last_four' => null,
-            ]);
-        }
-
         // 4. Yorumlar (Reviews)
         // Gerçek misafir adı ve oda numarasına bağlı kalması için, tamamlanmış
         // rezervasyonlardan (misafir + oda ilişkileri yüklenmiş) rastgele bir

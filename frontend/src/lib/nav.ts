@@ -52,7 +52,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
         permission: "reservations.view",
         children: [
           { href: "/reservations/rooms", label: "Odalar", icon: BedDouble, permission: "reservations.view", exact: true },
-          { href: "/reservations/restaurant", label: "Restoran", icon: UtensilsCrossed, permission: "reservations.view" },
         ],
       },
       { href: "/calendar", label: "Takvim", icon: CalendarDays, permission: "calendar.view" },
