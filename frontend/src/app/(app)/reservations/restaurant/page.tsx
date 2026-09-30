@@ -61,7 +61,7 @@ export default function RestaurantReservationsPage() {
 
   const hotelGuestCount = reservations.filter((r) => r.isHotelGuest).length;
   const externalGuestCount = reservations.filter((r) => !r.isHotelGuest).length;
-  const totalCollected = reservations.reduce((sum, r) => r.paymentStatus === 'pay_at_hotel' ? sum + Number(r.amount) : sum, 0);
+  const totalCollected = reservations.reduce((sum, r) => r.paymentStatus === 'paid' ? sum + Number(r.amount) : sum, 0);
 
   const metrics: HeroBannerMetric[] = [
     { label: "Otel Misafiri", value: hotelGuestCount.toString(), tone: "ok" },
