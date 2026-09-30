@@ -34,11 +34,11 @@ export function GuestsTable({ guests, onRowClick }: { guests: GuestSummary[]; on
       header: "Misafir",
       sortValue: (g) => g.fullName.toLocaleLowerCase("tr-TR"),
       render: (g) => (
-        <div className="flex items-center justify-center gap-2.5">
+        <div className="mx-auto flex w-52 items-center gap-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent-ink)]">
             {initials(g.fullName)}
           </span>
-          <span className="font-medium">{g.fullName}</span>
+          <span className="min-w-0 truncate text-left font-medium" title={g.fullName}>{g.fullName}</span>
         </div>
       ),
     },

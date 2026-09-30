@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             RoomTypeSeeder::class,
             DatasetSeeder::class,
             DummyDataSeeder::class,
+            AuditLogSeeder::class,
         ]);
 
         // dataset.json's dates are frozen at dump time, so its forward book
