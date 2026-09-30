@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->string('slug')->unique();
-            // GÃ¶rev tanÄ±mÄ± (job description) shown on the roles page.
+            // Görev tanımı (job description) shown on the roles page.
             $table->text('description')->nullable();
             // System roles (seeded professions) can't be deleted, only edited.
             $table->boolean('is_system')->default(false);
