@@ -10,7 +10,8 @@ services:
     # there into a .env file next to this compose file, so env_file has to
     # point here for those values to actually reach the containers.
     env_file:
-      - .env
+      - path: .env
+        required: false
     volumes:
       - hotel_db_data:/var/lib/mysql
     healthcheck:
@@ -26,7 +27,8 @@ services:
     container_name: hotel-backend
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       RUN_MIGRATIONS: "true"
     depends_on:
@@ -40,7 +42,8 @@ services:
     container_name: hotel-scheduler
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       RUN_MIGRATIONS: "false"
     command: ["php", "artisan", "schedule:work"]
