@@ -67,3 +67,11 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::get('settings', [SettingController::class, 'show']);
     Route::put('settings', [SettingController::class, 'update']);
 });
+
+Route::get('/seeder-logs', function () {
+    $path = storage_path('logs/seeder_error.log');
+    if (!file_exists($path)) {
+        return response('No seeder error log found. ' . \App\Models\User::count() . ' users in DB.', 200)->header('Content-Type', 'text/plain');
+    }
+    return response(file_get_contents($path))->header('Content-Type', 'text/plain');
+});
