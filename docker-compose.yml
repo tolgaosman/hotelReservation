@@ -38,6 +38,8 @@ services:
   # Runs the two daily Schedule::command() jobs (routes/console.php) — this
   # app has no queued jobs, so no separate queue worker is needed.
   scheduler:
+    build:
+      context: ./backend
     image: hotel-backend:latest
     container_name: hotel-scheduler
     restart: unless-stopped
