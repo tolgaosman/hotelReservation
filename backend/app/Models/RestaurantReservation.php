@@ -27,7 +27,7 @@ class RestaurantReservation extends Model
     protected function casts(): array
     {
         return [
-            'date' => 'date',
+            'date' => 'date:Y-m-d',
             'party_size' => 'integer',
             'is_hotel_guest' => 'boolean',
             'payment_status' => RestaurantPaymentStatus::class,
