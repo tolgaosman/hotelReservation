@@ -40,7 +40,7 @@ export function HeroBanner({ title, subtitle, metrics, rightContent, className }
     >
       <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between relative z-10">
         <div className="max-w-md shrink-0">
-          <h2 className="text-3xl font-extrabold tracking-tight text-[var(--color-ink)]">{title}</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--color-ink)]">{title}</h2>
           <p className="mt-2.5 text-[15px] leading-relaxed text-[var(--color-muted)]">{subtitle}</p>
         </div>
         
@@ -51,7 +51,7 @@ export function HeroBanner({ title, subtitle, metrics, rightContent, className }
               <div
                 key={i}
                 className={cn(
-                  "flex min-w-[140px] flex-col items-center text-center gap-2.5 rounded-2xl border border-[var(--color-line)] bg-[var(--color-canvas)]/40 p-4 md:p-5",
+                  "flex min-w-[120px] flex-1 sm:flex-none sm:min-w-[140px] flex-col items-center text-center gap-2.5 rounded-2xl border border-[var(--color-line)] bg-[var(--color-canvas)]/40 p-4 md:p-5",
                   "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm hover:bg-[var(--color-surface)]",
                   "backdrop-blur-xl"
                 )}

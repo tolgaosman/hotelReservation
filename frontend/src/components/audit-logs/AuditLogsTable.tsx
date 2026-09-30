@@ -133,7 +133,7 @@ export function AuditLogsTable({
   onTypeFilterChange?: (val: string) => void;
 }) {
   const filterAction = (
-    <div className="flex gap-3">
+    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
       {onTypeFilterChange && (
         <Select 
           align="right" 
@@ -142,7 +142,7 @@ export function AuditLogsTable({
             onTypeFilterChange(e.target.value);
             if (onActionFilterChange) onActionFilterChange("");
           }} 
-          className="w-[170px]"
+          className="w-full sm:w-[170px]"
         >
           <option value="">Tüm Modüller</option>
           {Object.entries(TYPE_LABELS).map(([val, label]) => (
@@ -151,7 +151,7 @@ export function AuditLogsTable({
         </Select>
       )}
       {onActionFilterChange && (
-        <Select align="right" value={actionFilter || ""} onChange={(e) => onActionFilterChange(e.target.value)} className="w-[240px]">
+        <Select align="right" value={actionFilter || ""} onChange={(e) => onActionFilterChange(e.target.value)} className="w-full sm:w-[240px]">
           <option value="">Tüm Aksiyonlar</option>
           {Object.entries(ACTION_LABELS)
             .filter(([val]) => {
@@ -227,7 +227,7 @@ export function AuditLogsTable({
                       </div>
 
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                           <span className={cn(
                             "inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold",
                             style.bg,
@@ -244,8 +244,8 @@ export function AuditLogsTable({
                         </div>
 
                         {log.changes && Object.keys(log.changes).length > 0 && (
-                          <div className="flex-1 flex justify-center items-center px-2 sm:px-4 min-w-0">
-                            <div className="text-[12px] text-[var(--ink)] font-medium text-center py-1.5 px-3 bg-[var(--surface-alt)]/50 rounded-md border border-[var(--line)]/50 truncate w-full max-w-lg">
+                          <div className="flex-1 flex justify-center items-center sm:px-4 min-w-0">
+                            <div className="text-[12px] text-[var(--ink)] font-medium text-center py-1.5 px-3 bg-[var(--surface-alt)]/50 rounded-md border border-[var(--line)]/50 break-words sm:truncate w-full max-w-lg">
                               {(() => {
                                 const c = log.changes as any;
                                 const parts: string[] = [];

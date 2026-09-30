@@ -8,13 +8,13 @@ interface TopbarProps {
 
 export function Topbar({ title, subtitle, action }: TopbarProps) {
   return (
-    <header className="flex items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--surface)] px-8 py-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--ink)]">{title}</h1>
+    <header className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--surface)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6">
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-[var(--ink)]">{title}</h1>
         <p className="mt-1 text-xs text-[var(--muted)]">{subtitle}</p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {action}
       </div>
     </header>

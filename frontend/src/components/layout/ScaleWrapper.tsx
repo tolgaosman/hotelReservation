@@ -15,7 +15,9 @@ export function ScaleWrapper({ children }: { children: React.ReactNode }) {
       const currentWidth = window.innerWidth;
       // Cap the scale at 1.0 so it never zooms in (enlarges) on large screens,
       // it only zooms out (shrinks) on small screens to prevent the layout from breaking.
-      const scale = Math.min(1, currentWidth / baseWidth);
+      // Below the lg breakpoint the layout is natively responsive; zooming it
+      // out as well would shrink a phone's UI to an unreadable size.
+      const scale = currentWidth < 1024 ? 1 : Math.min(1, currentWidth / baseWidth);
 
       // Apply CSS zoom to the html element.
       rootStyle.zoom = scale.toString();

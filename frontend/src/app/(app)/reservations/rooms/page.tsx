@@ -41,7 +41,7 @@ export default function ReservationsPage() {
         }
       />
 
-      <main className="flex-1 space-y-6 p-6 lg:p-8">
+      <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         {/* getReservationViews reads reservations/guests/rooms/payments/
             roomServices — narrowed off the store-wide `hydrating` flag,
             which also waited on permissions/roles/employees. */}

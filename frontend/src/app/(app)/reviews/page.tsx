@@ -84,28 +84,28 @@ export default function ReviewsPage() {
   if (loading) return <PageSkeleton />;
 
   return (
-    <div className="flex flex-1 flex-col p-6 max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex flex-1 flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full">
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
             <Star className="text-[var(--accent)]" />
             Yorum Yönetimi
           </h1>
-          <p className="text-[var(--muted)] mt-1">
+          <p className="text-sm sm:text-base text-[var(--muted)] mt-1">
             Misafirlerin bıraktığı değerlendirmeleri inceleyin, onaylayın veya reddedin.
           </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
           <div className="flex gap-2 p-1 bg-[var(--surface-alt)] rounded-lg border border-[var(--line)] w-full md:w-auto">
             {(["all", "pending", "approved"] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={cn(
-                  "px-4 py-2 rounded-md text-sm font-bold transition-colors flex-1 md:flex-none",
+                  "px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition-colors flex-1 md:flex-none",
                   filter === f 
                     ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm" 
                     : "text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--line)]/50"
@@ -131,19 +131,19 @@ export default function ReviewsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredReviews.map(review => (
             <div key={review.id} className={cn(
-              "bg-[var(--surface)] border rounded-2xl p-5 shadow-sm flex flex-col gap-4 relative transition-all",
+              "bg-[var(--surface)] border rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col gap-4 relative transition-all",
               review.isApproved ? "border-[var(--line)]" : "border-[var(--warn)] shadow-[0_0_0_1px_var(--warn)]"
             )}>
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[var(--surface-alt)] flex items-center justify-center font-bold text-[var(--ink)] border border-[var(--line)]">
+              <div className="flex flex-wrap justify-between items-start gap-x-3 gap-y-2">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-[var(--surface-alt)] flex items-center justify-center font-bold text-[var(--ink)] border border-[var(--line)]">
                     {review.guestName?.[0]}
                   </div>
                   <div>
                     <h3 className="font-bold text-[var(--ink)]">
                       {review.guestName}
                     </h3>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
                       <span className="text-xs font-semibold text-[var(--muted)] bg-[var(--surface-alt)] px-2 py-0.5 rounded-md border border-[var(--line)]">
                         Oda: {review.room?.number}
                       </span>
@@ -177,7 +177,7 @@ export default function ReviewsPage() {
               )}
               
               {canApprove && (
-                <div className="flex items-center justify-end gap-2 mt-2 pt-4 border-t border-[var(--line)]">
+                <div className="flex flex-wrap items-center justify-end gap-2 mt-2 pt-4 border-t border-[var(--line)]">
                   <button 
                     onClick={() => setPendingDeleteId(review.id)}
                     className="p-2 bg-[var(--surface-alt)] hover:bg-[var(--crit)]/10 hover:text-[var(--crit)] text-[var(--muted)] rounded-lg transition-colors mr-auto"

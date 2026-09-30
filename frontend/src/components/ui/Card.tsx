@@ -34,18 +34,18 @@ export function Card({ title, subtitle, action, menu, children, className, padde
       )}
     >
       {(title || subtitle || action || menu) && (
-        <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-3">
-          <div className="flex flex-col gap-0.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-4 pb-3 sm:px-6 sm:pt-5">
+          <div className="flex min-w-0 flex-col gap-0.5">
             {title && <h3 className="text-base font-bold tracking-tight text-[var(--color-ink)]">{title}</h3>}
             {subtitle && <p className="text-xs text-[var(--color-muted)]">{subtitle}</p>}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2 max-sm:w-full sm:shrink-0">
             {action}
             {menu && <Menu actions={menu} />}
           </div>
         </div>
       )}
-      <div className={cn("flex flex-1 flex-col", padded ? "px-6 pb-6" : undefined)}>{children}</div>
+      <div className={cn("flex flex-1 flex-col", padded ? "px-4 pb-4 sm:px-6 sm:pb-6" : undefined)}>{children}</div>
     </div>
   );
 }

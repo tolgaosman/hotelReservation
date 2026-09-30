@@ -85,7 +85,7 @@ function ColumnFilter({
       {open && (
         <div
           className={cn(
-            "absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 min-w-32 w-max overflow-y-auto rounded-[var(--radius-control)]",
+            "absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 min-w-32 w-max max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[var(--radius-control)]",
             fixedHeight ? "h-60" : "max-h-60",
             "border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-pop)] font-sans normal-case tracking-normal",
             "flex flex-col divide-y divide-[var(--line)]"

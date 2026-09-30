@@ -37,7 +37,7 @@ export default function GuestsPage() {
         }
       />
 
-      <main className="flex-1 space-y-6 p-6 lg:p-8">
+      <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         {/* getGuestSummaries only reads guests/reservations/payments — the
             store-wide `hydrating` flag also waited on rooms/roomServices/
             permissions/roles/employees, which this page never touches. */}

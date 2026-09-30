@@ -136,14 +136,14 @@ export default function HousekeepingPage() {
   );
 
   return (
-    <div className="flex flex-1 flex-col p-6">
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex flex-1 flex-col p-4 sm:p-6">
+      <div className="mb-6 flex items-center justify-between sm:mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
             <Sparkles className="text-[var(--accent)]" />
             Temizlik (Housekeeping)
           </h1>
-          <p className="text-[var(--muted)] mt-1">
+          <p className="text-sm sm:text-base text-[var(--muted)] mt-1">
             Odaların temizlik durumlarını buradan yönetebilirsiniz.
           </p>
         </div>
@@ -154,7 +154,7 @@ export default function HousekeepingPage() {
       ) : (
         <>
       {/* Stats / Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 mb-6">
         <button 
           onClick={() => setFilter("all")}
           className={cn("p-4 rounded-xl border flex flex-col gap-1 transition-all", filter === "all" ? "border-[var(--ink)] bg-[var(--surface-alt)] shadow-sm" : "border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface-alt)]/50")}
@@ -183,7 +183,7 @@ export default function HousekeepingPage() {
           <span className={cn("text-sm font-semibold", filter === "maintenance" ? "text-[var(--surface)]/80" : "text-[var(--ink)]")}>Arızalı / Bakımda</span>
           <span className="text-2xl font-black">{stats.maintenance}</span>
         </button>
-        <div className="p-4 rounded-xl border border-[var(--line)] bg-[var(--surface)] flex flex-col gap-2 justify-center">
+        <div className="col-span-2 md:col-span-1 p-4 rounded-xl border border-[var(--line)] bg-[var(--surface)] flex flex-col gap-2 justify-center">
           <div className="flex items-center gap-2 bg-[var(--canvas)] p-2 rounded-lg border border-[var(--line)]">
             <Search size={16} className="text-[var(--muted)]" />
             <input 
@@ -201,15 +201,15 @@ export default function HousekeepingPage() {
       <div className="flex flex-col gap-10">
         {Object.keys(groupedRooms).sort().map((floor) => (
           <div key={floor}>
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-[var(--line)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-2 border-b border-[var(--line)]">
               <h2 className="text-xl font-bold text-[var(--ink)]">{floor}. Kat Odaları</h2>
 
               {canAssign && (
-                <div className="flex items-center gap-2 text-sm bg-[var(--surface-alt)] px-3 py-1.5 rounded-[var(--radius-pill)] border border-[var(--line)] shadow-sm focus-within:border-[var(--accent)] transition-colors">
+                <div className="flex items-center gap-2 text-sm bg-[var(--surface-alt)] px-3 py-1.5 rounded-[var(--radius-pill)] border border-[var(--line)] shadow-sm focus-within:border-[var(--accent)] transition-colors max-w-full">
                    <User size={14} className="text-[var(--muted)]" />
                    <span className="text-[var(--muted)] font-medium">Tüm Kata Ata:</span>
                    <Select
-                     className="bg-transparent border-none w-40 text-sm font-semibold text-[var(--ink)] cursor-pointer py-0 px-1 hover:bg-[var(--surface)]"
+                     className="bg-transparent border-none w-36 sm:w-40 text-sm font-semibold text-[var(--ink)] cursor-pointer py-0 px-1 hover:bg-[var(--surface)]"
                      value=""
                      onChange={(e: any) => {
                        if (e.target.value) {
@@ -227,17 +227,17 @@ export default function HousekeepingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {groupedRooms[floor].map(room => (
-                <div key={room.id} className={cn("relative rounded-xl border p-5 flex flex-col gap-4 shadow-sm hover:shadow transition-all", room.isMaintenance ? "border-[var(--ink)] bg-[var(--surface-alt)] opacity-90" : "border-[var(--line)] bg-[var(--surface)]")}>
+                <div key={room.id} className={cn("relative rounded-xl border p-4 sm:p-5 flex flex-col gap-4 shadow-sm hover:shadow transition-all", room.isMaintenance ? "border-[var(--ink)] bg-[var(--surface-alt)] opacity-90" : "border-[var(--line)] bg-[var(--surface)]")}>
                   
                   {/* Öncelik Badge */}
                   {room.isPriorityCleaning && !room.isMaintenance && (
-                    <div className="absolute -top-3 -right-3 bg-[var(--accent)] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
+                    <div className="absolute -top-3 right-2 sm:-right-3 bg-[var(--accent)] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
                       <Star size={10} className="fill-yellow-400 text-yellow-400" />
                       Öncelikli
                     </div>
                   )}
                   {!room.isPriorityCleaning && checkoutTodayRoomIds.has(room.id) && !room.isMaintenance && (
-                    <div className="absolute -top-3 -right-3 bg-[var(--crit)] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
+                    <div className="absolute -top-3 right-2 sm:-right-3 bg-[var(--crit)] text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
                       <LogOut size={10} />
                       Bugün Çıkış
                     </div>

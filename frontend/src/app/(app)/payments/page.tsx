@@ -42,7 +42,7 @@ export default function PaymentsPage() {
         }
       />
 
-      <main className="flex-1 space-y-6 p-6 lg:p-8">
+      <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         {/* getPaymentStats + getReservationViews read reservations/guests/
             rooms/payments/roomServices — narrowed off the store-wide
             `hydrating` flag, which also waited on permissions/roles/employees. */}

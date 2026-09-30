@@ -60,7 +60,7 @@ export function Select({ className, children, value, onChange, disabled, align =
       {open && (
         <div 
           className={cn(
-            "absolute top-full z-50 mt-2 max-h-60 min-w-full w-max overflow-y-auto rounded-[var(--radius-control)]",
+            "absolute top-full z-50 mt-2 max-h-60 min-w-full w-max max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[var(--radius-control)]",
             "border border-[var(--line)] bg-[var(--surface)] py-1 shadow-[var(--shadow-pop)]",
             align === "right" ? "right-0" : "left-0"
           )}

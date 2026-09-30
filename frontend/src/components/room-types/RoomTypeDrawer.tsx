@@ -91,7 +91,7 @@ const RoomTypeForm = forwardRef<FormHandle, { roomType?: RoomTypeDefinition; isC
           <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Misafirlere gösterilecek kısa açıklama" disabled={readOnly} />
         </FormField>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Kapasite" error={fieldError(fieldErrors, "capacity")}>
             <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} disabled={readOnly} />
           </FormField>
@@ -105,7 +105,7 @@ const RoomTypeForm = forwardRef<FormHandle, { roomType?: RoomTypeDefinition; isC
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Yatak Tipi">
             <Input value={bedType} onChange={(e) => setBedType(e.target.value)} placeholder="Örn. King" disabled={readOnly} />
           </FormField>

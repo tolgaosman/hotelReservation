@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { ChevronRight, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_CATEGORIES, isNavItemActive } from "@/lib/nav";
 
@@ -96,7 +96,7 @@ function NavGroup({ item, pathname }: { item: (typeof NAV_CATEGORIES)[number]["i
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const { user, logout, hasPermission } = useAuth();
 
@@ -120,9 +120,34 @@ export function Sidebar() {
   })).filter((c) => c.items.length > 0);
 
   return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-[var(--line)] bg-[var(--surface)] px-4 py-6">
-      <div className="flex items-center justify-center px-2 h-10">
+    <>
+      <div
+        onClick={onClose}
+        aria-hidden
+        className={cn(
+          "fixed inset-0 z-40 bg-[var(--ink)]/30 transition-opacity duration-300 lg:hidden",
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+      />
+      <aside
+        className={cn(
+          "flex w-60 shrink-0 flex-col overflow-y-auto border-r border-[var(--line)] bg-[var(--surface)] px-4 py-6",
+          "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:w-[17rem] max-lg:max-w-[85vw] max-lg:shadow-[var(--shadow-pop)]",
+          "max-lg:transition-[transform,visibility] max-lg:duration-300 max-lg:[transition-timing-function:var(--ease-organic)]",
+          open ? "max-lg:translate-x-0" : "max-lg:invisible max-lg:-translate-x-full",
+          "lg:sticky lg:top-0 lg:h-screen"
+        )}
+      >
+      <div className="relative flex items-center justify-center px-2 h-10">
         <img src="/site%20logo.png" alt="Logo" className="h-full w-auto object-contain" />
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Menüyü kapat"
+          className="absolute right-0 flex size-9 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--surface-alt)] hover:text-[var(--ink)] lg:hidden"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       <nav className="mt-5 flex flex-1 flex-col gap-3">
@@ -159,5 +184,6 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

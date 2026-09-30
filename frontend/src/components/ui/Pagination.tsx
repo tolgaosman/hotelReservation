@@ -12,14 +12,14 @@ export function Pagination({ page, pageCount, onPageChange, totalLabel }: Pagina
   if (pageCount <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between gap-4 border-t border-[var(--line)] px-6 py-3.5">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-[var(--line)] px-4 py-3.5 sm:px-6">
       {totalLabel && <span className="text-xs text-[var(--muted)]">{totalLabel}</span>}
       <div className="ml-auto flex items-center gap-1">
         <button
           type="button"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          className="flex size-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--ink-soft)] transition-colors hover:bg-[var(--surface-alt)] disabled:pointer-events-none disabled:opacity-30"
+          className="flex size-9 sm:size-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--ink-soft)] transition-colors hover:bg-[var(--surface-alt)] disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronLeft size={15} />
         </button>
@@ -31,7 +31,7 @@ export function Pagination({ page, pageCount, onPageChange, totalLabel }: Pagina
           disabled={page >= pageCount}
           onClick={() => onPageChange(page + 1)}
           className={cn(
-            "flex size-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--ink-soft)]",
+            "flex size-9 sm:size-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--ink-soft)]",
             "transition-colors hover:bg-[var(--surface-alt)] disabled:pointer-events-none disabled:opacity-30"
           )}
         >

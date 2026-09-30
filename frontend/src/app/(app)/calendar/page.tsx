@@ -171,16 +171,16 @@ export default function CalendarPage() {
   }, [selectedReservationId, state]);
 
   return (
-    <div className="flex flex-col gap-6 bg-[var(--canvas)] p-6 lg:p-8">
+    <div className="flex flex-col gap-6 bg-[var(--canvas)] p-4 sm:p-6 lg:p-8">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-[var(--ink)]">
+          <h1 className="flex items-center gap-2.5 text-xl font-bold tracking-tight text-[var(--ink)] sm:text-2xl">
             <CalendarIcon className="text-[var(--accent)]" size={26} />
             Rezervasyon Takvimi
           </h1>
           <p className="mt-1.5 text-sm text-[var(--muted)]">Odaların doluluk durumunu 15 günlük periyotlar halinde inceleyin.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={goToday}
             className="rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition-colors duration-150 hover:bg-[var(--surface-alt)]"
@@ -195,7 +195,7 @@ export default function CalendarPage() {
             >
               <ChevronLeft size={18} />
             </button>
-            <span className="min-w-[168px] px-2 text-center text-sm font-semibold text-[var(--ink)]">
+            <span className="min-w-[120px] px-2 sm:min-w-[168px] text-center text-sm font-semibold text-[var(--ink)]">
               {formatPeriodLabel(periodStart, periodEnd)}
             </span>
             <button
@@ -221,13 +221,14 @@ export default function CalendarPage() {
           <p className="max-w-xs text-sm text-[var(--muted)]">Odalar sekmesinden bir oda ekleyip aktif hale getirdiğinizde burada görünecek.</p>
         </div>
       ) : (
-        <div className="flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] shadow-sm">
+        <div className="overflow-x-auto rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] shadow-sm">
+        <div className="flex flex-col" style={{ minWidth: LABEL_WIDTH + daysToShow * 40 }}>
           {/* Header and rows are direct siblings sharing one non-scrolling
               width context, so the shared gridTemplateColumns always computes
               to pixel-identical column widths — no drift between them. */}
           <div className="flex border-b border-[var(--line)] bg-[var(--surface-alt)]">
             <div
-              className="flex shrink-0 items-center px-4 py-3.5 text-xs font-bold tracking-wider text-[var(--muted)] uppercase"
+              className="sticky left-0 z-20 flex shrink-0 items-center bg-[var(--surface-alt)] px-4 py-3.5 text-xs font-bold tracking-wider text-[var(--muted)] uppercase"
               style={{ width: LABEL_WIDTH }}
             >
               Oda
@@ -292,7 +293,7 @@ export default function CalendarPage() {
                   style={{ height: rowHeight }}
                 >
                   <div
-                    className="flex shrink-0 flex-col justify-center border-r border-[var(--line)] px-4"
+                    className="sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r border-[var(--line)] bg-[var(--surface)] px-4"
                     style={{ width: LABEL_WIDTH }}
                   >
                     <span className="text-sm font-bold text-[var(--ink)]">{room.number}</span>
@@ -364,6 +365,7 @@ export default function CalendarPage() {
                 </div>
               );
             })}
+        </div>
         </div>
       )}
 

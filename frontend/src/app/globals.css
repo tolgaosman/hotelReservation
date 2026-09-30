@@ -101,6 +101,19 @@
     color: var(--ink);
   }
 
+  /* iOS Safari zooms the viewport on focus of any input under 16px. */
+  @media (max-width: 639px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+
+  body {
+    overflow-x: clip;
+  }
+
   /* Numeric columns must stay aligned between rows regardless of digit width. */
   table {
     font-variant-numeric: tabular-nums;

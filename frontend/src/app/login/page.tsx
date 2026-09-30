@@ -37,7 +37,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--canvas)] p-4">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[var(--canvas)] p-4">
       {/* Referanstaki mavi bloom'un açık zemin karşılığı: blur'lanmış lacivert auralar. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         {/* Centered via left/margin, not translate-x, so the drift keyframe's own transform doesn't fight the centering. */}
@@ -49,10 +49,10 @@ export default function LoginPage() {
       </div>
 
       <div
-        className="animate-in fade-in slide-in-from-bottom-4 relative w-full max-w-[400px] rounded-[28px] border border-white/80 bg-gradient-to-b from-white/90 to-white/65 p-8 shadow-[var(--shadow-pop)] ring-1 ring-[var(--accent)]/[0.06] backdrop-blur-xl duration-500 [animation-timing-function:var(--ease-organic)]"
+        className="animate-in fade-in slide-in-from-bottom-4 relative w-full max-w-[400px] rounded-[28px] border border-white/80 bg-gradient-to-b from-white/90 to-white/65 p-6 sm:p-8 shadow-[var(--shadow-pop)] ring-1 ring-[var(--accent)]/[0.06] backdrop-blur-xl duration-500 [animation-timing-function:var(--ease-organic)]"
       >
         <div className="mb-8 text-center">
-          <h1 className="text-[34px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">
+          <h1 className="text-3xl sm:text-[34px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)]">
             Giriş Yap
           </h1>
           <p className="mx-auto mt-3 max-w-[300px] text-balance text-sm leading-relaxed text-[var(--muted)]">

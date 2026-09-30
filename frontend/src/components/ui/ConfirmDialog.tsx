@@ -30,7 +30,7 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="animate-in fade-in zoom-in-95 slide-in-from-bottom-2 w-full max-w-sm rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow-pop)] duration-250 [animation-timing-function:var(--ease-organic)]"
+        className="animate-in fade-in zoom-in-95 slide-in-from-bottom-2 w-full max-w-sm rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6 shadow-[var(--shadow-pop)] duration-250 [animation-timing-function:var(--ease-organic)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">
@@ -42,7 +42,7 @@ export function ConfirmDialog({
             <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">{description}</p>
           </div>
         </div>
-        <div className="mt-6 flex justify-end gap-2.5">
+        <div className="mt-6 flex flex-wrap justify-end gap-2.5">
           <Button variant="secondary" size="sm" onClick={onCancel}>
             {cancelLabel}
           </Button>

@@ -105,15 +105,15 @@ export function PaymentsTable({ reservations, onRowClick }: { reservations: Rese
       title="Ödeme Geçmişi"
       subtitle={`${filteredByQuery.length} / ${reservations.length} rezervasyon`}
       action={
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-control)] border border-[var(--line)] bg-[var(--surface-alt)] px-3 py-2">
             <Search size={14} className="text-[var(--muted)]" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Misafir veya oda ara"
-              className="w-40 bg-transparent text-xs text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
+              className="w-full min-w-0 bg-transparent sm:w-40 text-xs text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
             />
           </div>
           <button

@@ -86,7 +86,7 @@ const GuestForm = forwardRef<FormHandle, { guest?: GuestSummary; isCreate: boole
         <FormField label="Ad Soyad" error={fieldError(fieldErrors, "fullName")}>
           <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
         </FormField>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Telefon" error={fieldError(fieldErrors, "phone")}>
             <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           </FormField>

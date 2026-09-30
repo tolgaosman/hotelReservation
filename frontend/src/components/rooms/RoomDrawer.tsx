@@ -267,7 +267,7 @@ const RoomForm = forwardRef<FormHandle, { room?: Room; isCreate: boolean; readOn
                     <img src={selectedType.images[0]} alt={selectedType.name} className="h-full w-full object-cover" />
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-3 text-xs sm:grid-cols-2">
                   <div>
                     <p className="mb-0.5 text-[var(--muted)]">Kapasite</p>
                     <p className="font-medium text-[var(--ink)]">{selectedType.capacity} Kişi</p>

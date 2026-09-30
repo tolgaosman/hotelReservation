@@ -66,7 +66,7 @@ export default function AuditLogsPage() {
     <>
       <Topbar title="Aktivite Kayıtları" subtitle="Sistemde yapılan işlemlerin denetim izi" />
 
-      <main className="flex-1 space-y-6 p-6 lg:p-8">
+      <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         {loading && logs.length === 0 ? (
           <PageSkeleton />
         ) : (
@@ -75,12 +75,12 @@ export default function AuditLogsPage() {
               title="Aktivite Kayıtları"
               subtitle="Sistemde yapılan işlemlerin detaylı denetim ve güvenlik izleri."
               rightContent={
-                <div className="flex items-center rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-sm divide-x divide-[var(--color-line)]">
+                <div className="flex w-full flex-col divide-y divide-[var(--color-line)] overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-sm sm:w-auto sm:flex-row sm:divide-x sm:divide-y-0">
                   <div className="flex flex-col px-4 py-3 bg-[var(--color-surface-alt)]/50 justify-center min-h-full">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-muted)]">Toplam</span>
                     <span className="text-lg font-extrabold text-[var(--color-accent-ink)] leading-none mt-1.5">{total.toLocaleString("tr-TR")}</span>
                   </div>
-                  <div className="flex flex-wrap items-stretch divide-x divide-[var(--color-line)]">
+                  <div className="grid grid-cols-4 gap-px bg-[var(--color-line)] sm:flex sm:flex-wrap sm:items-stretch sm:divide-x sm:divide-[var(--color-line)] sm:gap-0 sm:bg-transparent">
                     {Object.entries({
                       "Reservation": "Rezervasyon",
                       "Payment": "Ödeme",
@@ -93,7 +93,7 @@ export default function AuditLogsPage() {
                     }).map(([type, label]) => {
                       const count = moduleStats[type] || 0;
                       return (
-                        <div key={type} className="flex flex-col items-center justify-center px-4 py-3 text-center">
+                        <div key={type} className="flex flex-col items-center justify-center bg-[var(--color-surface)] px-2 py-3 text-center sm:px-4">
                           <span className="text-[9px] font-semibold text-[var(--color-muted)] uppercase tracking-wider whitespace-nowrap">{label}</span>
                           <span className="text-[13px] font-bold text-[var(--color-ink)] leading-none mt-1.5">{count.toLocaleString("tr-TR")}</span>
                         </div>

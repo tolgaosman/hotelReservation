@@ -28,7 +28,7 @@ export function StatCard({ label, value, delta, context, icon: Icon }: StatCardP
         </span>
       </div>
 
-      <p className="mt-3 text-[32px] leading-none font-bold text-[var(--ink)]">{value}</p>
+      <p className="mt-3 text-2xl sm:text-[32px] leading-none font-bold text-[var(--ink)]">{value}</p>
 
       {(context || delta !== undefined) && (
         <div className="mt-3 flex items-center gap-2 text-xs">

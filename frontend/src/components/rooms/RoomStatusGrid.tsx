@@ -61,7 +61,7 @@ export function RoomStatusGrid({ rooms, reservations, onSelect }: { rooms: Room[
       className="bg-[var(--surface)] shadow-sm relative overflow-hidden"
     >
       <div className="relative mt-2 h-[380px]">
-        <div className="absolute inset-0 overflow-y-auto pb-24 scrollbar-hide">
+        <div className="absolute inset-0 overflow-y-auto pb-28 sm:pb-24 scrollbar-hide">
           <div className="grid grid-cols-6 gap-2.5 sm:grid-cols-8 md:grid-cols-9 lg:grid-cols-11 xl:grid-cols-11">
             {[...rooms].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })).map((room) => {
               const displayNum = room.number.length === 1 ? `0${room.number}` : room.number;
@@ -90,10 +90,10 @@ export function RoomStatusGrid({ rooms, reservations, onSelect }: { rooms: Room[
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[var(--surface)] to-transparent" />
 
         {/* Floating Legend */}
-        <div className="absolute bottom-2 left-2 inline-flex items-center gap-4 rounded-full border border-[var(--line)] bg-[var(--surface-alt)]/90 px-4 py-2.5 shadow-sm backdrop-blur-sm">
+        <div className="absolute bottom-2 left-2 right-2 inline-flex w-fit max-w-[calc(100%-1rem)] flex-wrap items-center gap-x-4 gap-y-1.5 rounded-2xl sm:rounded-full border border-[var(--line)] bg-[var(--surface-alt)]/90 px-4 py-2.5 shadow-sm backdrop-blur-sm">
           <Info size={14} className="text-[var(--muted)]" />
           <div className="h-3.5 w-px bg-[var(--line)]" />
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {LEGEND.map((item) => (
               <div key={item.status} className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted)]">
                 <span className={cn("size-2 rounded-sm", LEGEND_COLORS[item.status])} />

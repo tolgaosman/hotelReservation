@@ -342,14 +342,14 @@ export default function RoomServicePage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col p-6 max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex flex-1 flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full">
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
             <UtensilsCrossed className="text-[var(--accent)]" />
             Oda Servisi
           </h1>
-          <p className="text-[var(--muted)] mt-1">
+          <p className="text-sm sm:text-base text-[var(--muted)] mt-1">
             Konaklayan misafirlerin oda servisi harcamalarını buradan girebilirsiniz.
           </p>
         </div>
@@ -361,7 +361,7 @@ export default function RoomServicePage() {
       {loading.reservations || loading.guests || loading.rooms || loading.payments || loading.roomServices ? (
         <PageSkeleton />
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:block">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 print:block">
         {/* Odalar Listesi */}
         <div className="lg:col-span-2 flex flex-col gap-4 print:hidden">
           <div className="flex items-center gap-2 bg-[var(--surface)] p-3 rounded-xl border border-[var(--line)]">
@@ -380,7 +380,7 @@ export default function RoomServicePage() {
               <div 
                 key={res.id} 
                 onClick={() => setSelectedReservation(res)}
-                className={`relative rounded-xl border p-5 flex flex-col gap-3 cursor-pointer transition-all ${
+                className={`relative rounded-xl border p-4 sm:p-5 flex flex-col gap-3 cursor-pointer transition-all ${
                   selectedReservation?.id === res.id 
                     ? "border-[var(--accent)] bg-[var(--accent)]/5 shadow-md ring-1 ring-[var(--accent)]" 
                     : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--muted)]"
@@ -408,7 +408,7 @@ export default function RoomServicePage() {
 
         {/* Sipariş Ekleme Formu */}
         <div className="lg:col-span-1 print:w-full print:block">
-          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-6 shadow-sm print:shadow-none print:border-none print:p-0">
+          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-4 sm:p-6 shadow-sm print:shadow-none print:border-none print:p-0">
             <h3 className="text-lg font-bold text-[var(--ink)] mb-4 flex items-center gap-2 print:hidden">
               {canCreate && <Plus size={18} className="text-[var(--accent)]"/>}
               {canCreate ? "Yeni Sipariş Ekle" : "Oda Ekstresi"}
@@ -417,8 +417,8 @@ export default function RoomServicePage() {
             {!selectedReservation ? (
               <div className="py-8 text-center text-sm font-medium text-[var(--muted)] bg-[var(--surface-alt)] rounded-xl border border-dashed border-[var(--line)]">
                 {canCreate
-                  ? "Lütfen sipariş girmek için yandaki listeden bir oda seçin."
-                  : "Detayları görüntülemek için yandaki listeden bir oda seçin."}
+                  ? "Lütfen sipariş girmek için listeden bir oda seçin."
+                  : "Detayları görüntülemek için listeden bir oda seçin."}
               </div>
             ) : (
               <>
@@ -523,6 +523,7 @@ export default function RoomServicePage() {
                       </div>
                     ) : (
                       <>
+                        <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                           <thead className="bg-[var(--surface-alt)] text-[var(--muted)] border-b border-[var(--line)]">
                             <tr>
@@ -555,6 +556,7 @@ export default function RoomServicePage() {
                             ))}
                           </tbody>
                         </table>
+                        </div>
                         <div className="flex items-center justify-between border-t border-[var(--line)] bg-[var(--surface-alt)] px-5 py-4">
                           <span className="text-xs font-bold uppercase tracking-wide text-[var(--ink)]">Toplam</span>
                           <span className="text-xl font-black tabular-nums text-[var(--accent)]">₺{statementTotal.toLocaleString('tr-TR')}</span>
@@ -573,7 +575,7 @@ export default function RoomServicePage() {
       {/* Menu Modal */}
       {isMenuOpen && (
         <div className="fixed inset-0 bg-[var(--ink)]/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 print:hidden">
-          <div className="bg-[var(--surface)] w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl shadow-xl overflow-hidden border border-[var(--line)]">
+          <div className="bg-[var(--surface)] w-full max-w-2xl max-h-[85dvh] sm:max-h-[80vh] flex flex-col rounded-2xl shadow-xl overflow-hidden border border-[var(--line)]">
             <div className="p-4 border-b border-[var(--line)] flex items-center justify-between bg-[var(--surface-alt)]">
               <h3 className="text-lg font-bold text-[var(--ink)] flex items-center gap-2">
                 <UtensilsCrossed size={18} className="text-[var(--accent)]"/> 
@@ -586,12 +588,12 @@ export default function RoomServicePage() {
             
             <div className="flex flex-1 overflow-hidden">
               {/* Categories Sidebar */}
-              <div className="w-1/3 bg-[var(--surface-alt)] border-r border-[var(--line)] flex flex-col">
+              <div className="w-2/5 sm:w-1/3 shrink-0 overflow-y-auto bg-[var(--surface-alt)] border-r border-[var(--line)] flex flex-col">
                 {MENU_DATA.map(category => (
                   <button 
                     key={category.category}
                     onClick={() => setActiveCategory(category.category)}
-                    className={`text-left px-4 py-3 text-sm font-semibold transition-colors border-l-4 ${
+                    className={`text-left px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold transition-colors border-l-4 ${
                       activeCategory === category.category 
                         ? "bg-[var(--surface)] border-[var(--accent)] text-[var(--accent)]" 
                         : "border-transparent text-[var(--muted)] hover:bg-[var(--line)]"
@@ -603,7 +605,7 @@ export default function RoomServicePage() {
               </div>
               
               {/* Items List */}
-              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[var(--canvas)]">
+              <div className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-4 custom-scrollbar bg-[var(--canvas)]">
                 <div className="grid grid-cols-1 gap-2">
                   {MENU_DATA.find(c => c.category === activeCategory)?.items.map(item => {
                     const selected = selectedMenuItems.find(i => i.id === item.id);
@@ -611,14 +613,14 @@ export default function RoomServicePage() {
                     return (
                       <div 
                         key={item.id} 
-                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                        className={`flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border transition-colors ${
                           quantity > 0 ? "bg-[var(--accent)]/10 border-[var(--accent)]" : "bg-[var(--surface)] border-[var(--line)] hover:border-[var(--muted)]"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-semibold text-sm text-[var(--ink)]">{item.name}</span>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4">
                           <span className="font-bold text-[var(--ok)] text-sm">₺{item.price.toLocaleString('tr-TR')}</span>
                           <div className="flex items-center gap-1.5">
                             {quantity > 0 ? (
@@ -642,7 +644,7 @@ export default function RoomServicePage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-[var(--line)] bg-[var(--surface)] flex items-center justify-between">
+            <div className="p-4 border-t border-[var(--line)] bg-[var(--surface)] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm font-semibold text-[var(--ink)]">
                 Seçilen Ürün Çeşidi: <span className="text-[var(--accent)]">{selectedMenuItems.length}</span>
                 {selectedMenuItems.length > 0 && (
@@ -651,7 +653,7 @@ export default function RoomServicePage() {
                   </span>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
                 <button 
                   onClick={() => { setIsMenuOpen(false); setSelectedMenuItems([]); }}
                   className="px-4 py-2 rounded-lg text-sm font-bold border border-[var(--line)] hover:bg-[var(--surface-alt)]"

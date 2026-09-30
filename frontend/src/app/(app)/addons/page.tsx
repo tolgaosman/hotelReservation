@@ -113,14 +113,14 @@ export default function AddonsPage() {
   if (loading) return <PageSkeleton />;
 
   return (
-    <div className="flex flex-1 flex-col p-6 max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex flex-1 flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--ink)] flex items-center gap-2">
             <Sparkles className="text-[var(--accent)]" />
             Ekstra Hizmetler
           </h1>
-          <p className="text-[var(--muted)] mt-1">
+          <p className="text-sm sm:text-base text-[var(--muted)] mt-1">
             Misafirlere sunulacak ek paketleri, transferleri ve hizmetleri yönetin.
           </p>
         </div>
@@ -149,13 +149,13 @@ export default function AddonsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAddons.map(addon => (
-            <div key={addon.id} className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-3 relative group">
+            <div key={addon.id} className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col gap-3 relative group">
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-bold text-[var(--ink)] text-lg">{addon.name}</h3>
                   <p className="text-sm text-[var(--muted)] line-clamp-2 mt-1 min-h-[40px]">{addon.description || "Açıklama yok"}</p>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                   {canEdit && (
                     <button onClick={() => openEditModal(addon)} className="p-2 bg-[var(--surface-alt)] hover:bg-[var(--line)] text-[var(--ink)] rounded-lg transition-colors">
                       <Edit size={16} />
@@ -187,7 +187,7 @@ export default function AddonsPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-[var(--ink)]/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] w-full max-w-lg rounded-2xl shadow-xl overflow-hidden border border-[var(--line)]">
+          <div className="bg-[var(--surface)] w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl shadow-xl border border-[var(--line)]">
             <div className="p-5 border-b border-[var(--line)] flex items-center justify-between bg-[var(--surface-alt)]">
               <h3 className="text-lg font-bold text-[var(--ink)]">{editingAddon ? "Hizmeti Düzenle" : "Yeni Hizmet Ekle"}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-[var(--muted)] hover:text-[var(--ink)]">
@@ -244,7 +244,7 @@ export default function AddonsPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 justify-end mt-4 pt-4 border-t border-[var(--line)]">
+              <div className="flex flex-wrap gap-2 justify-end mt-4 pt-4 border-t border-[var(--line)]">
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}

@@ -120,7 +120,7 @@ const ReservationForm = forwardRef<
         </FormField>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Giriş Tarihi" error={fieldError(fieldErrors, "checkIn")}>
           <Input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
         </FormField>

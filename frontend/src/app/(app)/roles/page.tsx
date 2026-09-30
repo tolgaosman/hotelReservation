@@ -38,7 +38,7 @@ function RoleCard({
       }
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-[var(--accent-soft)] text-[var(--accent-ink)]">
             <Icon size={16} />
           </span>
@@ -47,7 +47,7 @@ function RoleCard({
         {!role.isSystem && canDelete && (
           <button
             onClick={onDelete}
-            className="text-[var(--muted)] opacity-0 transition-opacity hover:text-[var(--crit)] group-hover:opacity-100"
+            className="text-[var(--muted)] transition-opacity hover:text-[var(--crit)] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
             title="Rolü Sil"
           >
             <Trash2 size={15} />
@@ -125,7 +125,7 @@ export default function RolesPage() {
         }
       />
 
-      <main className="flex-1 space-y-8 p-6 lg:p-8">
+      <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
         {loading ? (
           <PageSkeleton />
         ) : !hasAnyRoles ? (

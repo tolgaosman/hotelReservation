@@ -35,7 +35,7 @@ export function RoomTypeCard({
         {canDelete && (
           <button
             onClick={onDelete}
-            className="text-[var(--muted)] opacity-0 transition-opacity hover:text-[var(--crit)] group-hover:opacity-100"
+            className="text-[var(--muted)] transition-opacity hover:text-[var(--crit)] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
             title="Oda Tipini Sil"
           >
             <Trash2 size={15} />

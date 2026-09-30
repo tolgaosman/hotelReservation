@@ -50,11 +50,11 @@ export function ReservationsByCountryCard({ total, countries }: { total: number;
   return (
     <Card padded={false}>
       {countries.length === 0 ? (
-        <div className="px-6 py-6">
+        <div className="px-4 py-4 sm:px-6 sm:py-6">
           <EmptyState icon={Globe2} title="Henüz rezervasyon verisi yok" description="Rezervasyonlar oluşturuldukça ülke dağılımı burada görünecek." />
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row p-6">
+        <div className="flex flex-col lg:flex-row p-4 sm:p-6">
           <div className="flex min-w-0 flex-1 flex-col gap-4 pb-6 lg:pb-0 lg:pr-6">
             <div className="flex flex-col gap-0.5">
               <h3 className="text-base font-bold tracking-tight text-[var(--color-ink)]">Ülkelere Göre Rezervasyonlar</h3>
@@ -95,7 +95,7 @@ export function ReservationsByCountryCard({ total, countries }: { total: number;
                 )}
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] text-[var(--muted)] mt-auto">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)] mt-auto">
               <span>Az</span>
               <span className="size-2.5 rounded-sm" style={{ backgroundColor: "var(--geo-0)" }} />
               {GEO_RAMP.map((color) => (
@@ -112,7 +112,7 @@ export function ReservationsByCountryCard({ total, countries }: { total: number;
           <div className="flex w-full shrink-0 flex-col border-t border-[var(--color-line)] pt-6 lg:w-96 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
             <p className="text-[11px] font-semibold tracking-[0.04em] text-[var(--muted)] uppercase">Toplam Rezervasyon</p>
             <p className="mt-1 text-3xl font-bold tabular-nums text-[var(--ink)]">{total.toLocaleString("tr-TR")}</p>
-            <div className="mt-4 max-h-[340px] overflow-y-auto pr-6 lg:max-h-[440px]">
+            <div className="mt-4 max-h-[340px] overflow-y-auto pr-2 sm:pr-6 lg:max-h-[440px]">
               <div className="flex flex-col">
                 {countries.filter(c => c.percent > 0).map((c) => (
                   <div

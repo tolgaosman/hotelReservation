@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { StoreProvider, useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
@@ -76,6 +77,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   // the server-rendered markup) and flips in an effect after mount to avoid
   // a hydration mismatch.
   const [hasToken, setHasToken] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     setHasToken(!!getStoredToken());
@@ -96,8 +103,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <StoreProvider>
       <div className="flex min-h-screen bg-[var(--canvas)]">
-        <Sidebar />
+        <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
         <div className="flex min-w-0 flex-1 flex-col">
+          <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--line)] bg-[var(--surface)] px-4 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setNavOpen(true)}
+              aria-label="Menüyü aç"
+              className="-ml-2 flex size-10 items-center justify-center rounded-[var(--radius-control)] text-[var(--ink)] transition-[transform,background-color] duration-200 [transition-timing-function:var(--ease-organic)] hover:bg-[var(--surface-alt)] active:scale-95"
+            >
+              <Menu size={20} />
+            </button>
+            <img src="/site%20logo.png" alt="Logo" className="h-7 w-auto object-contain" />
+          </div>
           <StoreLoadGate>
             <RouteGuard>{children}</RouteGuard>
           </StoreLoadGate>

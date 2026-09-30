@@ -78,7 +78,7 @@ const EmployeeForm = forwardRef<FormHandle, { employee?: Employee; isCreate: boo
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Örn. Ayşe Yıldız" />
         </FormField>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Meslek" error={fieldError(fieldErrors, "profession")}>
             <Select value={profession} onChange={(e) => setProfession(e.target.value)}>
               {PROFESSIONS.map((p) => (
@@ -100,7 +100,7 @@ const EmployeeForm = forwardRef<FormHandle, { employee?: Employee; isCreate: boo
           </FormField>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="E-posta" error={fieldError(fieldErrors, "email")}>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@hotel.test" />
           </FormField>
@@ -109,7 +109,7 @@ const EmployeeForm = forwardRef<FormHandle, { employee?: Employee; isCreate: boo
           </FormField>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="İşe Başlama Tarihi" error={fieldError(fieldErrors, "hireDate")}>
             <Input type="date" value={hireDate} onChange={(e) => setHireDate(e.target.value)} />
           </FormField>

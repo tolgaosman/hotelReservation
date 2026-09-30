@@ -177,7 +177,7 @@ export default function DashboardPage() {
         title="Panel" 
         subtitle="Otelin bugünkü genel durumu" 
         action={
-          <div className="z-50 relative flex items-center gap-2">
+          <div className="relative z-20 flex items-center gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
               Veri Periyodu:
             </span>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
         }
       />
 
-      <main className="relative flex-1 overflow-hidden p-6 lg:p-8">
+      <main className="relative flex-1 overflow-hidden p-4 sm:p-6 lg:p-8">
         {/* Decorative background wash for Hero Banner vibe. Three stacked
             `blur-3xl` layers each force the compositor to re-rasterize a
             500-800px region on every repaint underneath them (map hover,
@@ -238,17 +238,17 @@ export default function DashboardPage() {
               {showTopRow && (
                 <div className="flex flex-wrap gap-6">
                   {hasPermission("dashboard.widget_room_availability") && (
-                    <div className="min-w-[260px] flex-1 basis-72 [&>*]:h-full">
+                    <div className="min-w-0 flex-1 basis-full sm:basis-72 [&>*]:h-full">
                       <RoomAvailabilityCard stats={roomStats} />
                     </div>
                   )}
                   {hasPermission("dashboard.widget_revenue") && (
-                    <div className="min-w-[380px] flex-[2] basis-[26rem] [&>*]:h-full">
+                    <div className="min-w-0 flex-[2] basis-full lg:basis-[26rem] [&>*]:h-full">
                       <RevenueCard store={state} days={effectiveDays} subtitle={labelsMap[timeFilter]} />
                     </div>
                   )}
                   {hasPermission("dashboard.widget_status_donut") && (
-                    <div className="min-w-[260px] flex-1 basis-72 [&>*]:h-full">
+                    <div className="min-w-0 flex-1 basis-full sm:basis-72 [&>*]:h-full">
                       <ReservationStatusDonut rows={statusRows} />
                     </div>
                   )}
