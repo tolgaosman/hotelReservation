@@ -69,9 +69,14 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
 });
 
 Route::get('/seeder-logs', function () {
-    $path = storage_path('logs/seeder_error.log');
-    if (!file_exists($path)) {
-        return response('No seeder error log found. ' . \App\Models\User::count() . ' users in DB.', 200)->header('Content-Type', 'text/plain');
-    }
-    return response(file_get_contents($path))->header('Content-Type', 'text/plain');
+    $errorPath = storage_path('logs/seeder_error.log');
+    $outputPath = storage_path('logs/seeder_output.log');
+    
+    $response = "Users in DB: " . \App\Models\User::count() . "\n\n";
+    $response .= "--- ERROR LOG ---\n";
+    $response .= file_exists($errorPath) ? file_get_contents($errorPath) : "No error log.\n";
+    $response .= "\n--- OUTPUT LOG ---\n";
+    $response .= file_exists($outputPath) ? file_get_contents($outputPath) : "No output log.\n";
+    
+    return response($response)->header('Content-Type', 'text/plain');
 });
