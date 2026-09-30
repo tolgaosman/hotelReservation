@@ -7,6 +7,10 @@ set -e
 # is what guarantees MySQL is already up by the time this runs.
 if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
   php artisan migrate --force
+  
+  # Automatically seed the database if it's completely empty (e.g. fresh deployment)
+  php artisan tinker --execute="if(\App\Models\User::count()===0) { echo 'Database empty. Seeding mock dataset...'; \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]); }" || true
+
   php artisan config:cache
 fi
 
